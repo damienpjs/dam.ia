@@ -1,5 +1,53 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Stack technique
+
+- **Next.js 16** — framework React (App Router)
+- **React 19** — UI
+- **TypeScript 5** — typage statique
+- **Tailwind CSS 4** — styles
+- **Vitest** — tests unitaires (seuil de couverture : 95%)
+- **@testing-library/react** — utilitaires de test React
+
+## Installation
+
+```bash
+npm install
+```
+
+## Scripts disponibles
+
+| Commande | Description |
+|---|---|
+| `npm run dev` | Lance le serveur de développement |
+| `npm run build` | Build de production |
+| `npm run start` | Lance le serveur de production |
+| `npm run lint` | Vérifie le code avec ESLint |
+| `npm run test` | Lance les tests en mode watch |
+| `npm run test:ci` | Lance les tests avec coverage (mode CI) |
+| `npm run coverage` | Génère le rapport de couverture dans `./coverage/` |
+
+## Architecture
+
+```
+src/
+  app/              # Pages Next.js (App Router)
+  components/
+    features/       # Composants métier (ex: AnimatedBackground)
+    ui/             # Composants génériques (ex: Button)
+  lib/              # Utilitaires partagés
+  tests/            # Tests unitaires (miroir de src/)
+```
+
+## Tests et couverture
+
+Les tests sont écrits avec **Vitest** + **@testing-library/react**.  
+Le seuil de couverture est fixé à **95%** sur l'ensemble des métriques (lignes, fonctions, branches, instructions).
+
+Le rapport HTML de couverture est généré dans `./coverage/index.html` après `npm run coverage`.
+
+> **Note :** `animated-background.tsx` est exclu de la couverture car il utilise l'API Canvas, non disponible dans jsdom.
+
 ## Getting Started
 
 First, run the development server:

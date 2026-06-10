@@ -63,6 +63,15 @@ type Size = "sm" | "md" | "lg"
 - **Modification d'un fichier existant** → mettre à jour les tests existants et en ajouter si de nouveaux comportements sont introduits
 - **Suppression d'une fonction/export** → supprimer les tests correspondants
 
+### Détection du code mort
+
+**Toute modification ou suppression de code doit être accompagnée d'une analyse du code mort induit.**
+
+- Après chaque modification, identifier : fichiers/composants/fonctions qui ne sont plus importés ou référencés nulle part
+- Signaler explicitement le code mort détecté au developer en listant les fichiers concernés
+- Demander confirmation avant suppression : *"Les fichiers suivants semblent inutilisés suite à cette modification : X, Y. Souhaites-tu les supprimer ?"*
+- Si la confirmation est positive, supprimer également les fichiers de test miroirs associés
+
 ### Emplacement des tests
 
 ```

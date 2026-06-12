@@ -48,7 +48,7 @@ export default function Home() {
       </div>
 
       {/* Chat — slide in depuis le bas */}
-      <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col transition-all duration-500 ease-out ${chatOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
+      <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-all duration-500 ease-out ${chatOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
         {/* Header */}
         <header className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
           <div className="mx-auto flex max-w-3xl items-center justify-between">

@@ -45,16 +45,27 @@ export function ChatInterface() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isInitialMount = useRef(true)
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      // Premier rendu : scroll en haut pour voir le début de la conversation
+      isInitialMount.current = false
+      messagesContainerRef.current?.scrollTo?.({ top: 0 })
+      return
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isTyping, isStreaming])
 
-  // Auto-focus le textarea au montage
+  // Auto-focus le textarea au montage (sauf mobile pour éviter le scroll causé par le clavier virtuel)
   useEffect(() => {
-    textareaRef.current?.focus()
+    const isMobile = typeof window !== "undefined" && window.matchMedia?.("(max-width: 640px)").matches
+    if (!isMobile) {
+      textareaRef.current?.focus()
+    }
   }, [])
 
   // Cleanup abort controller on unmount
@@ -163,9 +174,9 @@ export function ChatInterface() {
   const remainingSuggestions = SUGGESTIONS.filter((s) => !usedSuggestions.has(s))
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden font-[family-name:var(--font-chat)]">
+    <div className="flex flex-1 flex-col overflow-hidden overflow-x-hidden font-[family-name:var(--font-chat)]">
       {/* Zone de messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-6">
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} isStreaming={message.id === streamingMessageId} />
@@ -196,8 +207,8 @@ export function ChatInterface() {
       </div>
 
       {/* Barre de saisie */}
-      <div className="border-t border-border bg-background/60 p-4 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
+      <div className="border-t border-border bg-background/60 p-2 sm:p-4 backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl items-end gap-2 overflow-hidden">
           <textarea
             ref={textareaRef}
             value={input}
@@ -208,7 +219,7 @@ export function ChatInterface() {
             rows={1}
             aria-label="Message à envoyer"
             className={cn(
-              "flex-1 resize-none rounded-xl border border-border bg-input/30 px-4 py-2",
+              "min-w-0 flex-1 resize-none rounded-xl border border-border bg-input/30 px-3 sm:px-4 py-2",
               "text-sm text-foreground placeholder:text-muted-foreground",
               "max-h-32 min-h-9 overflow-y-hidden leading-relaxed backdrop-blur-sm",
               "[&:not(:focus)]:overflow-hidden",

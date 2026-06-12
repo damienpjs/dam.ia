@@ -6,6 +6,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - **React 19** — UI
 - **TypeScript 5** — typage statique
 - **Tailwind CSS 4** — styles
+- **shadcn/ui** — composants UI
+- **Plus Jakarta Sans** — typographie principale (Google Fonts)
+- **Lucide React** — icônes
 - **Vitest** — tests unitaires (seuil de couverture : 95%)
 - **@testing-library/react** — utilitaires de test React
 
@@ -17,14 +20,14 @@ npm install
 
 ## Scripts disponibles
 
-| Commande | Description |
-|---|---|
-| `npm run dev` | Lance le serveur de développement |
-| `npm run build` | Build de production |
-| `npm run start` | Lance le serveur de production |
-| `npm run lint` | Vérifie le code avec ESLint |
-| `npm run test` | Lance les tests en mode watch |
-| `npm run test:ci` | Lance les tests avec coverage (mode CI) |
+| Commande           | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `npm run dev`      | Lance le serveur de développement                  |
+| `npm run build`    | Build de production                                |
+| `npm run start`    | Lance le serveur de production                     |
+| `npm run lint`     | Vérifie le code avec ESLint                        |
+| `npm run test`     | Lance les tests en mode watch                      |
+| `npm run test:ci`  | Lance les tests avec coverage (mode CI)            |
 | `npm run coverage` | Génère le rapport de couverture dans `./coverage/` |
 
 ## Architecture
@@ -33,9 +36,9 @@ npm install
 src/
   app/              # Pages Next.js (App Router)
   components/
-    features/       # Composants métier (ex: AnimatedBackground)
-    ui/             # Composants génériques (ex: Button)
-  lib/              # Utilitaires partagés
+    features/       # Composants métier (AnimatedBackground, ChatInterface, MessageBubble)
+    ui/             # Composants génériques (Button)
+  lib/              # Utilitaires partagés (utils, mock-responses)
   tests/            # Tests unitaires (miroir de src/)
 ```
 

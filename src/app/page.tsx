@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { AnimatedBackground } from "@/components/features/animated-background"
+import { ChatInterface } from "@/components/features/chat-interface"
 
 export default function Home() {
   const [chatOpen, setChatOpen] = useState(false)
@@ -50,22 +51,7 @@ export default function Home() {
         </header>
 
         {/* Zone de chat */}
-        <main className="flex flex-1 flex-col items-center justify-center p-4">
-          <div className="text-center">
-            <p className="mb-4 text-zinc-400">Le chat sera bientôt disponible !</p>
-            <p className="text-sm text-zinc-500">Phase 2 : Interface Chat UI</p>
-          </div>
-        </main>
-
-        {/* Input */}
-        <footer className="border-t border-white/10 bg-background/60 p-4 backdrop-blur-md">
-          <div className="mx-auto flex max-w-3xl gap-2">
-            <input type="text" placeholder="Écris ton message..." disabled className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 placeholder:text-zinc-600 backdrop-blur-sm" />
-            <Button disabled className="bg-gradient-to-r from-violet-600 to-orange-500 text-white shadow-lg shadow-violet-900/30 hover:from-violet-700 hover:to-orange-600 disabled:opacity-50">
-              Envoyer
-            </Button>
-          </div>
-        </footer>
+        <ChatInterface />
       </div>
     </>
   )

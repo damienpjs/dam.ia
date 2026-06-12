@@ -68,4 +68,31 @@ describe("MessageBubble", () => {
     const avatar = container.querySelector("[aria-hidden='true']")
     expect(avatar).toHaveClass("from-violet-500")
   })
+
+  it("affiche le skeleton quand le message assistant est vide et en streaming", () => {
+    const emptyMessage: IMessage = { id: "3", role: "assistant", content: "", createdAt: new Date() }
+    render(<MessageBubble message={emptyMessage} isStreaming />)
+    expect(screen.getByTestId("streaming-skeleton")).toBeInTheDocument()
+  })
+
+  it("n'affiche pas le skeleton pour un message assistant avec du contenu en streaming", () => {
+    render(<MessageBubble message={assistantMessage} isStreaming />)
+    expect(screen.queryByTestId("streaming-skeleton")).not.toBeInTheDocument()
+  })
+
+  it("affiche le curseur clignotant pendant le streaming avec du contenu", () => {
+    render(<MessageBubble message={assistantMessage} isStreaming />)
+    expect(screen.getByTestId("streaming-cursor")).toBeInTheDocument()
+  })
+
+  it("n'affiche pas le curseur quand le streaming est terminé", () => {
+    render(<MessageBubble message={assistantMessage} />)
+    expect(screen.queryByTestId("streaming-cursor")).not.toBeInTheDocument()
+  })
+
+  it("n'affiche pas le skeleton pour un message utilisateur vide en streaming", () => {
+    const emptyUserMsg: IMessage = { id: "4", role: "user", content: "", createdAt: new Date() }
+    render(<MessageBubble message={emptyUserMsg} isStreaming />)
+    expect(screen.queryByTestId("streaming-skeleton")).not.toBeInTheDocument()
+  })
 })

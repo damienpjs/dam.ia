@@ -4,14 +4,14 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
-import { getMockResponse } from "@/lib/mock-responses"
+import { streamChat } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
-
-export const MOCK_DELAY_MS = 800
 
 function generateId(): string {
   return crypto.randomUUID()
 }
+
+const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?", "Tu es disponible ?"]
 
 function TypingIndicator() {
   return (
@@ -33,7 +33,7 @@ function TypingIndicator() {
 const WELCOME_MESSAGE: IMessage = {
   id: "welcome",
   role: "assistant",
-  content: "Bonjour ! 👋 Je suis l'IA de Damien. Pose-moi tes questions sur son parcours, ses compétences ou ses projets.",
+  content: "Bonjour ! 👋 Je suis Damien Pasulj, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
   createdAt: new Date(),
 }
 
@@ -41,45 +41,98 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<IMessage[]>([WELCOME_MESSAGE])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
+  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isTyping])
+  }, [messages, isTyping, isStreaming])
+
+  // Auto-focus le textarea au montage
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
 
   const handleResize = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget
     el.style.height = "auto"
-    el.style.height = `${el.scrollHeight}px`
+    const maxHeight = 128 // 8rem = 32 * 4 = 128px (max-h-32)
+    const newHeight = Math.min(el.scrollHeight, maxHeight)
+    el.style.height = `${newHeight}px`
+    // Afficher la scrollbar seulement si le contenu dépasse max-height
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden"
   }, [])
 
-  const sendMessage = useCallback(async () => {
-    const content = input.trim()
-    if (!content || isTyping) return
+  const sendMessage = useCallback(
+    async (overrideContent?: string) => {
+      const content = overrideContent ?? input.trim()
+      if (!content || isTyping || isStreaming) return
 
-    const userMessage: IMessage = {
-      id: generateId(),
-      role: "user",
-      content,
-      createdAt: new Date(),
-    }
+      const userMessage: IMessage = {
+        id: generateId(),
+        role: "user",
+        content,
+        createdAt: new Date(),
+      }
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsTyping(true)
+      setMessages((prev) => [...prev, userMessage])
+      setInput("")
+      setIsTyping(true)
 
-    await new Promise<void>((resolve) => setTimeout(resolve, MOCK_DELAY_MS))
+      // Créer le message assistant vide pour le streaming
+      const assistantMessageId = generateId()
+      const assistantMessage: IMessage = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        createdAt: new Date(),
+      }
 
-    const assistantMessage: IMessage = {
-      id: generateId(),
-      role: "assistant",
-      content: getMockResponse(content),
-      createdAt: new Date(),
-    }
+      // Petit délai avant de commencer le stream (effet naturel)
+      await new Promise<void>((resolve) => setTimeout(resolve, 300))
 
-    setMessages((prev) => [...prev, assistantMessage])
-    setIsTyping(false)
-  }, [input, isTyping])
+      setMessages((prev) => [...prev, assistantMessage])
+      setIsTyping(false)
+      setIsStreaming(true)
+      setStreamingMessageId(assistantMessageId)
+
+      // Créer un AbortController pour pouvoir annuler la requête
+      abortControllerRef.current = new AbortController()
+
+      await streamChat(content, {
+        signal: abortControllerRef.current.signal,
+        onChunk: (char) => {
+          setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: msg.content + char } : msg)))
+        },
+        onComplete: () => {
+          setIsStreaming(false)
+          setStreamingMessageId(null)
+          abortControllerRef.current = null
+          textareaRef.current?.focus()
+        },
+        onError: (error) => {
+          console.error("Erreur stream chat:", error)
+          setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: "Désolé, une erreur est survenue. Réessaie !" } : msg)))
+          setIsStreaming(false)
+          setStreamingMessageId(null)
+          abortControllerRef.current = null
+          textareaRef.current?.focus()
+        },
+      })
+    },
+    [input, isTyping, isStreaming],
+  )
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -99,14 +152,44 @@ export function ChatInterface() {
     void sendMessage()
   }, [sendMessage])
 
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      setUsedSuggestions((prev) => new Set(prev).add(suggestion))
+      void sendMessage(suggestion)
+    },
+    [sendMessage],
+  )
+
+  const remainingSuggestions = SUGGESTIONS.filter((s) => !usedSuggestions.has(s))
+
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden font-[family-name:var(--font-chat)]">
       {/* Zone de messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble key={message.id} message={message} isStreaming={message.id === streamingMessageId} />
           ))}
+
+          {/* Suggestions de questions */}
+          {remainingSuggestions.length > 0 && !isTyping && !isStreaming && (
+            <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
+              <p className="text-xs text-muted-foreground">Suggestions :</p>
+              <div className="flex flex-wrap gap-2">
+                {remainingSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-foreground"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {isTyping && <TypingIndicator />}
           <div ref={messagesEndRef} aria-hidden="true" />
         </div>
@@ -116,26 +199,26 @@ export function ChatInterface() {
       <div className="border-t border-border bg-background/60 p-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={handleChange}
             onInput={handleResize}
             onKeyDown={handleKeyDown}
             placeholder="Écris ton message…"
             rows={1}
-            disabled={isTyping}
             aria-label="Message à envoyer"
             className={cn(
-              "flex-1 resize-none rounded-xl border border-border bg-input/30 px-4 py-3",
+              "flex-1 resize-none rounded-xl border border-border bg-input/30 px-4 py-2",
               "text-sm text-foreground placeholder:text-muted-foreground",
-              "max-h-32 overflow-y-auto leading-relaxed backdrop-blur-sm",
+              "max-h-32 min-h-9 overflow-y-hidden leading-relaxed backdrop-blur-sm",
+              "[&:not(:focus)]:overflow-hidden",
               "focus:outline-none focus:ring-2 focus:ring-ring/50",
-              "disabled:cursor-not-allowed disabled:opacity-50",
             )}
           />
           <Button
             size="icon-lg"
             onClick={handleSendClick}
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim() || isTyping || isStreaming}
             aria-label="Envoyer"
             className="shrink-0 bg-gradient-to-br from-violet-600 to-violet-700 text-white shadow-md shadow-violet-900/20 hover:from-violet-700 hover:to-violet-800 disabled:opacity-40"
           >

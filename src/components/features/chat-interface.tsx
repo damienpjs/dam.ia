@@ -11,12 +11,12 @@ function generateId(): string {
   return crypto.randomUUID()
 }
 
-const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?", "Tu es disponible ?"]
+const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"]
 
 function TypingIndicator() {
   return (
     <div data-testid="typing-indicator" className="flex items-end gap-3">
-      <div aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-orange-400 text-xs font-semibold text-white select-none">
+      <div aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-xs font-semibold text-white select-none">
         AI
       </div>
       <div className="rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3">
@@ -33,7 +33,7 @@ function TypingIndicator() {
 const WELCOME_MESSAGE: IMessage = {
   id: "welcome",
   role: "assistant",
-  content: "Bonjour ! 👋 Je suis Damien Pasulj, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
+  content: "👋 Je suis Damien Pasulj, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
   createdAt: new Date(),
 }
 
@@ -181,7 +181,7 @@ export function ChatInterface() {
                     key={suggestion}
                     type="button"
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-violet-500/50 hover:bg-violet-500/10 hover:text-foreground"
+                    className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-[#F9B288]/50 hover:bg-[#F9B288]/10 hover:text-foreground"
                   >
                     {suggestion}
                   </button>
@@ -220,7 +220,7 @@ export function ChatInterface() {
             onClick={handleSendClick}
             disabled={!input.trim() || isTyping || isStreaming}
             aria-label="Envoyer"
-            className="shrink-0 bg-gradient-to-br from-violet-600 to-violet-700 text-white shadow-md shadow-violet-900/20 hover:from-violet-700 hover:to-violet-800 disabled:opacity-40"
+            className="shrink-0 bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white shadow-md shadow-[#F9B288]/20 hover:from-[#D99060] hover:to-[#E8A070] disabled:opacity-40"
           >
             <Send className="size-4" />
           </Button>

@@ -2,8 +2,46 @@
 
 import { useEffect, useRef } from "react"
 
-const RIBBON_COUNT = 7
-const PARTICLE_COUNT = 90
+const PARTICLE_COUNT = 900
+const ORB_COUNT = 7
+
+// Palette pastel centrée sur #F9B288 — pêche, sable, lavande, crème, rose
+const COLORS: [number, number, number][] = [
+  [249, 178, 136], // #F9B288 — pêche principal
+  [245, 195, 160], // pêche clair
+  [235, 160, 120], // pêche soutenu
+  [220, 185, 175], // sable rosé
+  [195, 170, 205], // lavande douce
+  [240, 210, 190], // crème chaud
+  [215, 165, 175], // rose poudré
+]
+
+type TParticle = {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  size: number
+  colorIndex: number
+  baseOpacity: number
+  pulseSpeed: number
+  pulseOffset: number
+  driftPhase: number
+  driftSpeed: number
+}
+
+type TOrb = {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  radius: number
+  blur: number
+  color: [number, number, number]
+  baseOpacity: number
+  pulseSpeed: number
+  pulseOffset: number
+}
 
 export function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -22,149 +60,122 @@ export function AnimatedBackground() {
       canvas.height = window.innerHeight
     }
 
-    // Respiration avec rotation dynamique intégrée :
-    // - amplitude globale qui respire (basses fréquences)
-    // - décalage de phase qui évolue → la "forme" tourne lentement, de façon non-périodique
-    const breathe = (time: number): number => {
-      // Phase shift lent et apériodique → la rotation n'est jamais au même niveau
-      const phaseShift = 0.4 * Math.sin(time * 0.07) + 0.25 * Math.sin(time * 0.031 + 1.1)
-      return 0.42 + 0.3 * Math.sin(time + phaseShift) + 0.16 * Math.sin(time * 1.618 + 0.8 + phaseShift * 0.6) + 0.12 * Math.sin(time * 0.382 + 2.1 + phaseShift * 1.4)
+    const W = () => canvas.width || window.innerWidth
+    const H = () => canvas.height || window.innerHeight
+
+    // Distribution gaussienne (Box-Muller) pour spawn centré
+    const gaussRandom = (): number => {
+      const u1 = Math.random()
+      const u2 = Math.random()
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
     }
 
-    // Rotation globale de la scène : lente, avec accélération variable
-    const sceneRotation = (time: number): number => time * 0.00035 + 0.15 * Math.sin(time * 0.019) + 0.08 * Math.sin(time * 0.041 + 0.7)
-
-    type TRibbon = {
-      baseRadius: number
-      angularOffset: number
-      rotSpeed: number
-      spanSeed: number
-      colorPhase: number
-      lineWidth: number
-      blurRadius: number
+    const createParticle = (): TParticle => {
+      const w = W()
+      const h = H()
+      return {
+        x: w / 2 + gaussRandom() * w * 0.15,
+        y: h / 2 + gaussRandom() * h * 0.15,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        size: 0.3 + Math.random() * 1.1,
+        colorIndex: Math.floor(Math.random() * COLORS.length),
+        baseOpacity: 0.1 + Math.random() * 0.35,
+        pulseSpeed: 0.004 + Math.random() * 0.012,
+        pulseOffset: Math.PI * 0.3 + Math.random() * Math.PI * 0.4,
+        driftPhase: Math.random() * Math.PI * 2,
+        driftSpeed: 0.003 + Math.random() * 0.008,
+      }
     }
 
-    const ribbons: TRibbon[] = Array.from({ length: RIBBON_COUNT }, (_, i) => ({
-      baseRadius: 80 + i * 28 + Math.sin(i * 2.3) * 18,
-      angularOffset: (i / RIBBON_COUNT) * Math.PI * 2,
-      rotSpeed: 0.0008 * (i % 2 === 0 ? 1 : -1) * (1 + i * 0.15),
-      spanSeed: i * 1.618,
-      colorPhase: (i / RIBBON_COUNT) * Math.PI * 2,
-      lineWidth: 1.5 + (i % 3) * 0.8,
-      blurRadius: 8 + (i % 4) * 6,
-    }))
-
-    // --- Particules ---
-    type TParticle = {
-      angle: number // angle orbital courant
-      radius: number // rayon orbital
-      size: number // taille du point
-      speed: number // vitesse angulaire
-      colorPhase: number // décalage de couleur
-      opacity: number // opacité de base
-      // vie / clignotement
-      life: number // 0..1
-      lifeSpeed: number // vitesse de cycle de vie
-    }
-
-    const spawnParticle = (i: number): TParticle => ({
-      angle: Math.random() * Math.PI * 2,
-      radius: 40 + Math.random() * 260,
-      size: 0.8 + Math.random() * 2.2,
-      speed: (0.0004 + Math.random() * 0.001) * (Math.random() < 0.5 ? 1 : -1),
-      colorPhase: (i / PARTICLE_COUNT) * Math.PI * 2 + Math.random() * 1.5,
-      opacity: 0.2 + Math.random() * 0.35,
-      life: Math.random(),
-      lifeSpeed: 0.003 + Math.random() * 0.008,
+    const createOrb = (i: number): TOrb => ({
+      x: Math.random() * W(),
+      y: Math.random() * H(),
+      vx: (Math.random() - 0.5) * 0.08,
+      vy: (Math.random() - 0.5) * 0.08,
+      radius: 30 + Math.random() * 40,
+      blur: 80 + Math.random() * 70,
+      color: COLORS[i % COLORS.length],
+      baseOpacity: 0.025 + Math.random() * 0.04,
+      pulseSpeed: 0.002 + Math.random() * 0.004,
+      pulseOffset: Math.random() * Math.PI * 2,
     })
 
-    const particles: TParticle[] = Array.from({ length: PARTICLE_COUNT }, (_, i) => spawnParticle(i))
+    const particles: TParticle[] = []
+    const orbs: TOrb[] = []
 
     const draw = () => {
       if (!canvas || !ctx) return
 
-      const W = canvas.width
-      const H = canvas.height
-      const cx = W / 2
-      const cy = H / 2
+      const w = canvas.width
+      const h = canvas.height
 
-      ctx.fillStyle = "rgba(0,0,0,0.18)"
-      ctx.fillRect(0, 0, W, H)
+      ctx.clearRect(0, 0, w, h)
+      ctx.fillStyle = "rgb(26, 23, 21)"
+      ctx.fillRect(0, 0, w, h)
 
-      const beat = breathe(t)
-      const globalRot = sceneRotation(t)
+      // ── Orbes ambiantes (halos diffus) — peu nombreuses, shadow OK ──
+      for (const orb of orbs) {
+        orb.x += orb.vx
+        orb.y += orb.vy
 
-      // ── Rubans aurora ──────────────────────────────────────────────
-      for (const ribbon of ribbons) {
-        const r = ribbon.baseRadius * (0.85 + 0.15 * beat)
+        if (orb.x < -orb.blur) orb.x = w + orb.blur
+        if (orb.x > w + orb.blur) orb.x = -orb.blur
+        if (orb.y < -orb.blur) orb.y = h + orb.blur
+        if (orb.y > h + orb.blur) orb.y = -orb.blur
 
-        const span = Math.PI * 0.6 + Math.PI * 0.35 * Math.abs(Math.sin(ribbon.spanSeed + t * 0.004)) + Math.PI * 0.15 * Math.abs(Math.sin(ribbon.spanSeed * 1.7 + t * 0.007))
+        const pulse = Math.sin(t * orb.pulseSpeed + orb.pulseOffset)
+        const alpha = orb.baseOpacity * (0.7 + 0.3 * pulse)
+        const [r, g, b] = orb.color
 
-        const startAngle = ribbon.angularOffset + t * ribbon.rotSpeed + globalRot
+        const gradient = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, orb.radius + orb.blur)
+        gradient.addColorStop(0, `rgba(${r},${g},${b},${alpha})`)
+        gradient.addColorStop(0.4, `rgba(${r},${g},${b},${alpha * 0.5})`)
+        gradient.addColorStop(1, `rgba(${r},${g},${b},0)`)
 
-        const hue = ribbon.colorPhase + t * 0.003
-        const mix = 0.5 + 0.5 * Math.sin(hue)
-        const cr = Math.round(124 + (251 - 124) * mix)
-        const cg = Math.round(58 + (146 - 58) * mix)
-        const cb = Math.round(237 + (60 - 237) * mix)
-        const alpha = (0.15 + 0.2 * beat) * 0.5
-
-        ctx.save()
-        ctx.shadowColor = `rgba(${cr},${cg},${cb},0.9)`
-        ctx.shadowBlur = ribbon.blurRadius
-        ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha})`
-        ctx.lineWidth = ribbon.lineWidth
-        ctx.lineCap = "round"
-
+        ctx.fillStyle = gradient
         ctx.beginPath()
-        ctx.arc(cx, cy, r, startAngle, startAngle + span)
-        ctx.stroke()
-
-        ctx.globalAlpha = 0.4
-        ctx.beginPath()
-        ctx.arc(cx, cy, r * 0.97, startAngle + Math.PI, startAngle + Math.PI + span * 0.7)
-        ctx.stroke()
-        ctx.globalAlpha = 1
-        ctx.restore()
-      }
-
-      // ── Particules ─────────────────────────────────────────────────
-      for (const p of particles) {
-        // Avancer l'angle orbital + rotation globale
-        p.angle += p.speed + globalRot * 0.012
-        p.life += p.lifeSpeed
-        if (p.life > 1) p.life = 0
-
-        // Scintillement : sin sur le cycle de vie
-        const flicker = Math.sin(p.life * Math.PI) // 0 → 1 → 0
-
-        const px = cx + Math.cos(p.angle) * p.radius
-        const py = cy + Math.sin(p.angle) * p.radius
-
-        // Couleur calquée sur les rubans (même palette)
-        const mix = 0.5 + 0.5 * Math.sin(p.colorPhase + t * 0.003)
-        const cr = Math.round(124 + (251 - 124) * mix)
-        const cg = Math.round(58 + (146 - 58) * mix)
-        const cb = Math.round(237 + (60 - 237) * mix)
-        const alpha = p.opacity * flicker * 0.5 // ~50% opacité globale
-
-        ctx.save()
-        ctx.shadowColor = `rgba(${cr},${cg},${cb},0.8)`
-        ctx.shadowBlur = p.size * 4
-        ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`
-        ctx.beginPath()
-        ctx.arc(px, py, p.size, 0, Math.PI * 2)
+        ctx.arc(orb.x, orb.y, orb.radius + orb.blur, 0, Math.PI * 2)
         ctx.fill()
-        ctx.restore()
       }
 
-      t += 0.005
+      // ── Particules — sans shadowBlur pour la performance ──────
+      // Pré-calculer les sinus de drift une seule fois par frame
+      const TAU = Math.PI * 2
+
+      for (const p of particles) {
+        p.vx += (Math.random() - 0.5) * 0.04
+        p.vy += (Math.random() - 0.5) * 0.04
+        p.vx += Math.sin(t * p.driftSpeed + p.driftPhase) * 0.008
+        p.vy += Math.cos(t * p.driftSpeed * 1.3 + p.driftPhase) * 0.008
+        p.vx *= 0.995
+        p.vy *= 0.995
+        p.x += p.vx
+        p.y += p.vy
+
+        if (p.x < -5) p.x = w + 5
+        if (p.x > w + 5) p.x = -5
+        if (p.y < -5) p.y = h + 5
+        if (p.y > h + 5) p.y = -5
+
+        const pulse = Math.sin(t * p.pulseSpeed + p.pulseOffset)
+        const alpha = p.baseOpacity * (0.5 + 0.5 * pulse)
+        const [r, g, b] = COLORS[p.colorIndex]
+
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, TAU)
+        ctx.fill()
+      }
+
+      t++
       raf = requestAnimationFrame(draw)
     }
 
     resize()
-    ctx.fillStyle = "#000"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle())
+    for (let i = 0; i < ORB_COUNT; i++) orbs.push(createOrb(i))
 
     window.addEventListener("resize", resize)
     draw()

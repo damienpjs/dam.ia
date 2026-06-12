@@ -39,10 +39,10 @@ describe("MessageBubble", () => {
     expect(wrapper).toHaveClass("flex-row")
   })
 
-  it("applique le style bulle gradient pour les messages utilisateur", () => {
+  it("applique le style bulle semi-transparent pour les messages utilisateur", () => {
     render(<MessageBubble message={userMessage} />)
     const bubble = screen.getByText("Bonjour, comment ça va ?")
-    expect(bubble).toHaveClass("from-violet-600")
+    expect(bubble).toHaveClass("text-[#F9B288]")
   })
 
   it("applique le style carte pour les messages assistant", () => {
@@ -51,22 +51,22 @@ describe("MessageBubble", () => {
     expect(bubble).toHaveClass("bg-card")
   })
 
-  it("rend l'avatar 'T' pour les messages utilisateur", () => {
+  it("rend l'avatar emoji pour les messages utilisateur", () => {
     const { container } = render(<MessageBubble message={userMessage} />)
     const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveTextContent("T")
+    expect(avatar).toHaveTextContent("🫵")
   })
 
-  it("rend l'avatar 'AI' pour les messages assistant", () => {
+  it("rend l'avatar 'DP' pour les messages assistant", () => {
     const { container } = render(<MessageBubble message={assistantMessage} />)
     const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveTextContent("AI")
+    expect(avatar).toHaveTextContent("DP")
   })
 
-  it("applique le gradient violet-orange sur l'avatar assistant", () => {
+  it("applique le gradient peach sur l'avatar assistant", () => {
     const { container } = render(<MessageBubble message={assistantMessage} />)
     const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveClass("from-violet-500")
+    expect(avatar).toHaveClass("from-[#E8A070]")
   })
 
   it("affiche le skeleton quand le message assistant est vide et en streaming", () => {

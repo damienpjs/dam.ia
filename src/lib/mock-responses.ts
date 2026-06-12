@@ -26,7 +26,7 @@ const MOCK_RULES: IMockRule[] = [
   },
   {
     pattern: /travail|boulot|emploi|poste|recru|disponible/i,
-    response: "Damien est Lead Tech JS et ouvert aux opportunités stimulantes. N'hésite pas à le contacter directement !",
+    response: "Damien est ouvert aux opportunités stimulantes. N'hésite pas à le contacter directement !",
   },
   {
     pattern: /expérience|parcours|cv|historique/i,

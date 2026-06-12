@@ -39,12 +39,12 @@ const setup = () => userEvent.setup({ delay: null })
 describe("ChatInterface", () => {
   it("affiche le message de bienvenue de l'assistant au chargement", () => {
     render(<ChatInterface />)
-    expect(screen.getByText(/Bonjour/i)).toBeInTheDocument()
+    expect(screen.getByText(/Damien Pasulj/i)).toBeInTheDocument()
   })
 
   it("affiche le message de bienvenue dans une bulle assistant (bg-card)", () => {
     render(<ChatInterface />)
-    const bubble = screen.getByText(/Bonjour/i)
+    const bubble = screen.getByText(/Damien Pasulj/i)
     expect(bubble).toHaveClass("bg-card")
   })
 
@@ -327,7 +327,7 @@ describe("ChatInterface", () => {
     render(<ChatInterface />)
 
     // Cliquer sur chaque suggestion une par une
-    const suggestions = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?", "Tu es disponible ?"]
+    const suggestions = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"]
     for (let i = 0; i < suggestions.length; i++) {
       const suggestion = suggestions[i]
       // Attendre que les suggestions réapparaissent (fin du streaming précédent)

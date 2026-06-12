@@ -33,7 +33,7 @@ describe("Page d'accueil (/)", () => {
     render(<Home />)
     expect(screen.getByText("Next.js")).toBeInTheDocument()
     expect(screen.getByText("TypeScript")).toBeInTheDocument()
-    expect(screen.getByText("OpenAI")).toBeInTheDocument()
+    expect(screen.getByText("Gemini")).toBeInTheDocument()
     expect(screen.getByText("Qdrant")).toBeInTheDocument()
   })
 

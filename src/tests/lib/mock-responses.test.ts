@@ -32,7 +32,7 @@ describe("getMockResponse", () => {
 
   it("reconnaît les questions sur le travail/recrutement", () => {
     const response = getMockResponse("Tu es disponible pour un emploi ?")
-    expect(response).toContain("Lead Tech")
+    expect(response).toContain("opportunités")
   })
 
   it("reconnaît les questions sur l'expérience", () => {

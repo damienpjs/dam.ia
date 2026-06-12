@@ -32,15 +32,15 @@ export function MessageBubble({ message, isStreaming = false }: IMessageBubblePr
 
   return (
     <div data-testid="message-bubble" className={cn("flex w-full items-end gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-violet-500 to-orange-400 text-white")}>
+      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white")}>
         {isUser ? "🫵" : "DP"}
       </div>
 
       <div
         className={cn(
-          "break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          "break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed tracking-wide",
           showSkeleton ? "w-full" : "max-w-[75%]",
-          isUser ? "rounded-br-sm bg-gradient-to-br from-violet-600 to-violet-700 text-white shadow-sm" : "rounded-bl-sm border border-border bg-card text-card-foreground",
+          isUser ? "rounded-br-sm bg-white/8 text-[#F9B288] ring-1 ring-[#F9B288]/20 shadow-sm" : "rounded-bl-sm border border-border bg-card text-card-foreground",
         )}
       >
         {showSkeleton ? (

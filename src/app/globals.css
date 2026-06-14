@@ -132,5 +132,7 @@ a {
   }
   html {
     @apply font-sans;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
   }
 }

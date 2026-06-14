@@ -167,10 +167,6 @@ export function ChatInterface() {
     setInput(e.target.value)
   }, [])
 
-  const handleSendClick = useCallback(() => {
-    void sendMessage()
-  }, [sendMessage])
-
   const handleSuggestionClick = useCallback(
     (suggestion: string) => {
       setUsedSuggestions((prev) => new Set(prev).add(suggestion))
@@ -216,34 +212,41 @@ export function ChatInterface() {
 
       {/* Barre de saisie */}
       <div className="border-t border-border bg-background/60 p-2 sm:p-4 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-end gap-2 overflow-hidden">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void sendMessage()
+          }}
+          className="mx-auto flex max-w-3xl items-end gap-2"
+        >
           <textarea
             ref={textareaRef}
             value={input}
+            name="message"
             onChange={handleChange}
             onInput={handleResize}
             onKeyDown={handleKeyDown}
+            enterKeyHint="send"
             placeholder="Écris ton message…"
             rows={1}
             aria-label="Message à envoyer"
             className={cn(
-              "min-w-0 flex-1 resize-none rounded-xl border border-border bg-input/30 px-3 sm:px-4 py-2",
+              "min-w-0 flex-1 resize-none rounded-xl ring-1 ring-white/20 bg-input/30 px-3 sm:px-4 py-2",
               "text-sm text-foreground placeholder:text-muted-foreground",
               "max-h-32 min-h-9 overflow-y-hidden leading-relaxed backdrop-blur-sm",
-              "[&:not(:focus)]:overflow-hidden",
               "focus:outline-none focus:ring-2 focus:ring-ring/50",
             )}
           />
           <Button
+            type="submit"
             size="icon-lg"
-            onClick={handleSendClick}
             disabled={!input.trim() || isTyping || isStreaming}
             aria-label="Envoyer"
             className="shrink-0 bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white shadow-md shadow-[#F9B288]/20 hover:from-[#D99060] hover:to-[#E8A070] disabled:opacity-40"
           >
             <Send className="size-4" />
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   )

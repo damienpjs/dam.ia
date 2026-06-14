@@ -7,6 +7,10 @@ vi.mock("@/components/features/animated-background", () => ({
   AnimatedBackground: () => <div data-testid="animated-background" />,
 }))
 
+vi.mock("@/components/features/chat-interface", () => ({
+  ChatInterface: () => <div data-testid="chat-interface" />,
+}))
+
 describe("Page d'accueil (/)", () => {
   it("affiche le titre principal avec le nom 'Damien'", () => {
     render(<Home />)
@@ -29,7 +33,7 @@ describe("Page d'accueil (/)", () => {
     render(<Home />)
     expect(screen.getByText("Next.js")).toBeInTheDocument()
     expect(screen.getByText("TypeScript")).toBeInTheDocument()
-    expect(screen.getByText("OpenAI")).toBeInTheDocument()
+    expect(screen.getByText("Gemini")).toBeInTheDocument()
     expect(screen.getByText("Qdrant")).toBeInTheDocument()
   })
 
@@ -43,8 +47,7 @@ describe("Page d'accueil (/)", () => {
     render(<Home />)
     const btn = screen.getByRole("button", { name: /commencer la conversation/i })
     await user.click(btn)
-    expect(screen.getByPlaceholderText(/écris ton message/i)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /envoyer/i })).toBeDisabled()
+    expect(screen.getByTestId("chat-interface")).toBeInTheDocument()
   })
 
   it("ferme le panneau chat au clic sur dam.ia", async () => {

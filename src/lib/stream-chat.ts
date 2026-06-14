@@ -1,9 +1,18 @@
 /**
+ * Source RAG reçue de l'API
+ */
+export interface ISourceInfo {
+  label: string
+  source: string
+}
+
+/**
  * Type pour les chunks reçus de l'API chat
  */
 export type TStreamChunk = {
   content: string
   done: boolean
+  sources?: ISourceInfo[]
 }
 
 /**
@@ -13,7 +22,7 @@ export interface IStreamChatOptions {
   /** Callback appelé à chaque nouveau caractère reçu */
   onChunk: (content: string) => void
   /** Callback appelé quand le stream est terminé */
-  onComplete?: () => void
+  onComplete?: (sources?: ISourceInfo[]) => void
   /** Callback appelé en cas d'erreur */
   onError?: (error: Error) => void
   /** Signal pour annuler la requête */
@@ -60,6 +69,7 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
     }
 
     const decoder = new TextDecoder()
+    let sources: ISourceInfo[] | undefined
 
     while (true) {
       const { done, value } = await reader.read()
@@ -70,13 +80,16 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
 
       for (const line of lines) {
         const chunk = JSON.parse(line) as TStreamChunk
+        if (chunk.done && chunk.sources) {
+          sources = chunk.sources
+        }
         if (!chunk.done && chunk.content) {
           onChunk(chunk.content)
         }
       }
     }
 
-    onComplete?.()
+    onComplete?.(sources)
   } catch (error) {
     // Ignorer les erreurs d'annulation
     if (error instanceof Error && error.name === "AbortError") {

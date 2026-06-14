@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import fs from "fs"
-import { loadContentDocuments, formatContentForPrompt, loadFormattedContent, type IContentDocument } from "@/lib/content-loader"
+import { loadContentDocuments, type IContentDocument } from "@/lib/content-loader"
 
 describe("content-loader", () => {
   const mockContentDir = "/mock/content"
@@ -54,73 +54,6 @@ describe("content-loader", () => {
       loadContentDocuments()
 
       expect(fs.existsSync).toHaveBeenCalledWith(expect.stringContaining("content"))
-    })
-  })
-
-  describe("formatContentForPrompt", () => {
-    it("devrait retourner une chaîne vide si aucun document", () => {
-      const result = formatContentForPrompt([])
-
-      expect(result).toBe("")
-    })
-
-    it("devrait formater un seul document correctement", () => {
-      const documents: IContentDocument[] = [{ filename: "cv", content: "Mon CV" }]
-
-      const result = formatContentForPrompt(documents)
-
-      expect(result).toContain("=== CONTEXTE DOCUMENTAIRE ===")
-      expect(result).toContain("--- SOURCE: cv ---")
-      expect(result).toContain("Mon CV")
-      expect(result).toContain("--- FIN SOURCE ---")
-      expect(result).toContain("=== FIN CONTEXTE DOCUMENTAIRE ===")
-    })
-
-    it("devrait formater plusieurs documents avec des délimiteurs clairs", () => {
-      const documents: IContentDocument[] = [
-        { filename: "experience", content: "Mon expérience" },
-        { filename: "competences", content: "Mes compétences" },
-      ]
-
-      const result = formatContentForPrompt(documents)
-
-      expect(result).toContain("--- SOURCE: experience ---")
-      expect(result).toContain("Mon expérience")
-      expect(result).toContain("--- SOURCE: competences ---")
-      expect(result).toContain("Mes compétences")
-      // Vérifie que chaque document a son délimiteur de fin
-      expect((result.match(/--- FIN SOURCE ---/g) ?? []).length).toBe(2)
-    })
-
-    it("devrait inclure les instructions pour le LLM", () => {
-      const documents: IContentDocument[] = [{ filename: "test", content: "Test" }]
-
-      const result = formatContentForPrompt(documents)
-
-      expect(result).toContain("sources fiables")
-      expect(result).toContain("Utilise-les pour répondre")
-    })
-  })
-
-  describe("loadFormattedContent", () => {
-    it("devrait retourner une chaîne vide si le dossier n'existe pas", () => {
-      vi.spyOn(fs, "existsSync").mockReturnValue(false)
-
-      const result = loadFormattedContent(mockContentDir)
-
-      expect(result).toBe("")
-    })
-
-    it("devrait charger et formater le contenu", () => {
-      vi.spyOn(fs, "existsSync").mockReturnValue(true)
-      vi.spyOn(fs, "readdirSync").mockReturnValue(["test.md"] as unknown as fs.Dirent[])
-      vi.spyOn(fs, "readFileSync").mockReturnValue("Contenu test")
-
-      const result = loadFormattedContent(mockContentDir)
-
-      expect(result).toContain("=== CONTEXTE DOCUMENTAIRE ===")
-      expect(result).toContain("--- SOURCE: test ---")
-      expect(result).toContain("Contenu test")
     })
   })
 })

@@ -3,9 +3,10 @@ import { GeminiProvider, GEMINI_TIMEOUT_MS, buildSystemPrompt } from "@/lib/llm/
 import { QuotaExceededError } from "@/lib/llm/errors"
 import { PERSONA } from "@/lib/llm/persona"
 
-// Mock du content-loader pour éviter les accès fichiers dans les tests
-vi.mock("@/lib/content-loader", () => ({
-  loadFormattedContent: vi.fn(() => "\n\n=== CONTEXTE DOCUMENTAIRE ===\nMock content\n=== FIN ===\n"),
+// Mock du pipeline RAG pour éviter les appels réseau dans les tests
+vi.mock("@/lib/rag/pipeline", () => ({
+  retrieveRelevantChunks: vi.fn(() => Promise.resolve([])),
+  formatRAGContext: vi.fn(() => ""),
 }))
 
 // Mock du SDK Google Generative AI
@@ -134,14 +135,13 @@ describe("GeminiProvider", () => {
   })
 
   describe("buildSystemPrompt", () => {
-    it("combine le persona avec le contenu documentaire", () => {
+    it("combine la date du jour avec le persona", () => {
       const result = buildSystemPrompt()
 
       // Vérifie que le persona est inclus
       expect(result).toContain(PERSONA)
-      // Vérifie que le contenu mocké est inclus
-      expect(result).toContain("=== CONTEXTE DOCUMENTAIRE ===")
-      expect(result).toContain("Mock content")
+      // Vérifie que la date du jour est incluse
+      expect(result).toContain("Date du jour :")
     })
   })
 })

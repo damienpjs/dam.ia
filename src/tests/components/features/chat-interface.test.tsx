@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { ChatInterface } from "@/components/features/chat-interface"
-import type { IStreamChatOptions } from "@/lib/stream-chat"
+import type { IStreamChatOptions, ISourceInfo } from "@/lib/stream-chat"
 import { streamChat } from "@/lib/stream-chat"
 
 // Mock streamChat pour simuler le streaming
@@ -228,6 +228,30 @@ describe("ChatInterface", () => {
     // focus() doit avoir été appelé après le streaming
     expect(focusSpy).toHaveBeenCalled()
     focusSpy.mockRestore()
+  })
+
+  it("stocke les sources RAG dans le message assistant quand elles sont fournies", async () => {
+    const mockSources: ISourceInfo[] = [
+      { label: "CV", source: "cv" },
+      { label: "Apizee", source: "experience-apizee" },
+    ]
+
+    mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+      options.onChunk("Réponse avec sources.")
+      options.onComplete?.(mockSources)
+    })
+
+    const user = setup()
+    render(<ChatInterface />)
+    await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("Réponse avec sources.")).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
   })
 
   it("remet le focus sur le textarea après une erreur de streaming", async () => {

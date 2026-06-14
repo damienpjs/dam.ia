@@ -56,6 +56,12 @@ function chunksToFullMessage(chunks: TParsedChunk[]): string {
     .join("")
 }
 
+// Mock du pipeline RAG pour éviter les appels réseau en tests
+vi.mock("@/lib/rag/pipeline", () => ({
+  retrieveRelevantChunks: vi.fn().mockResolvedValue([]),
+  formatRAGContext: vi.fn().mockReturnValue(""),
+}))
+
 // Mock createLLMProvider pour utiliser un provider simulé
 vi.mock("@/lib/llm", () => ({
   createLLMProvider: vi.fn(() => ({

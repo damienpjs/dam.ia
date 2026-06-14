@@ -8,6 +8,8 @@ startYear: 2017
 endYear: 2022
 tags: [asp.net, csharp, frontend, web-app, maintenance]
 current: false
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Développeur Front-end chez elloha

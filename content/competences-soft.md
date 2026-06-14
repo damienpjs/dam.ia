@@ -3,6 +3,8 @@ title: "Soft Skills"
 category: competences
 type: soft-skills
 tags: [organisation, communication, creativite, equipe]
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Soft Skills

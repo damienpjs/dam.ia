@@ -103,14 +103,20 @@ describe("MessageBubble", () => {
       content: "Voici mes compétences.",
       createdAt: new Date(),
       sources: [
-        { label: "Compétences Techniques", source: "competences-techniques" },
-        { label: "CV", source: "cv" },
+        { label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" },
+        { label: "LinkedIn", source: "linkedin", url: "https://www.linkedin.com/in/music-all/" },
       ],
     }
     render(<MessageBubble message={messageWithSources} />)
     expect(screen.getByTestId("message-sources")).toBeInTheDocument()
-    expect(screen.getByText("Compétences Techniques")).toBeInTheDocument()
-    expect(screen.getByText("CV")).toBeInTheDocument()
+    expect(screen.getByText("CV (PDF)")).toBeInTheDocument()
+    expect(screen.getByText("LinkedIn")).toBeInTheDocument()
+
+    // Sources avec url sont des liens cliquables
+    const cvLink = screen.getByText("CV (PDF)").closest("a")
+    expect(cvLink).toHaveAttribute("href", "/cv-damien-pasulj.pdf")
+    const linkedinLink = screen.getByText("LinkedIn").closest("a")
+    expect(linkedinLink).toHaveAttribute("href", "https://www.linkedin.com/in/music-all/")
   })
 
   it("n'affiche pas les sources pendant le streaming", () => {
@@ -119,7 +125,7 @@ describe("MessageBubble", () => {
       role: "assistant",
       content: "En cours...",
       createdAt: new Date(),
-      sources: [{ label: "CV", source: "cv" }],
+      sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }],
     }
     render(<MessageBubble message={messageWithSources} isStreaming />)
     expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
@@ -131,7 +137,7 @@ describe("MessageBubble", () => {
       role: "user",
       content: "Question",
       createdAt: new Date(),
-      sources: [{ label: "CV", source: "cv" }],
+      sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }],
     }
     render(<MessageBubble message={userWithSources} />)
     expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
@@ -147,6 +153,19 @@ describe("MessageBubble", () => {
     }
     render(<MessageBubble message={messageNoSources} />)
     expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+  })
+
+  it("affiche les sources sans url comme des spans non-cliquables", () => {
+    const messageWithPlainSource: IMessage = {
+      id: "9b",
+      role: "assistant",
+      content: "Contenu sans lien.",
+      createdAt: new Date(),
+      sources: [{ label: "Source interne", source: "interne" }],
+    }
+    render(<MessageBubble message={messageWithPlainSource} />)
+    const el = screen.getByText("Source interne")
+    expect(el.tagName).toBe("SPAN")
   })
 
   describe("bouton copier", () => {

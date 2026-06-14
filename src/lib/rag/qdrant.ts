@@ -92,5 +92,6 @@ export async function searchSimilarChunks(client: QdrantClient, queryVector: num
     text: (result.payload?.text as string) ?? "",
     source: (result.payload?.source as string) ?? "",
     score: result.score,
+    metadata: (result.payload?.metadata as Record<string, unknown>) ?? undefined,
   }))
 }

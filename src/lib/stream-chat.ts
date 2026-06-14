@@ -4,6 +4,7 @@
 export interface ISourceInfo {
   label: string
   source: string
+  url?: string
 }
 
 /**

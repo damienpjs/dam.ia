@@ -3,6 +3,7 @@ title: "CV — Damien Pasulj"
 category: cv
 description: "Vue d'ensemble du parcours professionnel de Damien Pasulj"
 sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 lastUpdated: "2024"
 ---
 

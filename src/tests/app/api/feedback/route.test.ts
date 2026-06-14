@@ -72,4 +72,14 @@ describe("POST /api/feedback", () => {
     const data = await response.json()
     expect(data.error).toBe("Impossible d'enregistrer le feedback")
   })
+
+  it("doit retourner 500 et gérer les erreurs non-Error", async () => {
+    vi.mocked(saveFeedback).mockRejectedValue("string error")
+
+    const response = await POST(createRequest({ messageId: "msg-123", rating: 4 }))
+
+    expect(response.status).toBe(500)
+    const data = await response.json()
+    expect(data.error).toBe("Impossible d'enregistrer le feedback")
+  })
 })

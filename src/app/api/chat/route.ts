@@ -20,6 +20,7 @@ interface IChatRequest {
 interface ISourceInfo {
   label: string
   source: string
+  url?: string
 }
 
 /**
@@ -41,39 +42,25 @@ function encodeChunk(chunk: TStreamChunk): string {
 }
 
 /**
- * Mapping des noms de fichiers source vers des labels lisibles
- */
-const SOURCE_LABELS: Record<string, string> = {
-  "competences-soft": "Soft Skills",
-  "competences-techniques": "Compétences Techniques",
-  cv: "CV",
-  "experience-apizee": "Apizee",
-  "experience-elloha-dev": "elloha — Dev",
-  "experience-elloha-lead": "elloha — Lead",
-  "experience-elloha-web": "elloha — Web",
-  "formation-idem": "Formation IDEM",
-  profil: "Profil",
-}
-
-/**
- * Déduplique et formate les sources RAG pour le client
+ * Déduplique et formate les sources RAG pour le client.
+ * Regroupe par sourceUrl (depuis le frontmatter/metadata) au lieu de par fichier .md.
+ * Seules les sources effectivement retrouvées par la recherche vectorielle apparaissent.
  */
 function formatSources(results: ISearchResult[]): ISourceInfo[] {
   const seen = new Set<string>()
-  const sources = results
-    .filter((r) => {
-      if (seen.has(r.source)) return false
-      seen.add(r.source)
-      return true
-    })
-    .map((r) => ({
-      label: SOURCE_LABELS[r.source] ?? r.source,
-      source: r.source,
-    }))
+  const sources: ISourceInfo[] = []
 
-  // Toujours ajouter le CV en dernière position s'il n'est pas déjà présent
-  if (!seen.has("cv")) {
-    sources.push({ label: SOURCE_LABELS["cv"], source: "cv" })
+  for (const r of results) {
+    const url = r.metadata?.sourceUrl as string | undefined
+    const key = url ?? r.source
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    sources.push({
+      label: (r.metadata?.sourceLabel as string) ?? r.source,
+      source: r.source,
+      url,
+    })
   }
 
   return sources

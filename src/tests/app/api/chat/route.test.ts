@@ -24,7 +24,7 @@ import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
 type TParsedChunk = {
   content: string
   done: boolean
-  sources?: { label: string; source: string }[]
+  sources?: { label: string; source: string; url?: string }[]
   sessionId?: string
   messageId?: string
 }
@@ -242,8 +242,8 @@ describe("POST /api/chat", () => {
 
   it("enrichit le message avec le contexte RAG quand des chunks sont trouvés", async () => {
     const mockResults = [
-      { text: "Chunk pertinent", source: "experience-apizee", score: 0.95 },
-      { text: "Autre chunk", source: "competences-techniques", score: 0.87 },
+      { text: "Chunk pertinent", source: "experience-apizee", score: 0.95, metadata: { sourceUrl: "/cv-damien-pasulj.pdf", sourceLabel: "CV (PDF)" } },
+      { text: "Autre chunk", source: "linkedin", score: 0.87, metadata: { sourceUrl: "https://linkedin.com/in/damien", sourceLabel: "LinkedIn" } },
     ]
     vi.mocked(retrieveRelevantChunks).mockResolvedValueOnce(mockResults)
     vi.mocked(formatRAGContext).mockReturnValueOnce("=== CONTEXTE RAG ===\nChunk pertinent\n=== FIN ===")
@@ -257,18 +257,18 @@ describe("POST /api/chat", () => {
     const lastChunk = chunks[chunks.length - 1]
     expect(lastChunk.done).toBe(true)
 
-    // Les sources RAG sont incluses dans le chunk final
+    // Les sources RAG sont dédupliquées par sourceUrl
     expect(lastChunk.sources).toBeDefined()
-    expect(lastChunk.sources).toEqual(expect.arrayContaining([expect.objectContaining({ source: "experience-apizee", label: "Apizee" }), expect.objectContaining({ source: "competences-techniques", label: "Compétences Techniques" })]))
+    expect(lastChunk.sources).toEqual(expect.arrayContaining([expect.objectContaining({ label: "CV (PDF)", url: "/cv-damien-pasulj.pdf" }), expect.objectContaining({ label: "LinkedIn", url: "https://linkedin.com/in/damien" })]))
 
-    // Le CV est ajouté automatiquement s'il n'est pas dans les résultats
-    expect(lastChunk.sources).toEqual(expect.arrayContaining([expect.objectContaining({ source: "cv", label: "CV" })]))
+    // Seules les sources effectivement retrouvées par Qdrant apparaissent
+    expect(lastChunk.sources).toHaveLength(2)
   })
 
-  it("déduplique les sources RAG et n'ajoute pas le CV s'il est déjà présent", async () => {
+  it("déduplique les sources RAG par sourceUrl", async () => {
     const mockResults = [
-      { text: "Chunk 1", source: "cv", score: 0.9 },
-      { text: "Chunk 2", source: "cv", score: 0.8 },
+      { text: "Chunk 1", source: "cv", score: 0.9, metadata: { sourceUrl: "/cv-damien-pasulj.pdf", sourceLabel: "CV (PDF)" } },
+      { text: "Chunk 2", source: "profil", score: 0.8, metadata: { sourceUrl: "/cv-damien-pasulj.pdf", sourceLabel: "CV (PDF)" } },
     ]
     vi.mocked(retrieveRelevantChunks).mockResolvedValueOnce(mockResults)
     vi.mocked(formatRAGContext).mockReturnValueOnce("contexte")
@@ -279,12 +279,13 @@ describe("POST /api/chat", () => {
     const chunks = await readStreamToChunks(response.body!)
     const lastChunk = chunks[chunks.length - 1]
 
-    // cv apparaît une seule fois (dédupliqué)
-    const cvSources = lastChunk.sources!.filter((s) => s.source === "cv")
+    // Une seule source CV (dédupliquée par sourceUrl), pas de sources externes hardcodées
+    const cvSources = lastChunk.sources!.filter((s) => s.url === "/cv-damien-pasulj.pdf")
     expect(cvSources).toHaveLength(1)
+    expect(lastChunk.sources).toHaveLength(1)
   })
 
-  it("utilise le nom de source brut si pas de label connu", async () => {
+  it("utilise le nom de source brut si pas de metadata sourceLabel", async () => {
     const mockResults = [{ text: "Chunk inconnu", source: "source-inconnue", score: 0.85 }]
     vi.mocked(retrieveRelevantChunks).mockResolvedValueOnce(mockResults)
     vi.mocked(formatRAGContext).mockReturnValueOnce("contexte")
@@ -320,5 +321,93 @@ describe("POST /api/chat", () => {
     const chunks = await readStreamToChunks(response.body!)
     const fullMessage = chunksToFullMessage(chunks)
     expect(fullMessage).toBe("Réponse streamée.")
+  })
+
+  it("réutilise le sessionId fourni sans créer de nouvelle session", async () => {
+    const { createSession, saveMessage } = await import("@/lib/db/chat-service")
+
+    const request = createMockRequest({ message: "bonjour", sessionId: "existing-session" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.sessionId).toBe("existing-session")
+    expect(createSession).not.toHaveBeenCalled()
+    expect(saveMessage).toHaveBeenCalledWith("existing-session", "user", expect.any(String))
+  })
+
+  it("continue sans sessionId quand la DB échoue lors de la sauvegarde utilisateur", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    vi.mocked(saveMessage).mockRejectedValueOnce(new Error("DB down"))
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    // sessionId est undefined car le catch l'a réinitialisé
+    expect(lastChunk.sessionId).toBeUndefined()
+    expect(lastChunk.done).toBe(true)
+  })
+
+  it("gère les erreurs DB non-Error lors de la sauvegarde utilisateur", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    vi.mocked(saveMessage).mockRejectedValueOnce("string db error")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.sessionId).toBeUndefined()
+  })
+
+  it("gère l'erreur DB lors de la sauvegarde de la réponse assistant", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    // Première call (user) réussit, deuxième call (assistant) échoue
+    vi.mocked(saveMessage).mockResolvedValueOnce("mock-message-id").mockRejectedValueOnce(new Error("DB write error"))
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.done).toBe(true)
+    // Le messageId est undefined car la sauvegarde assistant a échoué
+    expect(lastChunk.messageId).toBeUndefined()
+  })
+
+  it("gère les erreurs DB non-Error lors de la sauvegarde de la réponse assistant", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    vi.mocked(saveMessage).mockResolvedValueOnce("mock-message-id").mockRejectedValueOnce("string assistant error")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.messageId).toBeUndefined()
+  })
+
+  it("affiche 'Erreur inconnue' quand le provider throw une valeur non-Error", async () => {
+    const { createLLMProvider } = await import("@/lib/llm")
+    vi.mocked(createLLMProvider).mockReturnValueOnce({
+      async *streamResponse() {
+        throw "non-error value"
+      },
+    } as ReturnType<typeof createLLMProvider>)
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const fullMessage = chunksToFullMessage(chunks)
+    expect(fullMessage).toContain("Erreur inconnue")
   })
 })

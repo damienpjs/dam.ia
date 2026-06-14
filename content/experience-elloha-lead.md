@@ -8,6 +8,8 @@ startYear: 2022
 endYear: 2024
 tags: [react, typescript, nextjs, architecture, lead, refonte]
 current: false
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Lead Refonte Cœur de Produit chez elloha

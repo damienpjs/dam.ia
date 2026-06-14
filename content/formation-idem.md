@@ -6,6 +6,8 @@ fullName: "L'IDEM — École Supérieure des Métiers Créatifs et Numériques"
 period: "2012 - 2014"
 startYear: 2012
 endYear: 2014
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 tags: [formation, ui-ux, developpement-web, ecole]
 ---
 

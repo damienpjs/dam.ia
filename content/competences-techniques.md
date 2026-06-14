@@ -3,6 +3,8 @@ title: "Compétences Techniques"
 category: competences
 type: hard-skills
 tags: [react, typescript, nextjs, nodejs, ci-cd, csharp]
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Compétences Techniques

@@ -2,6 +2,8 @@ import { NextRequest } from "next/server"
 import { createLLMProvider, MockProvider } from "@/lib/llm"
 import { sanitizeMessage, MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
+import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
+import type { ISearchResult } from "@/lib/rag/types"
 
 /**
  * Interface pour le body de la requête POST
@@ -11,11 +13,20 @@ interface IChatRequest {
 }
 
 /**
+ * Source RAG envoyée au client
+ */
+interface ISourceInfo {
+  label: string
+  source: string
+}
+
+/**
  * Type pour les chunks de réponse streamés
  */
 type TStreamChunk = {
   content: string
   done: boolean
+  sources?: ISourceInfo[]
 }
 
 /**
@@ -23,6 +34,45 @@ type TStreamChunk = {
  */
 function encodeChunk(chunk: TStreamChunk): string {
   return JSON.stringify(chunk) + "\n"
+}
+
+/**
+ * Mapping des noms de fichiers source vers des labels lisibles
+ */
+const SOURCE_LABELS: Record<string, string> = {
+  "competences-soft": "Soft Skills",
+  "competences-techniques": "Compétences Techniques",
+  cv: "CV",
+  "experience-apizee": "Apizee",
+  "experience-elloha-dev": "elloha — Dev",
+  "experience-elloha-lead": "elloha — Lead",
+  "experience-elloha-web": "elloha — Web",
+  "formation-idem": "Formation IDEM",
+  profil: "Profil",
+}
+
+/**
+ * Déduplique et formate les sources RAG pour le client
+ */
+function formatSources(results: ISearchResult[]): ISourceInfo[] {
+  const seen = new Set<string>()
+  const sources = results
+    .filter((r) => {
+      if (seen.has(r.source)) return false
+      seen.add(r.source)
+      return true
+    })
+    .map((r) => ({
+      label: SOURCE_LABELS[r.source] ?? r.source,
+      source: r.source,
+    }))
+
+  // Toujours ajouter le CV en dernière position s'il n'est pas déjà présent
+  if (!seen.has("cv")) {
+    sources.push({ label: SOURCE_LABELS["cv"], source: "cv" })
+  }
+
+  return sources
 }
 
 /**
@@ -56,12 +106,29 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { sanitized } = sanitizeMessage(message)
     const provider = createLLMProvider()
 
+    // Pipeline RAG : enrichir le message avec les chunks pertinents
+    let enrichedMessage = sanitized
+    let sources: ISourceInfo[] = []
+    try {
+      const ragResults = await retrieveRelevantChunks(sanitized)
+      if (ragResults.length > 0) {
+        console.log(`[RAG] ✅ ${ragResults.length} chunks trouvés (scores: ${ragResults.map((r) => `${(r.score * 100).toFixed(0)}%`).join(", ")})`)
+        const ragContext = formatRAGContext(ragResults)
+        enrichedMessage = `${ragContext}\n\nQuestion de l'utilisateur : ${sanitized}`
+        sources = formatSources(ragResults)
+      } else {
+        console.log("[RAG] ⚠️ Aucun chunk pertinent trouvé")
+      }
+    } catch (ragError) {
+      console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
+    }
+
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
 
         try {
-          for await (const text of provider.streamResponse(sanitized)) {
+          for await (const text of provider.streamResponse(enrichedMessage)) {
             const chunk: TStreamChunk = {
               content: text,
               done: false,
@@ -69,10 +136,11 @@ export async function POST(request: NextRequest): Promise<Response> {
             controller.enqueue(encoder.encode(encodeChunk(chunk)))
           }
 
-          // Chunk final signalant la fin du stream
+          // Chunk final avec les sources RAG
           const finalChunk: TStreamChunk = {
             content: "",
             done: true,
+            sources: sources.length > 0 ? sources : undefined,
           }
           controller.enqueue(encoder.encode(encodeChunk(finalChunk)))
         } catch (error) {

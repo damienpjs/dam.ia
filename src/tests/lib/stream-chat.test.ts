@@ -95,6 +95,25 @@ describe("streamChat", () => {
     await streamChat("test", { onChunk: vi.fn(), onComplete })
 
     expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(onComplete).toHaveBeenCalledWith(undefined)
+  })
+
+  it("transmet les sources RAG via onComplete", async () => {
+    const sources = [
+      { label: "CV", source: "cv" },
+      { label: "Apizee", source: "experience-apizee" },
+    ]
+    const chunks: TStreamChunk[] = [
+      { content: "Réponse", done: false },
+      { content: "", done: true, sources },
+    ]
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    const onComplete = vi.fn()
+    await streamChat("test", { onChunk: vi.fn(), onComplete })
+
+    expect(onComplete).toHaveBeenCalledWith(sources)
   })
 
   it("appelle onError en cas d'erreur HTTP", async () => {

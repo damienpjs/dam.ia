@@ -41,4 +41,3 @@ export function createLLMProvider(): ILLMProvider {
 export type { ILLMProvider, TLLMProviderName }
 export { GeminiProvider } from "./gemini-provider"
 export { MockProvider } from "./mock-provider"
-export { PERSONA as SYSTEM_PROMPT } from "./persona"

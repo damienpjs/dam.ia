@@ -18,6 +18,9 @@ export default defineConfig({
         "src/app/layout.tsx",
         "src/components/features/animated-background.tsx", // Canvas API — non testable avec jsdom
         "src/**/*.d.ts",
+        "src/lib/llm/types.ts", // Types-only, pas de code runtime
+        "src/lib/rag/types.ts", // Types-only, pas de code runtime
+        "src/lib/rag/index.ts", // Re-exports uniquement
       ],
       thresholds: {
         lines: 95,

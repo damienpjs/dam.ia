@@ -2,7 +2,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import type { ILLMProvider } from "./types"
 import { PERSONA } from "./persona"
 import { isQuotaExceededError, QuotaExceededError } from "./errors"
-import { loadFormattedContent } from "../content-loader"
 
 /**
  * Timeout par défaut pour les requêtes Gemini (en ms)
@@ -16,8 +15,8 @@ export const GEMINI_TIMEOUT_MS = 30_000
  * @returns System prompt complet
  */
 export function buildSystemPrompt(): string {
-  const contentContext = loadFormattedContent()
-  return PERSONA + contentContext
+  const today = new Date().toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" })
+  return `Date du jour : ${today}\n\n` + PERSONA
 }
 
 /**

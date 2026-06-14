@@ -204,5 +204,51 @@ describe("MessageBubble", () => {
       fireEvent.click(screen.getByTestId("copy-button"))
       expect(screen.getByTestId("copy-button")).toHaveAttribute("aria-label", "Copié")
     })
+
+    it("rend le bouton visible quand on clique sur la bulle (mobile)", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      const bubble = screen.getByTestId("message-bubble")
+      const copyButton = screen.getByTestId("copy-button")
+
+      expect(copyButton).toHaveClass("opacity-0")
+      fireEvent.click(bubble)
+      expect(copyButton).toHaveClass("opacity-100")
+    })
+
+    it("masque le bouton quand on re-clique sur la bulle (toggle)", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      const bubble = screen.getByTestId("message-bubble")
+      const copyButton = screen.getByTestId("copy-button")
+
+      fireEvent.click(bubble)
+      expect(copyButton).toHaveClass("opacity-100")
+      fireEvent.click(bubble)
+      expect(copyButton).toHaveClass("opacity-0")
+    })
+
+    it("masque le bouton quand on clique en dehors de la bulle", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      const bubble = screen.getByTestId("message-bubble")
+      const copyButton = screen.getByTestId("copy-button")
+
+      fireEvent.click(bubble)
+      expect(copyButton).toHaveClass("opacity-100")
+      fireEvent.pointerDown(document.body)
+      expect(copyButton).toHaveClass("opacity-0")
+    })
+
+    it("ne masque pas le bouton quand on clique sur le bouton copier", () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      render(<MessageBubble message={assistantMessage} />)
+      const bubble = screen.getByTestId("message-bubble")
+      const copyButton = screen.getByTestId("copy-button")
+
+      fireEvent.click(bubble)
+      expect(copyButton).toHaveClass("opacity-100")
+      fireEvent.click(copyButton)
+      expect(copyButton).toHaveClass("opacity-100")
+    })
   })
 })

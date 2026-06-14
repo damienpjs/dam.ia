@@ -95,4 +95,57 @@ describe("MessageBubble", () => {
     render(<MessageBubble message={emptyUserMsg} isStreaming />)
     expect(screen.queryByTestId("streaming-skeleton")).not.toBeInTheDocument()
   })
+
+  it("affiche les sources RAG quand elles sont présentes", () => {
+    const messageWithSources: IMessage = {
+      id: "5",
+      role: "assistant",
+      content: "Voici mes compétences.",
+      createdAt: new Date(),
+      sources: [
+        { label: "Compétences Techniques", source: "competences-techniques" },
+        { label: "CV", source: "cv" },
+      ],
+    }
+    render(<MessageBubble message={messageWithSources} />)
+    expect(screen.getByTestId("message-sources")).toBeInTheDocument()
+    expect(screen.getByText("Compétences Techniques")).toBeInTheDocument()
+    expect(screen.getByText("CV")).toBeInTheDocument()
+  })
+
+  it("n'affiche pas les sources pendant le streaming", () => {
+    const messageWithSources: IMessage = {
+      id: "6",
+      role: "assistant",
+      content: "En cours...",
+      createdAt: new Date(),
+      sources: [{ label: "CV", source: "cv" }],
+    }
+    render(<MessageBubble message={messageWithSources} isStreaming />)
+    expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+  })
+
+  it("n'affiche pas les sources pour les messages utilisateur", () => {
+    const userWithSources: IMessage = {
+      id: "7",
+      role: "user",
+      content: "Question",
+      createdAt: new Date(),
+      sources: [{ label: "CV", source: "cv" }],
+    }
+    render(<MessageBubble message={userWithSources} />)
+    expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+  })
+
+  it("n'affiche pas les sources si le tableau est vide", () => {
+    const messageNoSources: IMessage = {
+      id: "8",
+      role: "assistant",
+      content: "Sans sources.",
+      createdAt: new Date(),
+      sources: [],
+    }
+    render(<MessageBubble message={messageNoSources} />)
+    expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+  })
 })

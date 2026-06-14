@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
-import { streamChat } from "@/lib/stream-chat"
+import { streamChat, type ISourceInfo } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
 function generateId(): string {
@@ -126,7 +126,10 @@ export function ChatInterface() {
         onChunk: (char) => {
           setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: msg.content + char } : msg)))
         },
-        onComplete: () => {
+        onComplete: (sources?: ISourceInfo[]) => {
+          if (sources && sources.length > 0) {
+            setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, sources } : msg)))
+          }
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null

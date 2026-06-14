@@ -102,6 +102,9 @@ export function ChatInterface() {
       setInput("")
       setIsTyping(true)
 
+      // Fermer le clavier virtuel sur mobile
+      textareaRef.current?.blur()
+
       // Créer le message assistant vide pour le streaming
       const assistantMessageId = generateId()
       const assistantMessage: IMessage = {
@@ -138,7 +141,9 @@ export function ChatInterface() {
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
-          textareaRef.current?.focus()
+          if (!window.matchMedia("(pointer: coarse)").matches) {
+            textareaRef.current?.focus()
+          }
         },
         onError: (error) => {
           console.error("Erreur stream chat:", error)
@@ -146,7 +151,9 @@ export function ChatInterface() {
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
-          textareaRef.current?.focus()
+          if (!window.matchMedia("(pointer: coarse)").matches) {
+            textareaRef.current?.focus()
+          }
         },
       })
     },

@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import type { ILLMProvider } from "./types"
 import { PERSONA } from "./persona"
 import { isQuotaExceededError, QuotaExceededError } from "./errors"
-import { loadFormattedContent } from "../content-loader"
+import { retrieveRelevantChunks, formatRAGContext } from "../rag/pipeline"
 
 /**
  * Timeout par défaut pour les requêtes Gemini (en ms)
@@ -16,8 +16,8 @@ export const GEMINI_TIMEOUT_MS = 30_000
  * @returns System prompt complet
  */
 export function buildSystemPrompt(): string {
-  const contentContext = loadFormattedContent()
-  return PERSONA + contentContext
+  const today = new Date().toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" })
+  return `Date du jour : ${today}\n\n` + PERSONA
 }
 
 /**
@@ -40,9 +40,24 @@ export class GeminiProvider implements ILLMProvider {
     const timeout = setTimeout(() => abortController.abort(), GEMINI_TIMEOUT_MS)
 
     try {
+      // Pipeline RAG : enrichir le message avec les chunks pertinents
+      let enrichedMessage = message
+      try {
+        const ragResults = await retrieveRelevantChunks(message)
+        if (ragResults.length > 0) {
+          console.log(`[RAG] ✅ ${ragResults.length} chunks trouvés (scores: ${ragResults.map((r) => `${(r.score * 100).toFixed(0)}%`).join(", ")})`)
+          const ragContext = formatRAGContext(ragResults)
+          enrichedMessage = `${ragContext}\n\nQuestion de l'utilisateur : ${message}`
+        } else {
+          console.log("[RAG] ⚠️ Aucun chunk pertinent trouvé")
+        }
+      } catch (ragError) {
+        console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
+      }
+
       const result = await this.model.generateContentStream(
         {
-          contents: [{ role: "user", parts: [{ text: message }] }],
+          contents: [{ role: "user", parts: [{ text: enrichedMessage }] }],
         },
         { signal: abortController.signal },
       )

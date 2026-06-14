@@ -9,13 +9,20 @@
     "lint": "eslint",
     "test": "vitest",
     "test:ci": "vitest run --coverage",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "rag:index": "node --env-file=.env --import tsx scripts/index-content.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@google/generative-ai": "^0.24.1",
+    "@neondatabase/serverless": "^1.1.0",
+    "@qdrant/js-client-rest": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.17.0",
     "next": "16.2.7",
     "react": "19.2.4",
@@ -35,12 +42,14 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.8",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "ws": "^8.21.0"
   }
 }

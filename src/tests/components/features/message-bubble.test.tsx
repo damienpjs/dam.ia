@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { describe, it, expect, vi } from "vitest"
+import { render, screen, fireEvent } from "@testing-library/react"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
 
 const userMessage: IMessage = {
@@ -147,5 +147,62 @@ describe("MessageBubble", () => {
     }
     render(<MessageBubble message={messageNoSources} />)
     expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+  })
+
+  describe("bouton copier", () => {
+    it("affiche le bouton copier pour un message avec du contenu", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      expect(screen.getByTestId("copy-button")).toBeInTheDocument()
+      expect(screen.getByTestId("copy-icon")).toBeInTheDocument()
+    })
+
+    it("affiche le bouton copier pour un message utilisateur", () => {
+      render(<MessageBubble message={userMessage} />)
+      expect(screen.getByTestId("copy-button")).toBeInTheDocument()
+    })
+
+    it("n'affiche pas le bouton copier pendant le streaming", () => {
+      render(<MessageBubble message={assistantMessage} isStreaming />)
+      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
+    })
+
+    it("n'affiche pas le bouton copier si le message est vide", () => {
+      const emptyMessage: IMessage = { id: "9", role: "assistant", content: "", createdAt: new Date() }
+      render(<MessageBubble message={emptyMessage} />)
+      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
+    })
+
+    it("copie le contenu du message dans le presse-papiers au clic", () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      render(<MessageBubble message={assistantMessage} />)
+      fireEvent.click(screen.getByTestId("copy-button"))
+      expect(writeText).toHaveBeenCalledWith("Salut ! Je vais bien, merci.")
+    })
+
+    it("affiche l'icône check après copie", () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      render(<MessageBubble message={assistantMessage} />)
+      fireEvent.click(screen.getByTestId("copy-button"))
+      expect(screen.getByTestId("check-icon")).toBeInTheDocument()
+      expect(screen.queryByTestId("copy-icon")).not.toBeInTheDocument()
+    })
+
+    it("a l'aria-label 'Copier le message' par défaut", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      expect(screen.getByTestId("copy-button")).toHaveAttribute("aria-label", "Copier le message")
+    })
+
+    it("change l'aria-label en 'Copié' après copie", () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.assign(navigator, { clipboard: { writeText } })
+
+      render(<MessageBubble message={assistantMessage} />)
+      fireEvent.click(screen.getByTestId("copy-button"))
+      expect(screen.getByTestId("copy-button")).toHaveAttribute("aria-label", "Copié")
+    })
   })
 })

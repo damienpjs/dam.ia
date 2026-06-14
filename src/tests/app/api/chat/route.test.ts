@@ -322,4 +322,92 @@ describe("POST /api/chat", () => {
     const fullMessage = chunksToFullMessage(chunks)
     expect(fullMessage).toBe("Réponse streamée.")
   })
+
+  it("réutilise le sessionId fourni sans créer de nouvelle session", async () => {
+    const { createSession, saveMessage } = await import("@/lib/db/chat-service")
+
+    const request = createMockRequest({ message: "bonjour", sessionId: "existing-session" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.sessionId).toBe("existing-session")
+    expect(createSession).not.toHaveBeenCalled()
+    expect(saveMessage).toHaveBeenCalledWith("existing-session", "user", expect.any(String))
+  })
+
+  it("continue sans sessionId quand la DB échoue lors de la sauvegarde utilisateur", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    vi.mocked(saveMessage).mockRejectedValueOnce(new Error("DB down"))
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    // sessionId est undefined car le catch l'a réinitialisé
+    expect(lastChunk.sessionId).toBeUndefined()
+    expect(lastChunk.done).toBe(true)
+  })
+
+  it("gère les erreurs DB non-Error lors de la sauvegarde utilisateur", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    vi.mocked(saveMessage).mockRejectedValueOnce("string db error")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.sessionId).toBeUndefined()
+  })
+
+  it("gère l'erreur DB lors de la sauvegarde de la réponse assistant", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    // Première call (user) réussit, deuxième call (assistant) échoue
+    vi.mocked(saveMessage).mockResolvedValueOnce("mock-message-id").mockRejectedValueOnce(new Error("DB write error"))
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.done).toBe(true)
+    // Le messageId est undefined car la sauvegarde assistant a échoué
+    expect(lastChunk.messageId).toBeUndefined()
+  })
+
+  it("gère les erreurs DB non-Error lors de la sauvegarde de la réponse assistant", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    vi.mocked(saveMessage).mockResolvedValueOnce("mock-message-id").mockRejectedValueOnce("string assistant error")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.messageId).toBeUndefined()
+  })
+
+  it("affiche 'Erreur inconnue' quand le provider throw une valeur non-Error", async () => {
+    const { createLLMProvider } = await import("@/lib/llm")
+    vi.mocked(createLLMProvider).mockReturnValueOnce({
+      async *streamResponse() {
+        throw "non-error value"
+      },
+    } as ReturnType<typeof createLLMProvider>)
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    const fullMessage = chunksToFullMessage(chunks)
+    expect(fullMessage).toContain("Erreur inconnue")
+  })
 })

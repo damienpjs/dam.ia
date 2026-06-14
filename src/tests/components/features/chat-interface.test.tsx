@@ -375,4 +375,81 @@ describe("ChatInterface", () => {
     // Toutes les suggestions ont été utilisées
     expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
   })
+
+  it("ne remet pas le focus sur le textarea sur un appareil tactile (onComplete)", async () => {
+    // Simuler un appareil tactile (pointer: coarse)
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = (query: string) =>
+      ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList
+
+    const user = setup()
+    render(<ChatInterface />)
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+    const focusSpy = vi.spyOn(textarea, "focus")
+
+    await user.type(textarea, "Bonjour")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    // focus() ne doit PAS être appelé sur un appareil tactile
+    expect(focusSpy).not.toHaveBeenCalled()
+    focusSpy.mockRestore()
+    window.matchMedia = originalMatchMedia
+  })
+
+  it("ne remet pas le focus sur le textarea sur un appareil tactile (onError)", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = (query: string) =>
+      ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList
+
+    mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+      options.onError?.(new Error("Erreur réseau"))
+    })
+
+    const user = setup()
+    render(<ChatInterface />)
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+    const focusSpy = vi.spyOn(textarea, "focus")
+
+    await user.type(textarea, "Test")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Désolé, une erreur est survenue/i)).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    expect(focusSpy).not.toHaveBeenCalled()
+    focusSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    window.matchMedia = originalMatchMedia
+  })
 })

@@ -1,8 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { POST } from "@/app/api/chat/route"
 import { NextRequest } from "next/server"
 import { MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
+
+// Mock du chat-service (et de la DB) pour éviter le besoin de DATABASE_URL
+vi.mock("@/lib/db/chat-service", () => ({
+  createSession: vi.fn().mockResolvedValue("mock-session-id"),
+  saveMessage: vi.fn().mockResolvedValue("mock-message-id"),
+}))
+
+// Mock du RAG pipeline
+vi.mock("@/lib/rag/pipeline", () => ({
+  retrieveRelevantChunks: vi.fn().mockResolvedValue([]),
+  formatRAGContext: vi.fn().mockReturnValue(""),
+}))
+
+import { POST } from "@/app/api/chat/route"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
 
 /**
@@ -12,6 +25,8 @@ type TParsedChunk = {
   content: string
   done: boolean
   sources?: { label: string; source: string }[]
+  sessionId?: string
+  messageId?: string
 }
 
 /**
@@ -57,12 +72,6 @@ function chunksToFullMessage(chunks: TParsedChunk[]): string {
     .map((chunk) => chunk.content)
     .join("")
 }
-
-// Mock du pipeline RAG pour éviter les appels réseau en tests
-vi.mock("@/lib/rag/pipeline", () => ({
-  retrieveRelevantChunks: vi.fn().mockResolvedValue([]),
-  formatRAGContext: vi.fn().mockReturnValue(""),
-}))
 
 // Mock createLLMProvider pour utiliser un provider simulé
 vi.mock("@/lib/llm", () => ({

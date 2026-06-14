@@ -3,6 +3,7 @@ import { createLLMProvider, MockProvider } from "@/lib/llm"
 import { sanitizeMessage, MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
+import { createSession, saveMessage } from "@/lib/db/chat-service"
 import type { ISearchResult } from "@/lib/rag/types"
 
 /**
@@ -10,6 +11,7 @@ import type { ISearchResult } from "@/lib/rag/types"
  */
 interface IChatRequest {
   message: string
+  sessionId?: string
 }
 
 /**
@@ -27,6 +29,8 @@ type TStreamChunk = {
   content: string
   done: boolean
   sources?: ISourceInfo[]
+  sessionId?: string
+  messageId?: string
 }
 
 /**
@@ -87,7 +91,7 @@ function formatSources(results: ISearchResult[]): ISourceInfo[] {
 export async function POST(request: NextRequest): Promise<Response> {
   try {
     const body = (await request.json()) as IChatRequest
-    const { message } = body
+    const { message, sessionId: incomingSessionId } = body
 
     if (!message || typeof message !== "string") {
       return new Response(JSON.stringify({ error: "Le champ 'message' est requis" }), {
@@ -123,12 +127,26 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
     }
 
+    // Persistence DB (graceful — ne bloque pas le chat si la DB est down)
+    let sessionId = incomingSessionId
+    try {
+      if (!sessionId) {
+        sessionId = await createSession()
+      }
+      await saveMessage(sessionId, "user", sanitized)
+    } catch (dbError) {
+      console.warn("[DB] ❌ Impossible de sauvegarder le message utilisateur:", dbError instanceof Error ? dbError.message : dbError)
+      sessionId = undefined
+    }
+
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
+        let fullResponse = ""
 
         try {
           for await (const text of provider.streamResponse(enrichedMessage)) {
+            fullResponse += text
             const chunk: TStreamChunk = {
               content: text,
               done: false,
@@ -136,11 +154,23 @@ export async function POST(request: NextRequest): Promise<Response> {
             controller.enqueue(encoder.encode(encodeChunk(chunk)))
           }
 
-          // Chunk final avec les sources RAG
+          // Sauvegarder la réponse assistant en DB
+          let assistantMessageId: string | undefined
+          if (sessionId) {
+            try {
+              assistantMessageId = await saveMessage(sessionId, "assistant", fullResponse)
+            } catch (dbError) {
+              console.warn("[DB] ❌ Impossible de sauvegarder la réponse assistant:", dbError instanceof Error ? dbError.message : dbError)
+            }
+          }
+
+          // Chunk final avec les sources RAG, sessionId et messageId
           const finalChunk: TStreamChunk = {
             content: "",
             done: true,
             sources: sources.length > 0 ? sources : undefined,
+            sessionId,
+            messageId: assistantMessageId,
           }
           controller.enqueue(encoder.encode(encodeChunk(finalChunk)))
         } catch (error) {

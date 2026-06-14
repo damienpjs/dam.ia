@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
-import { streamChat, type ISourceInfo } from "@/lib/stream-chat"
+import { streamChat, type IStreamResult } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
 function generateId(): string {
@@ -44,6 +44,7 @@ export function ChatInterface() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
+  const sessionIdRef = useRef<string | undefined>(undefined)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -123,12 +124,16 @@ export function ChatInterface() {
 
       await streamChat(content, {
         signal: abortControllerRef.current.signal,
+        sessionId: sessionIdRef.current,
         onChunk: (char) => {
           setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: msg.content + char } : msg)))
         },
-        onComplete: (sources?: ISourceInfo[]) => {
-          if (sources && sources.length > 0) {
-            setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, sources } : msg)))
+        onComplete: (result: IStreamResult) => {
+          if (result.sessionId) {
+            sessionIdRef.current = result.sessionId
+          }
+          if (result.sources && result.sources.length > 0) {
+            setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, sources: result.sources } : msg)))
           }
           setIsStreaming(false)
           setStreamingMessageId(null)

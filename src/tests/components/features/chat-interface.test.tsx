@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { ChatInterface } from "@/components/features/chat-interface"
-import type { IStreamChatOptions, ISourceInfo } from "@/lib/stream-chat"
+import type { IStreamChatOptions } from "@/lib/stream-chat"
 import { streamChat } from "@/lib/stream-chat"
 
 // Mock streamChat pour simuler le streaming
@@ -12,7 +12,7 @@ vi.mock("@/lib/stream-chat", () => ({
     for (const char of response) {
       options.onChunk(char)
     }
-    options.onComplete?.()
+    options.onComplete?.({})
   }),
 }))
 
@@ -25,7 +25,7 @@ beforeEach(() => {
     for (const char of response) {
       options.onChunk(char)
     }
-    options.onComplete?.()
+    options.onComplete?.({})
   })
 })
 
@@ -231,14 +231,14 @@ describe("ChatInterface", () => {
   })
 
   it("stocke les sources RAG dans le message assistant quand elles sont fournies", async () => {
-    const mockSources: ISourceInfo[] = [
+    const mockSources = [
       { label: "CV", source: "cv" },
       { label: "Apizee", source: "experience-apizee" },
     ]
 
     mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
       options.onChunk("Réponse avec sources.")
-      options.onComplete?.(mockSources)
+      options.onComplete?.({ sources: mockSources })
     })
 
     const user = setup()

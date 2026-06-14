@@ -18,7 +18,7 @@ const MOCK_RULES: IMockRule[] = [
   },
   {
     pattern: /compétence|skill|stack|technolog|maîtris/i,
-    response: "Damien maîtrise Next.js, TypeScript, React, Node.js, OpenAI et Qdrant. Un vrai couteau suisse du web moderne !",
+    response: "Damien maîtrise Next.js, TypeScript, React, Node.js, les LLMS les plus récents et Qdrant. Un vrai couteau suisse du web moderne !",
   },
   {
     pattern: /projet|réalisation|portfolio|travaux/i,

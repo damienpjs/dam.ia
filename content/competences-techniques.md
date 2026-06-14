@@ -42,7 +42,7 @@ Grâce à ma formation initiale en UI/UX :
 
 ## Technologies IA
 
-- OpenAI API
+- Claude / OpenAi / Gemini
 - Modèles de langage (LLM)
 - RAG (Retrieval-Augmented Generation)
 - Qdrant (vector database)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { extractFrontmatter, splitTextIntoChunks, generateChunkId, chunkDocument, CHUNK_SIZE, CHUNK_OVERLAP } from "@/lib/rag/chunker"
+import { extractFrontmatter, splitTextIntoChunks, generateChunkId, chunkDocument, chunkAllContent, CHUNK_SIZE, CHUNK_OVERLAP } from "@/lib/rag/chunker"
 import type { IContentDocument } from "@/lib/content-loader"
 
 describe("extractFrontmatter", () => {
@@ -38,6 +38,34 @@ Body`
     const { metadata } = extractFrontmatter(content)
     expect(metadata.title).toBe("Avec des quotes")
   })
+
+  it("doit ignorer les lignes sans deux-points dans le frontmatter", () => {
+    const content = `---
+title: Test
+ligne-sans-valeur
+category: dev
+---
+
+Body`
+
+    const { metadata } = extractFrontmatter(content)
+    expect(metadata.title).toBe("Test")
+    expect(metadata.category).toBe("dev")
+    expect(Object.keys(metadata)).toHaveLength(2)
+  })
+
+  it("doit ignorer les clés vides dans le frontmatter", () => {
+    const content = `---
+: valeur-sans-cle
+title: OK
+---
+
+Body`
+
+    const { metadata } = extractFrontmatter(content)
+    expect(metadata.title).toBe("OK")
+    expect(Object.keys(metadata)).toHaveLength(1)
+  })
 })
 
 describe("splitTextIntoChunks", () => {
@@ -70,6 +98,17 @@ describe("splitTextIntoChunks", () => {
 
     expect(chunks.length).toBeGreaterThan(1)
     // Aucun chunk ne devrait couper au milieu d'une ligne (sauf si une ligne dépasse le chunk_size)
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeGreaterThan(0)
+    }
+  })
+
+  it("doit gérer un overlap plus grand que la taille du chunk", () => {
+    // Overlap > chunkSize force la branche de sécurité start = end
+    const text = "A".repeat(200)
+    const chunks = splitTextIntoChunks(text, 50, 60)
+
+    expect(chunks.length).toBeGreaterThan(1)
     for (const chunk of chunks) {
       expect(chunk.length).toBeGreaterThan(0)
     }
@@ -135,5 +174,18 @@ title: "Empty"
 
     const chunks = chunkDocument(doc)
     expect(chunks).toEqual([])
+  })
+})
+
+describe("chunkAllContent", () => {
+  it("doit charger et chunker tous les documents du dossier content", () => {
+    const chunks = chunkAllContent()
+
+    expect(chunks.length).toBeGreaterThan(0)
+    for (const chunk of chunks) {
+      expect(chunk.source).toBeTruthy()
+      expect(chunk.text).toBeTruthy()
+      expect(chunk.id).toBeTruthy()
+    }
   })
 })

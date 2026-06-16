@@ -182,6 +182,19 @@ export function ChatInterface() {
     [sendMessage],
   )
 
+  const handleReuseMessage = useCallback((content: string) => {
+    setInput(content)
+    setTimeout(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.style.height = "auto"
+      const maxHeight = 128
+      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+      el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden"
+      el.focus()
+    }, 0)
+  }, [])
+
   const remainingSuggestions = SUGGESTIONS.filter((s) => !usedSuggestions.has(s))
 
   return (
@@ -190,7 +203,12 @@ export function ChatInterface() {
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-6">
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} isStreaming={message.id === streamingMessageId} />
+            <MessageBubble
+              key={message.id}
+              message={message}
+              isStreaming={message.id === streamingMessageId}
+              onReuse={message.role === "user" ? handleReuseMessage : undefined}
+            />
           ))}
 
           {/* Suggestions de questions */}

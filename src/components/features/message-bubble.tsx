@@ -17,6 +17,7 @@ export type TMessageRole = IMessage["role"]
 interface IMessageBubbleProps {
   message: IMessage
   isStreaming?: boolean
+  onReuse?: (content: string) => void
 }
 
 function StreamingSkeleton() {
@@ -29,7 +30,7 @@ function StreamingSkeleton() {
   )
 }
 
-export function MessageBubble({ message, isStreaming = false }: IMessageBubbleProps) {
+export function MessageBubble({ message, isStreaming = false, onReuse }: IMessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [tapped, setTapped] = useState(false)
   const bubbleRef = useRef<HTMLDivElement>(null)
@@ -59,6 +60,11 @@ export function MessageBubble({ message, isStreaming = false }: IMessageBubblePr
 
   function handleBubbleTap() {
     setTapped((prev) => !prev)
+  }
+
+  function handleReuse(e: React.MouseEvent) {
+    e.stopPropagation()
+    onReuse?.(message.content)
   }
 
   return (
@@ -104,28 +110,47 @@ export function MessageBubble({ message, isStreaming = false }: IMessageBubblePr
         </div>
 
         {message.content && !isStreaming && (
-          <button
-            data-testid="copy-button"
-            type="button"
-            onClick={handleCopy}
-            aria-label={copied ? "Copié" : "Copier le message"}
-            className={cn(
-              "absolute -top-3 right-1 flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity group-hover/bubble:opacity-100",
-              tapped && "opacity-100",
-              copied && "text-green-500",
+          <div className="absolute -top-3 right-1 flex gap-1">
+            {isUser && onReuse && (
+              <button
+                data-testid="reuse-button"
+                type="button"
+                onClick={handleReuse}
+                aria-label="Remettre dans le tchat"
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity group-hover/bubble:opacity-100",
+                  tapped && "opacity-100",
+                )}
+              >
+                <svg data-testid="reuse-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 10 4 15 9 20" />
+                  <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+                </svg>
+              </button>
             )}
-          >
-            {copied ? (
-              <svg data-testid="check-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            ) : (
-              <svg data-testid="copy-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-              </svg>
-            )}
-          </button>
+            <button
+              data-testid="copy-button"
+              type="button"
+              onClick={handleCopy}
+              aria-label={copied ? "Copié" : "Copier le message"}
+              className={cn(
+                "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity group-hover/bubble:opacity-100",
+                tapped && "opacity-100",
+                copied && "text-green-500",
+              )}
+            >
+              {copied ? (
+                <svg data-testid="check-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              ) : (
+                <svg data-testid="copy-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                </svg>
+              )}
+            </button>
+          </div>
         )}
       </div>
     </div>

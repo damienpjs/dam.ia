@@ -270,4 +270,61 @@ describe("MessageBubble", () => {
       expect(copyButton).toHaveClass("opacity-100")
     })
   })
+
+  describe("bouton réutiliser", () => {
+    it("n'affiche pas le bouton réutiliser sans la prop onReuse", () => {
+      render(<MessageBubble message={userMessage} />)
+      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
+    })
+
+    it("n'affiche pas le bouton réutiliser pour un message assistant même avec onReuse", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={assistantMessage} onReuse={onReuse} />)
+      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
+    })
+
+    it("affiche le bouton réutiliser pour un message utilisateur avec onReuse", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
+      expect(screen.getByTestId("reuse-button")).toBeInTheDocument()
+      expect(screen.getByTestId("reuse-icon")).toBeInTheDocument()
+    })
+
+    it("n'affiche pas le bouton réutiliser pendant le streaming", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={userMessage} isStreaming onReuse={onReuse} />)
+      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
+    })
+
+    it("n'affiche pas le bouton réutiliser si le message est vide", () => {
+      const onReuse = vi.fn()
+      const emptyUserMsg: IMessage = { id: "10", role: "user", content: "", createdAt: new Date() }
+      render(<MessageBubble message={emptyUserMsg} onReuse={onReuse} />)
+      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
+    })
+
+    it("appelle onReuse avec le contenu du message au clic", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
+      fireEvent.click(screen.getByTestId("reuse-button"))
+      expect(onReuse).toHaveBeenCalledWith("Bonjour, comment ça va ?")
+    })
+
+    it("a l'aria-label 'Remettre dans le tchat'", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
+      expect(screen.getByTestId("reuse-button")).toHaveAttribute("aria-label", "Remettre dans le tchat")
+    })
+
+    it("est visible quand la bulle est tappée (mobile)", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
+      const bubble = screen.getByTestId("message-bubble")
+      const reuseButton = screen.getByTestId("reuse-button")
+
+      expect(reuseButton).toHaveClass("opacity-0")
+      fireEvent.click(bubble)
+      expect(reuseButton).toHaveClass("opacity-100")
+    })
+  })
 })

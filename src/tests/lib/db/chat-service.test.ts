@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const mockInsert = vi.fn()
 const mockValues = vi.fn()
 const mockReturning = vi.fn()
+const mockSelect = vi.fn()
+const mockFrom = vi.fn()
+const mockWhere = vi.fn()
+const mockOrderBy = vi.fn()
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -21,10 +25,29 @@ vi.mock("@/lib/db", () => ({
         },
       }
     },
+    select: (...args: unknown[]) => {
+      mockSelect(...args)
+      return {
+        from: (...fArgs: unknown[]) => {
+          mockFrom(...fArgs)
+          return {
+            where: (...wArgs: unknown[]) => {
+              mockWhere(...wArgs)
+              return {
+                orderBy: (...oArgs: unknown[]) => {
+                  mockOrderBy(...oArgs)
+                  return mockOrderBy()
+                },
+              }
+            },
+          }
+        },
+      }
+    },
   },
 }))
 
-import { createSession, saveMessage, saveFeedback } from "@/lib/db/chat-service"
+import { createSession, saveMessage, saveFeedback, getSessionMessages } from "@/lib/db/chat-service"
 
 describe("chat-service", () => {
   beforeEach(() => {
@@ -67,6 +90,33 @@ describe("chat-service", () => {
         role: "assistant",
         content: "Salut !",
       })
+    })
+  })
+
+  describe("getSessionMessages", () => {
+    it("doit retourner les messages d'une session triés par date", async () => {
+      const now = new Date()
+      const mockMessages = [
+        { id: "msg-1", role: "user", content: "Bonjour", createdAt: now },
+        { id: "msg-2", role: "assistant", content: "Salut !", createdAt: now },
+      ]
+      mockOrderBy.mockResolvedValue(mockMessages)
+
+      const result = await getSessionMessages("session-123")
+
+      expect(result).toEqual(mockMessages)
+      expect(mockSelect).toHaveBeenCalled()
+      expect(mockFrom).toHaveBeenCalled()
+      expect(mockWhere).toHaveBeenCalled()
+      expect(mockOrderBy).toHaveBeenCalled()
+    })
+
+    it("doit retourner un tableau vide si la session n'a pas de messages", async () => {
+      mockOrderBy.mockResolvedValue([])
+
+      const result = await getSessionMessages("session-vide")
+
+      expect(result).toEqual([])
     })
   })
 

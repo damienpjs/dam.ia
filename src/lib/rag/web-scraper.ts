@@ -12,6 +12,11 @@ export interface IWebSource {
   url: string
   /** Label affiché à l'utilisateur (ex: "LinkedIn") */
   label: string
+  /**
+   * Active le rendu JavaScript via un navigateur headless (Playwright/Chromium).
+   * Nécessaire pour les SPAs (React, Vue, etc.) dont le contenu est généré côté client.
+   */
+  jsRendering?: boolean
 }
 
 /**
@@ -42,7 +47,7 @@ export function extractTextFromHtml(html: string): string {
 }
 
 /**
- * Fetch une page web et retourne son contenu textuel.
+ * Fetch une page web statique et retourne son contenu textuel.
  */
 export async function fetchWebPage(url: string): Promise<string> {
   const response = await fetch(url, {
@@ -62,12 +67,30 @@ export async function fetchWebPage(url: string): Promise<string> {
 }
 
 /**
+ * Fetch une page web via un navigateur headless Chromium (Playwright).
+ * Attend que le réseau soit inactif pour s'assurer que le rendu JS est complet.
+ * Utiliser pour les SPAs dont le contenu est généré côté client.
+ */
+export async function fetchWebPageWithBrowser(url: string): Promise<string> {
+  const { chromium } = await import("playwright")
+  const browser = await chromium.launch({ headless: true })
+  try {
+    const page = await browser.newPage()
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 })
+    const text = await page.evaluate(() => document.body.innerText)
+    return text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim()
+  } finally {
+    await browser.close()
+  }
+}
+
+/**
  * Scrape une source web et la transforme en chunks indexables.
  * Le metadata de chaque chunk contient sourceUrl et sourceLabel
  * pour que le pipeline RAG puisse les afficher comme sources cliquables.
  */
 export async function scrapeWebSource(source: IWebSource): Promise<IContentChunk[]> {
-  const text = await fetchWebPage(source.url)
+  const text = source.jsRendering ? await fetchWebPageWithBrowser(source.url) : await fetchWebPage(source.url)
 
   if (text.length === 0) {
     return []

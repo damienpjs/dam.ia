@@ -7,6 +7,7 @@
   {
     "id": "site-perso",
     "url": "https://damienpasulj.com",
-    "label": "damienpasulj.com"
+    "label": "damienpasulj.com",
+    "jsRendering": true
   }
 ]

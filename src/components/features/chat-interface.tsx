@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
@@ -9,11 +9,25 @@ import { cn } from "@/lib/utils"
 
 const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
 
+// Isomorphic : useLayoutEffect côté client, useEffect côté serveur (SSR)
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect
+
 function generateId(): string {
   return crypto.randomUUID()
 }
 
 const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"]
+
+function SessionLoader() {
+  return (
+    <div data-testid="session-loader" className="flex h-full items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#F9B288]/20 border-t-[#F9B288]" />
+        <p className="text-sm text-muted-foreground">Chargement de la conversation…</p>
+      </div>
+    </div>
+  )
+}
 
 function TypingIndicator() {
   return (
@@ -48,6 +62,13 @@ export function ChatInterface() {
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
   const [isLoadingSession, setIsLoadingSession] = useState(false)
   const sessionIdRef = useRef<string | undefined>(undefined)
+
+  // Vérifie localStorage avant le premier paint pour éviter tout flash de contenu
+  useIsomorphicLayoutEffect(() => {
+    if (localStorage.getItem(SESSION_STORAGE_KEY)) {
+      setIsLoadingSession(true)
+    }
+  }, [])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -69,7 +90,6 @@ export function ChatInterface() {
     const storedSessionId = localStorage.getItem(SESSION_STORAGE_KEY)
     if (!storedSessionId) return
 
-    setIsLoadingSession(true)
     fetch(`/api/chat/session/${storedSessionId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Session non disponible")
@@ -233,38 +253,42 @@ export function ChatInterface() {
     <div className="flex flex-1 flex-col overflow-hidden overflow-x-hidden font-[family-name:var(--font-chat)]">
       {/* Zone de messages */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-6">
-        <div className="mx-auto flex max-w-3xl flex-col gap-4">
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isStreaming={message.id === streamingMessageId}
-              onReuse={message.role === "user" ? handleReuseMessage : undefined}
-            />
-          ))}
+        {isLoadingSession ? (
+          <SessionLoader />
+        ) : (
+          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+            {messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isStreaming={message.id === streamingMessageId}
+                onReuse={message.role === "user" ? handleReuseMessage : undefined}
+              />
+            ))}
 
-          {/* Suggestions de questions */}
-          {remainingSuggestions.length > 0 && !isTyping && !isStreaming && !isLoadingSession && (
-            <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
-              <p className="text-xs text-muted-foreground">Suggestions :</p>
-              <div className="flex flex-wrap gap-2">
-                {remainingSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-[#F9B288]/50 hover:bg-[#F9B288]/10 hover:text-foreground"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+            {/* Suggestions de questions */}
+            {remainingSuggestions.length > 0 && !isTyping && !isStreaming && (
+              <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
+                <p className="text-xs text-muted-foreground">Suggestions :</p>
+                <div className="flex flex-wrap gap-2">
+                  {remainingSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-[#F9B288]/50 hover:bg-[#F9B288]/10 hover:text-foreground"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {isTyping && <TypingIndicator />}
-          <div ref={messagesEndRef} aria-hidden="true" />
-        </div>
+            {isTyping && <TypingIndicator />}
+            <div ref={messagesEndRef} aria-hidden="true" />
+          </div>
+        )}
       </div>
 
       {/* Barre de saisie */}
@@ -286,6 +310,7 @@ export function ChatInterface() {
             enterKeyHint="send"
             placeholder="Écris ton message…"
             rows={1}
+            disabled={isLoadingSession}
             aria-label="Message à envoyer"
             className={cn(
               "min-w-0 flex-1 resize-none rounded-xl ring-1 ring-white/20 bg-input/30 px-3 sm:px-4 py-2",
@@ -297,7 +322,7 @@ export function ChatInterface() {
           <Button
             type="submit"
             size="icon-lg"
-            disabled={!input.trim() || isTyping || isStreaming}
+            disabled={!input.trim() || isTyping || isStreaming || isLoadingSession}
             aria-label="Envoyer"
             className="shrink-0 bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white shadow-md shadow-[#F9B288]/20 hover:from-[#D99060] hover:to-[#E8A070] disabled:opacity-40"
           >

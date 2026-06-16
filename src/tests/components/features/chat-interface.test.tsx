@@ -531,6 +531,18 @@ describe("ChatInterface", () => {
       }, { timeout: 2000 })
     })
 
+    it("affiche un loader à la place des messages pendant le chargement de la session", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-loader-test")
+
+      vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})))
+
+      render(<ChatInterface />)
+
+      expect(screen.getByTestId("session-loader")).toBeInTheDocument()
+      expect(screen.queryByText(/Damien Pasulj/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
+    })
+
     it("appelle la bonne URL de session au montage", async () => {
       localStorage.setItem("dam_ia_chat_session_id", "session-check-url")
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { ChatInterface } from "@/components/features/chat-interface"
 import type { IStreamChatOptions } from "@/lib/stream-chat"
@@ -31,6 +31,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks()
+  vi.unstubAllGlobals()
+  localStorage.clear()
 })
 
 // Helper : user sans délai inter-touches pour des tests rapides
@@ -410,6 +412,140 @@ describe("ChatInterface", () => {
     expect(focusSpy).not.toHaveBeenCalled()
     focusSpy.mockRestore()
     window.matchMedia = originalMatchMedia
+  })
+
+  it("pré-remplit le textarea et met le focus après avoir cliqué sur le bouton de réutilisation", async () => {
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.type(screen.getByLabelText(/message à envoyer/i), "Message à réutiliser")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+    }, { timeout: 2000 })
+
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+    const focusSpy = vi.spyOn(textarea, "focus")
+
+    fireEvent.click(screen.getByTestId("reuse-button"))
+
+    expect(textarea).toHaveValue("Message à réutiliser")
+
+    await waitFor(() => {
+      expect(focusSpy).toHaveBeenCalled()
+    }, { timeout: 500 })
+
+    focusSpy.mockRestore()
+  })
+
+  describe("Persistance de session (localStorage)", () => {
+    it("sauvegarde le sessionId dans localStorage après réception depuis le stream", async () => {
+      mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+        options.onChunk("Réponse.")
+        options.onComplete?.({ sessionId: "session-abc-123" })
+      })
+
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-abc-123")
+      }, { timeout: 2000 })
+    })
+
+    it("ne sauvegarde rien dans localStorage si le stream ne retourne pas de sessionId", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+    })
+
+    it("restaure les messages d'une session existante au chargement", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-existing-456")
+
+      const mockMessages = [
+        { id: "msg-1", role: "user", content: "Message restauré", createdAt: new Date().toISOString() },
+        { id: "msg-2", role: "assistant", content: "Réponse restaurée", createdAt: new Date().toISOString() },
+      ]
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: mockMessages }),
+      }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(screen.getByText("Message restauré")).toBeInTheDocument()
+        expect(screen.getByText("Réponse restaurée")).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-existing-456")
+    })
+
+    it("supprime le sessionId du localStorage et démarre une nouvelle session si le fetch échoue", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-invalid")
+
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+      }, { timeout: 2000 })
+    })
+
+    it("supprime le sessionId si la réponse du serveur n'est pas ok", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-404")
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+      }, { timeout: 2000 })
+    })
+
+    it("supprime le sessionId si la session ne contient aucun message", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-empty")
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: [] }),
+      }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+      }, { timeout: 2000 })
+    })
+
+    it("appelle la bonne URL de session au montage", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-check-url")
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: [] }),
+      })
+      vi.stubGlobal("fetch", mockFetch)
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith("/api/chat/session/session-check-url")
+      }, { timeout: 2000 })
+    })
   })
 
   it("ne remet pas le focus sur le textarea sur un appareil tactile (onError)", async () => {

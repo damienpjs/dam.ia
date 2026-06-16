@@ -1,5 +1,13 @@
+import { eq, asc } from "drizzle-orm"
 import { db } from "./index"
 import { chatSessions, messages, feedbacks } from "./schema"
+
+export interface ISessionMessage {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  createdAt: Date
+}
 
 /**
  * Crée une nouvelle session de chat.
@@ -17,6 +25,23 @@ export async function createSession(): Promise<string> {
 export async function saveMessage(sessionId: string, role: "user" | "assistant", content: string): Promise<string> {
   const [message] = await db.insert(messages).values({ sessionId, role, content }).returning({ id: messages.id })
   return message.id
+}
+
+/**
+ * Récupère tous les messages d'une session, triés par date de création.
+ * Retourne un tableau vide si la session n'existe pas ou n'a pas de messages.
+ */
+export async function getSessionMessages(sessionId: string): Promise<ISessionMessage[]> {
+  return db
+    .select({
+      id: messages.id,
+      role: messages.role,
+      content: messages.content,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(asc(messages.createdAt))
 }
 
 /**

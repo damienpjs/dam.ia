@@ -7,6 +7,8 @@ import { MessageBubble, type IMessage } from "@/components/features/message-bubb
 import { streamChat, type IStreamResult } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
+const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
+
 function generateId(): string {
   return crypto.randomUUID()
 }
@@ -44,6 +46,7 @@ export function ChatInterface() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
+  const [isLoadingSession, setIsLoadingSession] = useState(false)
   const sessionIdRef = useRef<string | undefined>(undefined)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -60,6 +63,34 @@ export function ChatInterface() {
     }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isTyping, isStreaming])
+
+  // Restaure la session depuis localStorage au montage
+  useEffect(() => {
+    const storedSessionId = localStorage.getItem(SESSION_STORAGE_KEY)
+    if (!storedSessionId) return
+
+    setIsLoadingSession(true)
+    fetch(`/api/chat/session/${storedSessionId}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Session non disponible")
+        const data = (await res.json()) as { messages: Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: string }> }
+        if (!data.messages.length) {
+          localStorage.removeItem(SESSION_STORAGE_KEY)
+          return
+        }
+        sessionIdRef.current = storedSessionId
+        setMessages([
+          WELCOME_MESSAGE,
+          ...data.messages.map((m) => ({ ...m, createdAt: new Date(m.createdAt) })),
+        ])
+      })
+      .catch(() => {
+        localStorage.removeItem(SESSION_STORAGE_KEY)
+      })
+      .finally(() => {
+        setIsLoadingSession(false)
+      })
+  }, [])
 
   // Auto-focus le textarea au montage (sauf mobile pour éviter le scroll causé par le clavier virtuel)
   useEffect(() => {
@@ -134,6 +165,7 @@ export function ChatInterface() {
         onComplete: (result: IStreamResult) => {
           if (result.sessionId) {
             sessionIdRef.current = result.sessionId
+            localStorage.setItem(SESSION_STORAGE_KEY, result.sessionId)
           }
           if (result.sources && result.sources.length > 0) {
             setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, sources: result.sources } : msg)))
@@ -212,7 +244,7 @@ export function ChatInterface() {
           ))}
 
           {/* Suggestions de questions */}
-          {remainingSuggestions.length > 0 && !isTyping && !isStreaming && (
+          {remainingSuggestions.length > 0 && !isTyping && !isStreaming && !isLoadingSession && (
             <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
               <p className="text-xs text-muted-foreground">Suggestions :</p>
               <div className="flex flex-wrap gap-2">

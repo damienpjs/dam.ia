@@ -327,4 +327,22 @@ describe("MessageBubble", () => {
       expect(reuseButton).toHaveClass("opacity-100")
     })
   })
+
+  describe("showActions", () => {
+    it("masque le bouton copier quand showActions est false", () => {
+      render(<MessageBubble message={assistantMessage} showActions={false} />)
+      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
+    })
+
+    it("masque le bouton réutiliser quand showActions est false", () => {
+      const onReuse = vi.fn()
+      render(<MessageBubble message={userMessage} onReuse={onReuse} showActions={false} />)
+      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
+    })
+
+    it("affiche toujours le contenu du message quand showActions est false", () => {
+      render(<MessageBubble message={assistantMessage} showActions={false} />)
+      expect(screen.getByText("Salut ! Je vais bien, merci.")).toBeInTheDocument()
+    })
+  })
 })

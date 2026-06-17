@@ -51,6 +51,15 @@ Le rapport HTML de couverture est généré dans `./coverage/index.html` après 
 
 > **Note :** `animated-background.tsx` est exclu de la couverture car il utilise l'API Canvas, non disponible dans jsdom.
 
+### Intégration continue
+
+Un workflow GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) exécute le lint et les tests unitaires :
+
+- à **chaque push** sur n'importe quelle branche de travail ;
+- sur chaque **pull request** vers `main` ou `develop`.
+
+Le job échoue si le lint ou les tests échouent, ou si la couverture descend sous le seuil de **95%**. Pour bloquer le merge sur `main`, activer la protection de branche (*Settings → Branches*) avec le check **« Lint & tests »** requis.
+
 ## Getting Started
 
 First, run the development server:

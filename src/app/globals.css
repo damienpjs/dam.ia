@@ -6,6 +6,51 @@ a {
   cursor: pointer;
 }
 
+/* Bulle d'accueil de la landing : flottement léger pour inviter au clic */
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-hero-float {
+  animation: hero-float 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-float {
+    animation: none;
+  }
+}
+
+/* Terme mis en exergue : dégradé chaud qui défile en continu */
+@keyframes text-gradient {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.text-gradient-animated {
+  display: inline-block;
+  background-image: linear-gradient(90deg, #f97316, #fdba74, #fcd34d, #fb7185, #f97316);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: text-gradient 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient-animated {
+    animation: none;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

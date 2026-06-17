@@ -35,7 +35,14 @@ describe("DB Schema", () => {
       expect(columns).toContain("sessionId")
       expect(columns).toContain("role")
       expect(columns).toContain("content")
+      expect(columns).toContain("sources")
       expect(columns).toContain("createdAt")
+    })
+
+    it("doit avoir une colonne sources jsonb nullable", () => {
+      const sourcesCol = messages.sources
+      expect(sourcesCol.dataType).toBe("json")
+      expect(sourcesCol.notNull).toBe(false)
     })
 
     it("doit avoir une référence cascade vers chatSessions", () => {

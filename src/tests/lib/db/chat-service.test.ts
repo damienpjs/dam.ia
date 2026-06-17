@@ -76,6 +76,7 @@ describe("chat-service", () => {
         sessionId: "session-123",
         role: "user",
         content: "Bonjour",
+        sources: null,
       })
     })
 
@@ -89,6 +90,22 @@ describe("chat-service", () => {
         sessionId: "session-123",
         role: "assistant",
         content: "Salut !",
+        sources: null,
+      })
+    })
+
+    it("doit persister les sources RAG fournies", async () => {
+      mockReturning.mockResolvedValue([{ id: "msg-999" }])
+      const sources = [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }]
+
+      const id = await saveMessage("session-123", "assistant", "Avec sources", sources)
+
+      expect(id).toBe("msg-999")
+      expect(mockValues).toHaveBeenCalledWith({
+        sessionId: "session-123",
+        role: "assistant",
+        content: "Avec sources",
+        sources,
       })
     })
   })
@@ -97,8 +114,8 @@ describe("chat-service", () => {
     it("doit retourner les messages d'une session triés par date", async () => {
       const now = new Date()
       const mockMessages = [
-        { id: "msg-1", role: "user", content: "Bonjour", createdAt: now },
-        { id: "msg-2", role: "assistant", content: "Salut !", createdAt: now },
+        { id: "msg-1", role: "user", content: "Bonjour", sources: null, createdAt: now },
+        { id: "msg-2", role: "assistant", content: "Salut !", sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }], createdAt: now },
       ]
       mockOrderBy.mockResolvedValue(mockMessages)
 

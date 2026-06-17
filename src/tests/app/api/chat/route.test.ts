@@ -265,6 +265,30 @@ describe("POST /api/chat", () => {
     expect(lastChunk.sources).toHaveLength(2)
   })
 
+  it("persiste les sources RAG avec la réponse assistant", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    const mockResults = [{ text: "Chunk pertinent", source: "cv", score: 0.95, metadata: { sourceUrl: "/cv-damien-pasulj.pdf", sourceLabel: "CV (PDF)" } }]
+    vi.mocked(retrieveRelevantChunks).mockResolvedValueOnce(mockResults)
+    vi.mocked(formatRAGContext).mockReturnValueOnce("contexte")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+    await readStreamToChunks(response.body!)
+
+    // La sauvegarde assistant reçoit les sources dédupliquées
+    expect(saveMessage).toHaveBeenCalledWith("mock-session-id", "assistant", "Réponse streamée.", [expect.objectContaining({ label: "CV (PDF)", url: "/cv-damien-pasulj.pdf" })])
+  })
+
+  it("sauvegarde la réponse assistant sans sources quand le RAG ne retourne rien", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+    await readStreamToChunks(response.body!)
+
+    expect(saveMessage).toHaveBeenCalledWith("mock-session-id", "assistant", "Réponse streamée.", undefined)
+  })
+
   it("déduplique les sources RAG par sourceUrl", async () => {
     const mockResults = [
       { text: "Chunk 1", source: "cv", score: 0.9, metadata: { sourceUrl: "/cv-damien-pasulj.pdf", sourceLabel: "CV (PDF)" } },

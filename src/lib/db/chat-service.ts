@@ -1,11 +1,13 @@
 import { eq, asc } from "drizzle-orm"
 import { db } from "./index"
 import { chatSessions, messages, feedbacks } from "./schema"
+import type { ISourceInfo } from "@/lib/stream-chat"
 
 export interface ISessionMessage {
   id: string
   role: "user" | "assistant"
   content: string
+  sources: ISourceInfo[] | null
   createdAt: Date
 }
 
@@ -20,10 +22,14 @@ export async function createSession(): Promise<string> {
 
 /**
  * Sauvegarde un message dans une session.
+ * Les sources RAG (optionnelles) ne concernent que les réponses assistant.
  * @returns L'ID du message créé
  */
-export async function saveMessage(sessionId: string, role: "user" | "assistant", content: string): Promise<string> {
-  const [message] = await db.insert(messages).values({ sessionId, role, content }).returning({ id: messages.id })
+export async function saveMessage(sessionId: string, role: "user" | "assistant", content: string, sources?: ISourceInfo[]): Promise<string> {
+  const [message] = await db
+    .insert(messages)
+    .values({ sessionId, role, content, sources: sources ?? null })
+    .returning({ id: messages.id })
   return message.id
 }
 
@@ -37,6 +43,7 @@ export async function getSessionMessages(sessionId: string): Promise<ISessionMes
       id: messages.id,
       role: messages.role,
       content: messages.content,
+      sources: messages.sources,
       createdAt: messages.createdAt,
     })
     .from(messages)

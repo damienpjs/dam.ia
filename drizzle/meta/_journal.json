@@ -8,6 +8,13 @@
       "when": 1781441172812,
       "tag": "0000_opposite_bucky",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781691727093,
+      "tag": "0001_clear_jubilee",
+      "breakpoints": true
     }
   ]
 }

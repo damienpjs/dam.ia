@@ -483,8 +483,8 @@ describe("ChatInterface", () => {
       localStorage.setItem("dam_ia_chat_session_id", "session-existing-456")
 
       const mockMessages = [
-        { id: "msg-1", role: "user", content: "Message restauré", createdAt: new Date().toISOString() },
-        { id: "msg-2", role: "assistant", content: "Réponse restaurée", createdAt: new Date().toISOString() },
+        { id: "msg-1", role: "user", content: "Message restauré", sources: null, createdAt: new Date().toISOString() },
+        { id: "msg-2", role: "assistant", content: "Réponse restaurée", sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }], createdAt: new Date().toISOString() },
       ]
 
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
@@ -498,6 +498,10 @@ describe("ChatInterface", () => {
         expect(screen.getByText("Message restauré")).toBeInTheDocument()
         expect(screen.getByText("Réponse restaurée")).toBeInTheDocument()
       }, { timeout: 2000 })
+
+      // Les sources persistées sont réaffichées après rechargement
+      expect(screen.getByTestId("message-sources")).toBeInTheDocument()
+      expect(screen.getByText("CV (PDF)")).toBeInTheDocument()
 
       expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-existing-456")
     })

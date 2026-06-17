@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
-import { streamChat, type IStreamResult } from "@/lib/stream-chat"
+import { streamChat, type IStreamResult, type ISourceInfo } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
 const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
@@ -98,13 +98,13 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     fetch(`/api/chat/session/${storedSessionId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Session non disponible")
-        const data = (await res.json()) as { messages: Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: string }> }
+        const data = (await res.json()) as { messages: Array<{ id: string; role: "user" | "assistant"; content: string; sources: ISourceInfo[] | null; createdAt: string }> }
         if (!data.messages.length) {
           localStorage.removeItem(SESSION_STORAGE_KEY)
           return
         }
         sessionIdRef.current = storedSessionId
-        setMessages([WELCOME_MESSAGE, ...data.messages.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }))])
+        setMessages([WELCOME_MESSAGE, ...data.messages.map((m) => ({ ...m, sources: m.sources ?? undefined, createdAt: new Date(m.createdAt) }))])
       })
       .catch(() => {
         localStorage.removeItem(SESSION_STORAGE_KEY)

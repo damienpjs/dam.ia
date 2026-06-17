@@ -145,7 +145,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           let assistantMessageId: string | undefined
           if (sessionId) {
             try {
-              assistantMessageId = await saveMessage(sessionId, "assistant", fullResponse)
+              assistantMessageId = await saveMessage(sessionId, "assistant", fullResponse, sources.length > 0 ? sources : undefined)
             } catch (dbError) {
               console.warn("[DB] ❌ Impossible de sauvegarder la réponse assistant:", dbError instanceof Error ? dbError.message : dbError)
             }

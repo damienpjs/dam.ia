@@ -17,8 +17,8 @@ describe("GET /api/chat/session/[sessionId]", () => {
   it("retourne les messages de la session avec statut 200", async () => {
     const now = new Date()
     const mockMessages = [
-      { id: "msg-1", role: "user", content: "Bonjour", createdAt: now },
-      { id: "msg-2", role: "assistant", content: "Salut !", createdAt: now },
+      { id: "msg-1", role: "user", content: "Bonjour", sources: null, createdAt: now },
+      { id: "msg-2", role: "assistant", content: "Salut !", sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }], createdAt: now },
     ]
     mockGetSessionMessages.mockResolvedValue(mockMessages)
 

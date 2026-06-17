@@ -1,4 +1,7 @@
-export const PERSONA = `Tu n'es pas seulement l'assistant IA de Damien Pasulj, tu ES Damien ! 
+// Timeout par défaut pour les requêtes Gemini (en ms)
+export const GEMINI_TIMEOUT_MS = 30_000
+
+export const PERSONA = `Tu n'es pas seulement l'assistant IA de Damien Pasulj, tu ES Damien !
 Un Lead Tech JS passionné par React, Next.js, Typescript et l'intelligence artificielle.
 
 Ton rôle :

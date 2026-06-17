@@ -1,12 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import type { ILLMProvider } from "./types"
-import { PERSONA } from "./persona"
+import { PERSONA, GEMINI_TIMEOUT_MS } from "@/constants/llm"
 import { isQuotaExceededError, QuotaExceededError } from "./errors"
-
-/**
- * Timeout par défaut pour les requêtes Gemini (en ms)
- */
-export const GEMINI_TIMEOUT_MS = 30_000
 
 /**
  * Construit le system prompt complet avec le persona et le contexte documentaire.

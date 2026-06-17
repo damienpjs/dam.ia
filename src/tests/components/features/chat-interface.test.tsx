@@ -574,6 +574,68 @@ describe("ChatInterface", () => {
     })
   })
 
+  describe("Persistance des suggestions (localStorage)", () => {
+    it("sauvegarde la suggestion cliquée dans localStorage", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+
+      await user.click(screen.getByText("Quelles sont tes compétences ?"))
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+        expect(stored).toContain("Quelles sont tes compétences ?")
+      }, { timeout: 2000 })
+    })
+
+    it("ne ré-affiche pas une suggestion déjà cliquée au rechargement", () => {
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?"]))
+
+      render(<ChatInterface />)
+
+      expect(screen.queryByText("Quelles sont tes compétences ?")).not.toBeInTheDocument()
+      expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
+    })
+
+    it("affiche toujours une nouvelle suggestion absente du localStorage", () => {
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes projets"]))
+
+      render(<ChatInterface />)
+
+      expect(screen.queryByText("Quelles sont tes compétences ?")).not.toBeInTheDocument()
+      expect(screen.queryByText("Parle-moi de tes projets")).not.toBeInTheDocument()
+      expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
+    })
+
+    it("masque le bloc suggestions si toutes sont dans localStorage", () => {
+      localStorage.setItem(
+        "dam_ia_used_suggestions",
+        JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"])
+      )
+
+      render(<ChatInterface />)
+
+      expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
+    })
+
+    it("accumule plusieurs suggestions cliquées dans localStorage", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+
+      await user.click(screen.getByText("Quelles sont tes compétences ?"))
+      await waitFor(() => {
+        expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      }, { timeout: 3000 })
+      await user.click(screen.getByText("Parle-moi de tes projets"))
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+        expect(stored).toContain("Quelles sont tes compétences ?")
+        expect(stored).toContain("Parle-moi de tes projets")
+      }, { timeout: 3000 })
+    })
+  })
+
   it("ne remet pas le focus sur le textarea sur un appareil tactile (onError)", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 

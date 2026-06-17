@@ -1,17 +1,9 @@
 import type { IContentChunk } from "./types"
 import { loadContentDocuments, type IContentDocument } from "../content-loader"
 import { createHash } from "crypto"
+import { CHUNK_SIZE, CHUNK_OVERLAP } from "@/constants/rag"
 
-/**
- * Taille cible d'un chunk en caractères.
- * Assez grand pour garder du contexte, assez petit pour des embeddings précis.
- */
-export const CHUNK_SIZE = 500
-
-/**
- * Chevauchement entre chunks pour ne pas perdre de contexte aux frontières.
- */
-export const CHUNK_OVERLAP = 50
+export { CHUNK_SIZE, CHUNK_OVERLAP }
 
 /**
  * Extrait le frontmatter YAML d'un contenu markdown.

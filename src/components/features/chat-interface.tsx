@@ -46,14 +46,19 @@ function TypingIndicator() {
   )
 }
 
-const WELCOME_MESSAGE: IMessage = {
+export const WELCOME_MESSAGE: IMessage = {
   id: "welcome",
   role: "assistant",
   content: "👋 Je suis Damien Pasulj, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
   createdAt: new Date(),
 }
 
-export function ChatInterface() {
+interface IChatInterfaceProps {
+  /** Masque la liste des messages pendant la transition d'ouverture (morph de la bulle d'accueil). */
+  messagesVisible?: boolean
+}
+
+export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const [messages, setMessages] = useState<IMessage[]>([WELCOME_MESSAGE])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -256,7 +261,7 @@ export function ChatInterface() {
         {isLoadingSession ? (
           <SessionLoader />
         ) : (
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <div className={cn("mx-auto flex max-w-3xl flex-col gap-4 transition-opacity duration-300", messagesVisible ? "opacity-100" : "opacity-0")}>
             {messages.map((message) => (
               <MessageBubble
                 key={message.id}

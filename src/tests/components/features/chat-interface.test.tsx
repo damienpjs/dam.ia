@@ -50,6 +50,16 @@ describe("ChatInterface", () => {
     expect(bubble).toHaveClass("bg-card")
   })
 
+  it("affiche la liste des messages par défaut (messagesVisible)", () => {
+    const { container } = render(<ChatInterface />)
+    expect(container.querySelector(".opacity-100.max-w-3xl")).not.toBeNull()
+  })
+
+  it("masque la liste des messages quand messagesVisible est false", () => {
+    const { container } = render(<ChatInterface messagesVisible={false} />)
+    expect(container.querySelector(".opacity-0.max-w-3xl")).not.toBeNull()
+  })
+
   it("rend le textarea de saisie", () => {
     render(<ChatInterface />)
     expect(screen.getByLabelText(/message à envoyer/i)).toBeInTheDocument()

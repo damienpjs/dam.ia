@@ -18,6 +18,8 @@ interface IMessageBubbleProps {
   message: IMessage
   isStreaming?: boolean
   onReuse?: (content: string) => void
+  /** Affiche les boutons d'action (copier, réutiliser). Désactivé pour la bulle d'accueil de la landing. */
+  showActions?: boolean
 }
 
 function StreamingSkeleton() {
@@ -30,7 +32,7 @@ function StreamingSkeleton() {
   )
 }
 
-export function MessageBubble({ message, isStreaming = false, onReuse }: IMessageBubbleProps) {
+export function MessageBubble({ message, isStreaming = false, onReuse, showActions = true }: IMessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [tapped, setTapped] = useState(false)
   const bubbleRef = useRef<HTMLDivElement>(null)
@@ -109,7 +111,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse }: IMessag
           )}
         </div>
 
-        {message.content && !isStreaming && (
+        {message.content && !isStreaming && showActions && (
           <div className="absolute -top-3 right-1 flex gap-1">
             {isUser && onReuse && (
               <button

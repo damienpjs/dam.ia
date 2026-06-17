@@ -14,7 +14,7 @@ interface IProviderStatus {
  * Pastilles de statut des providers LLM affichées dans le header.
  *
  * Une pastille par provider actif (selon la configuration .env) : point vert =
- * opérationnel, point ambre = quota atteint. Se rafraîchit au montage et à
+ * disponible, point rouge = indisponible. Se rafraîchit au montage et à
  * chaque évènement `LLM_STATUS_REFRESH_EVENT` (émis après chaque réponse).
  */
 export function ProviderStatus() {

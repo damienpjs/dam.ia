@@ -37,22 +37,22 @@ describe("ProviderStatus", () => {
     expect(screen.queryByTestId("provider-status")).toBeNull()
   })
 
-  it("affiche une pastille opérationnelle (point vert) pour Gemini", async () => {
+  it("affiche une pastille disponible (point vert) pour Gemini", async () => {
     fetchMock.mockResolvedValue(jsonResponse([{ name: "gemini", quotaExceeded: false }]))
     render(<ProviderStatus />)
 
     const pill = await screen.findByRole("status")
-    expect(pill).toHaveAccessibleName("Gemini : opérationnel")
+    expect(pill).toHaveAccessibleName("Gemini : disponible")
     expect(pill.querySelector(".bg-emerald-400")).not.toBeNull()
   })
 
-  it("affiche une pastille quota atteint (point ambre) pour Groq", async () => {
+  it("affiche une pastille indisponible (point rouge) pour Groq", async () => {
     fetchMock.mockResolvedValue(jsonResponse([{ name: "groq", quotaExceeded: true }]))
     render(<ProviderStatus />)
 
     const pill = await screen.findByRole("status")
-    expect(pill).toHaveAccessibleName("Groq : quota atteint")
-    expect(pill.querySelector(".bg-amber-400")).not.toBeNull()
+    expect(pill).toHaveAccessibleName("Groq : indisponible")
+    expect(pill.querySelector(".bg-red-400")).not.toBeNull()
   })
 
   it("affiche deux pastilles séparées quand la chaîne de fallback est active", async () => {
@@ -74,7 +74,7 @@ describe("ProviderStatus", () => {
     render(<ProviderStatus />)
 
     const pill = await screen.findByRole("status")
-    expect(pill).toHaveAccessibleName("inconnu : opérationnel")
+    expect(pill).toHaveAccessibleName("inconnu : disponible")
   })
 
   it("se rafraîchit sur l'évènement de refresh", async () => {
@@ -84,13 +84,13 @@ describe("ProviderStatus", () => {
     render(<ProviderStatus />)
 
     const pill = await screen.findByRole("status")
-    expect(pill).toHaveAccessibleName("Gemini : opérationnel")
+    expect(pill).toHaveAccessibleName("Gemini : disponible")
 
     act(() => {
       window.dispatchEvent(new Event(LLM_STATUS_REFRESH_EVENT))
     })
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveAccessibleName("Gemini : quota atteint"))
+    await waitFor(() => expect(screen.getByRole("status")).toHaveAccessibleName("Gemini : indisponible"))
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 

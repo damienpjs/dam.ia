@@ -636,6 +636,87 @@ describe("ChatInterface", () => {
     })
   })
 
+  describe("Réinitialisation de la conversation", () => {
+    it("n'affiche pas le bouton de réinitialisation tant qu'aucun message n'a été envoyé", () => {
+      render(<ChatInterface />)
+      expect(screen.queryByRole("button", { name: /réinitialiser la conversation/i })).not.toBeInTheDocument()
+    })
+
+    it("affiche le bouton de réinitialisation après l'envoi d'un message", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
+      }, { timeout: 2000 })
+    })
+
+    it("réinitialise les messages au message de bienvenue uniquement", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+
+      expect(screen.queryByText("Bonjour")).not.toBeInTheDocument()
+      expect(screen.queryByText("Réponse mockée de l'assistant.")).not.toBeInTheDocument()
+      expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
+      expect(screen.getAllByTestId("message-bubble")).toHaveLength(1)
+    })
+
+    it("supprime le sessionId du localStorage lors de la réinitialisation", async () => {
+      mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+        options.onChunk("Réponse.")
+        options.onComplete?.({ sessionId: "session-to-reset" })
+      })
+
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-to-reset")
+      }, { timeout: 2000 })
+
+      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+
+      expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+    })
+
+    it("rend de nouveau disponibles les suggestions et vide leur localStorage", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+
+      // Utilise une suggestion (la retire et la persiste)
+      await user.click(screen.getByText("Quelles sont tes compétences ?"))
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+        expect(stored).toContain("Quelles sont tes compétences ?")
+      }, { timeout: 2000 })
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+
+      // Toutes les suggestions sont de nouveau visibles
+      expect(screen.getByText("Quelles sont tes compétences ?")).toBeInTheDocument()
+      expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
+      // Le localStorage des suggestions utilisées est vidé
+      expect(localStorage.getItem("dam_ia_used_suggestions")).toBeNull()
+    })
+  })
+
   it("ne remet pas le focus sur le textarea sur un appareil tactile (onError)", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 

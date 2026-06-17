@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
-import { Send } from "lucide-react"
+import { Send, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessageBubble } from "@/components/features/message-bubble"
 import type { IMessage } from "@/components/features/message-bubble"
@@ -242,6 +242,31 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     [sendMessage],
   )
 
+  const handleReset = useCallback(() => {
+    // Annule un éventuel stream en cours
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+
+    // Réinitialise la session côté client
+    sessionIdRef.current = undefined
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+
+    // Rend les suggestions de nouveau disponibles
+    localStorage.removeItem(SUGGESTIONS_STORAGE_KEY)
+    setUsedSuggestions(new Set())
+
+    // Repart d'une conversation vierge
+    setMessages([WELCOME_MESSAGE])
+    setInput("")
+    setIsTyping(false)
+    setIsStreaming(false)
+    setStreamingMessageId(null)
+
+    if (!window.matchMedia("(pointer: coarse)").matches) {
+      textareaRef.current?.focus()
+    }
+  }, [])
+
   const handleReuseMessage = useCallback((content: string) => {
     setInput(content)
     setTimeout(() => {
@@ -303,6 +328,20 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           }}
           className="mx-auto flex max-w-3xl items-end gap-2"
         >
+          {messages.length > 1 && (
+            <Button
+              type="button"
+              size="icon-lg"
+              variant="ghost"
+              onClick={handleReset}
+              disabled={isLoadingSession}
+              aria-label="Réinitialiser la conversation"
+              title="Réinitialiser la conversation"
+              className="group/reset shrink-0 rounded-xl ring-1 ring-white/20 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-[#F9B288]/10 hover:text-[#F9B288]"
+            >
+              <RotateCcw className="size-4 transition-transform duration-500 ease-out group-hover/reset:-rotate-180" />
+            </Button>
+          )}
           <textarea
             ref={textareaRef}
             value={input}

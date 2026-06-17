@@ -1,5 +1,10 @@
-export const PARTICLE_COUNT = 900
-export const ORB_COUNT = 7
+export const PARTICLE_COUNT = 1800
+export const ORB_COUNT = 16
+
+// Interaction pointeur — les particules à portée sont attirées vers le curseur
+export const POINTER_RADIUS = 220 // rayon d'influence du curseur (px)
+export const POINTER_FORCE = 0.06 // intensité de l'attraction
+export const PARTICLE_MAX_SPEED = 2.2 // vitesse max pour éviter les fuites
 
 // Palette pastel centrée sur #F9B288 — pêche, sable, lavande, crème, rose
 export const COLORS: [number, number, number][] = [

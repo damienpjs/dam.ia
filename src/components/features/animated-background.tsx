@@ -1,7 +1,14 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { PARTICLE_COUNT, ORB_COUNT, COLORS } from "@/constants/animation"
+import {
+  PARTICLE_COUNT,
+  ORB_COUNT,
+  COLORS,
+  POINTER_RADIUS,
+  POINTER_FORCE,
+  PARTICLE_MAX_SPEED,
+} from "@/constants/animation"
 
 type TParticle = {
   x: number
@@ -41,6 +48,19 @@ export function AnimatedBackground() {
 
     let raf: number
     let t = 0
+
+    // Position du pointeur — actif uniquement quand le curseur survole la page
+    const pointer = { x: 0, y: 0, active: false }
+    const POINTER_RADIUS_SQ = POINTER_RADIUS * POINTER_RADIUS
+
+    const onPointerMove = (e: PointerEvent) => {
+      pointer.x = e.clientX
+      pointer.y = e.clientY
+      pointer.active = true
+    }
+    const onPointerLeave = () => {
+      pointer.active = false
+    }
 
     const resize = () => {
       canvas.width = window.innerWidth
@@ -135,8 +155,32 @@ export function AnimatedBackground() {
         p.vy += (Math.random() - 0.5) * 0.04
         p.vx += Math.sin(t * p.driftSpeed + p.driftPhase) * 0.008
         p.vy += Math.cos(t * p.driftSpeed * 1.3 + p.driftPhase) * 0.008
+
+        // Attraction vers le curseur pour les particules à portée
+        if (pointer.active) {
+          const dx = pointer.x - p.x
+          const dy = pointer.y - p.y
+          const distSq = dx * dx + dy * dy
+          if (distSq < POINTER_RADIUS_SQ && distSq > 0.01) {
+            const dist = Math.sqrt(distSq)
+            const falloff = 1 - dist / POINTER_RADIUS
+            const pull = (POINTER_FORCE * falloff) / dist
+            p.vx += dx * pull
+            p.vy += dy * pull
+          }
+        }
+
         p.vx *= 0.995
         p.vy *= 0.995
+
+        // Limiter la vitesse pour garder un mouvement fluide
+        const speedSq = p.vx * p.vx + p.vy * p.vy
+        if (speedSq > PARTICLE_MAX_SPEED * PARTICLE_MAX_SPEED) {
+          const scale = PARTICLE_MAX_SPEED / Math.sqrt(speedSq)
+          p.vx *= scale
+          p.vy *= scale
+        }
+
         p.x += p.vx
         p.y += p.vy
 
@@ -165,10 +209,14 @@ export function AnimatedBackground() {
     for (let i = 0; i < ORB_COUNT; i++) orbs.push(createOrb(i))
 
     window.addEventListener("resize", resize)
+    window.addEventListener("pointermove", onPointerMove)
+    window.addEventListener("pointerleave", onPointerLeave)
     draw()
 
     return () => {
       window.removeEventListener("resize", resize)
+      window.removeEventListener("pointermove", onPointerMove)
+      window.removeEventListener("pointerleave", onPointerLeave)
       cancelAnimationFrame(raf)
     }
   }, [])

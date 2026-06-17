@@ -8,6 +8,17 @@ import { streamChat, type IStreamResult } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
 const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
+const SUGGESTIONS_STORAGE_KEY = "dam_ia_used_suggestions"
+
+function loadUsedSuggestions(): Set<string> {
+  if (typeof window === "undefined") return new Set()
+  try {
+    const stored = localStorage.getItem(SUGGESTIONS_STORAGE_KEY)
+    return stored ? new Set(JSON.parse(stored) as string[]) : new Set()
+  } catch {
+    return new Set()
+  }
+}
 
 // Isomorphic : useLayoutEffect côté client, useEffect côté serveur (SSR)
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect
@@ -64,7 +75,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
-  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
+  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(loadUsedSuggestions)
   const [isLoadingSession, setIsLoadingSession] = useState(false)
   const sessionIdRef = useRef<string | undefined>(undefined)
 
@@ -230,7 +241,11 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
 
   const handleSuggestionClick = useCallback(
     (suggestion: string) => {
-      setUsedSuggestions((prev) => new Set(prev).add(suggestion))
+      setUsedSuggestions((prev) => {
+        const next = new Set(prev).add(suggestion)
+        localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify([...next]))
+        return next
+      })
       void sendMessage(suggestion)
     },
     [sendMessage],

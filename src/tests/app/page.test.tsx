@@ -9,12 +9,6 @@ vi.mock("@/components/features/animated-background", () => ({
 
 vi.mock("@/components/features/chat-interface", () => ({
   ChatInterface: ({ messagesVisible }: { messagesVisible?: boolean }) => <div data-testid="chat-interface" data-messages-visible={String(messagesVisible)} />,
-  WELCOME_MESSAGE: {
-    id: "welcome",
-    role: "assistant",
-    content: "👋 Je suis Damien Pasulj. Pose-moi tes questions.",
-    createdAt: new Date(),
-  },
 }))
 
 // Force des dimensions non nulles pour exercer le morph (jsdom renvoie 0 par défaut)
@@ -42,7 +36,7 @@ describe("Page d'accueil (/)", () => {
 
   it("affiche la bulle d'accueil comme premier message", () => {
     render(<Home />)
-    expect(screen.getByText(/Damien Pasulj/i)).toBeInTheDocument()
+    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
   })
 
   it("affiche le bouton CTA pour démarrer le chat", () => {

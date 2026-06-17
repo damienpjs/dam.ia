@@ -2,17 +2,12 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react"
 import { AnimatedBackground } from "@/components/features/animated-background"
-import { ChatInterface, WELCOME_MESSAGE } from "@/components/features/chat-interface"
+import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
+import { TECHS } from "@/constants/landing"
+import { WELCOME_MESSAGE, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
 type TPhase = "landing" | "opening" | "chat"
-
-const TECHS = ["Tailwind CSS", "shadcn/ui", "Three.js", "TypeScript", "Next.js", "Vercel", "Qdrant", "Gemini"]
-
-// Durée du morph de la bulle d'accueil vers le haut du chat
-const MORPH_DURATION_MS = 600
-// Décalage vertical entre le bas du header et le premier message (py-6 de la zone de messages)
-const MESSAGES_TOP_PADDING = 24
 
 interface ICloneState {
   rect: DOMRect

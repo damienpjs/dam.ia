@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { GeminiProvider, GEMINI_TIMEOUT_MS, buildSystemPrompt } from "@/lib/llm/gemini-provider"
+import { GeminiProvider, buildSystemPrompt } from "@/lib/llm/gemini-provider"
 import { QuotaExceededError } from "@/lib/llm/errors"
-import { PERSONA } from "@/lib/llm/persona"
+import { PERSONA, GEMINI_TIMEOUT_MS } from "@/constants/llm"
 
 // Mock du pipeline RAG pour éviter les appels réseau dans les tests
 vi.mock("@/lib/rag/pipeline", () => ({

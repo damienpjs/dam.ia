@@ -3,11 +3,22 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
+import { MessageBubble } from "@/components/features/message-bubble"
+import type { IMessage } from "@/components/features/message-bubble"
 import { streamChat, type IStreamResult } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
-const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
+import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, SUGGESTIONS, WELCOME_MESSAGE } from "@/constants/chat"
+
+function loadUsedSuggestions(): Set<string> {
+  if (typeof window === "undefined") return new Set()
+  try {
+    const stored = localStorage.getItem(SUGGESTIONS_STORAGE_KEY)
+    return stored ? new Set(JSON.parse(stored) as string[]) : new Set()
+  } catch {
+    return new Set()
+  }
+}
 
 // Isomorphic : useLayoutEffect côté client, useEffect côté serveur (SSR)
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect
@@ -15,8 +26,6 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 function generateId(): string {
   return crypto.randomUUID()
 }
-
-const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"]
 
 function SessionLoader() {
   return (
@@ -46,13 +55,6 @@ function TypingIndicator() {
   )
 }
 
-export const WELCOME_MESSAGE: IMessage = {
-  id: "welcome",
-  role: "assistant",
-  content: "👋 Je suis Damien, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
-  createdAt: new Date(),
-}
-
 interface IChatInterfaceProps {
   /** Masque la liste des messages pendant la transition d'ouverture (morph de la bulle d'accueil). */
   messagesVisible?: boolean
@@ -64,7 +66,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
-  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
+  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(loadUsedSuggestions)
   const [isLoadingSession, setIsLoadingSession] = useState(false)
   const sessionIdRef = useRef<string | undefined>(undefined)
 
@@ -230,7 +232,11 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
 
   const handleSuggestionClick = useCallback(
     (suggestion: string) => {
-      setUsedSuggestions((prev) => new Set(prev).add(suggestion))
+      setUsedSuggestions((prev) => {
+        const next = new Set(prev).add(suggestion)
+        localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify([...next]))
+        return next
+      })
       void sendMessage(suggestion)
     },
     [sendMessage],

@@ -63,6 +63,18 @@ Quand les clés Gemini **et** Groq sont présentes, les requêtes utilisent une 
 
 Le header du chat affiche une **pastille de statut par provider actif** (point vert = disponible, point rouge = indisponible), selon la configuration : une seule pastille si un provider est forcé, les deux si la chaîne de fallback est active, aucune en mode mock. Le statut est exposé par `GET /api/llm/status` et rafraîchi après chaque réponse.
 
+### Mémoire conversationnelle
+
+Le bot garde le fil de la conversation : à chaque message, l'historique des tours précédents est **reconstruit côté serveur depuis la base** (à partir du `sessionId`), puis transmis au provider LLM. L'historique n'est donc pas renvoyé par le client à chaque requête, ce qui évite d'alourdir le payload réseau.
+
+Pour maîtriser le coût en tokens, une **fenêtre glissante doublement bornée** est appliquée (`src/lib/llm/conversation-history.ts`) :
+
+- au plus `MAX_HISTORY_MESSAGES` messages (10 ≈ 5 tours) ;
+- au plus `MAX_HISTORY_CHARS` caractères (~1000 tokens), les plus anciens étant tronqués au-delà ;
+- les réponses de repli (statut `error`) sont exclues, et le contexte RAG n'est **pas** réinjecté dans l'historique pour ne pas re-payer ces tokens à chaque tour.
+
+Les deux plafonds sont configurables dans `src/constants/llm.ts`. Sans `sessionId` (premier message), l'échange reste « one-shot ».
+
 ## Tests et couverture
 
 Les tests sont écrits avec **Vitest** + **@testing-library/react**.  

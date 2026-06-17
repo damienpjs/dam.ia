@@ -6,6 +6,8 @@ import type { ILLMProvider } from "./types"
  * Utilisé comme fallback quand aucune clé API n'est configurée.
  */
 export class MockProvider implements ILLMProvider {
+  // L'historique est accepté pour respecter l'interface mais ignoré :
+  // les réponses mock sont prédéfinies et sans état.
   async *streamResponse(message: string): AsyncIterable<string> {
     const response = getMockResponse(message)
 

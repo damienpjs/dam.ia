@@ -92,6 +92,34 @@ describe("GeminiProvider", () => {
     )
   })
 
+  it("transmet l'historique conversationnel avec le rôle 'model' pour l'assistant", async () => {
+    mockGenerateContentStream.mockResolvedValue({
+      stream: (async function* () {
+        yield { text: () => "ok" }
+      })(),
+    })
+
+    const provider = new GeminiProvider("fake-api-key")
+
+    for await (const _text of provider.streamResponse("Et en TypeScript ?", [
+      { role: "user", content: "Tu connais React ?" },
+      { role: "assistant", content: "Évidemment 👀" },
+    ])) {
+      // consume stream
+    }
+
+    expect(mockGenerateContentStream).toHaveBeenCalledWith(
+      {
+        contents: [
+          { role: "user", parts: [{ text: "Tu connais React ?" }] },
+          { role: "model", parts: [{ text: "Évidemment 👀" }] },
+          { role: "user", parts: [{ text: "Et en TypeScript ?" }] },
+        ],
+      },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+  })
+
   it("lance une erreur de timeout sur AbortError", async () => {
     const abortError = new Error("Aborted")
     abortError.name = "AbortError"

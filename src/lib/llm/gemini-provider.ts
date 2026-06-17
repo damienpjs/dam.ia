@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
-import type { ILLMProvider } from "./types"
+import type { ILLMProvider, IConversationMessage } from "./types"
 import { GEMINI_TIMEOUT_MS } from "@/constants/llm"
 import { isQuotaExceededError, QuotaExceededError } from "./errors"
 import { buildSystemPrompt } from "./system-prompt"
@@ -23,14 +23,17 @@ export class GeminiProvider implements ILLMProvider {
     })
   }
 
-  async *streamResponse(message: string): AsyncIterable<string> {
+  async *streamResponse(message: string, history: IConversationMessage[] = []): AsyncIterable<string> {
     const abortController = new AbortController()
     const timeout = setTimeout(() => abortController.abort(), GEMINI_TIMEOUT_MS)
 
     try {
+      // Gemini attend le rôle "model" pour l'assistant (et non "assistant").
+      const contents = [...history.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })), { role: "user", parts: [{ text: message }] }]
+
       const result = await this.model.generateContentStream(
         {
-          contents: [{ role: "user", parts: [{ text: message }] }],
+          contents,
         },
         { signal: abortController.signal },
       )

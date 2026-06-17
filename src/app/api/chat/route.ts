@@ -3,7 +3,9 @@ import { createLLMProvider, MockProvider } from "@/lib/llm"
 import { sanitizeMessage, MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
-import { createSession, saveMessage } from "@/lib/db/chat-service"
+import { createSession, saveMessage, getSessionMessages } from "@/lib/db/chat-service"
+import { buildConversationHistory } from "@/lib/llm/conversation-history"
+import type { IConversationMessage } from "@/lib/llm/types"
 import type { ISearchResult } from "@/lib/rag/types"
 
 /**
@@ -121,6 +123,20 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
     }
 
+    // Mémoire conversationnelle : on reconstruit l'historique borné depuis la DB
+    // (et non depuis le client) pour garder le fil sans gonfler le payload réseau.
+    // On le récupère AVANT de persister le message courant pour ne pas le dupliquer.
+    // Graceful : sans historique on retombe sur un échange one-shot.
+    let history: IConversationMessage[] = []
+    if (incomingSessionId) {
+      try {
+        const previous = await getSessionMessages(incomingSessionId)
+        history = buildConversationHistory(previous)
+      } catch (dbError) {
+        console.warn("[DB] ❌ Impossible de récupérer l'historique:", dbError instanceof Error ? dbError.message : dbError)
+      }
+    }
+
     // Persistence DB (graceful — ne bloque pas le chat si la DB est down)
     let sessionId = incomingSessionId
     try {
@@ -139,7 +155,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         let fullResponse = ""
 
         try {
-          for await (const text of provider.streamResponse(enrichedMessage)) {
+          for await (const text of provider.streamResponse(enrichedMessage, history)) {
             fullResponse += text
             const chunk: TStreamChunk = {
               content: text,

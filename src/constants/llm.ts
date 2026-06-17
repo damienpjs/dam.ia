@@ -10,6 +10,21 @@ export const GROQ_MODEL = "llama-3.3-70b-versatile"
 // Endpoint Groq compatible OpenAI (chat completions en streaming SSE)
 export const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
+// --- Mémoire conversationnelle (maîtrise des coûts en tokens) ---
+//
+// On ne renvoie pas tout l'historique au LLM à chaque tour : ce serait coûteux
+// (le coût croît quadratiquement avec la longueur de la conversation) et inutile.
+// On applique donc une fenêtre glissante doublement bornée :
+//
+// Nombre maximum de messages d'historique (hors message courant) transmis au LLM.
+// 10 messages ≈ 5 tours (question/réponse), suffisant pour garder le fil sans
+// gonfler le prompt.
+export const MAX_HISTORY_MESSAGES = 10
+
+// Budget de caractères pour l'historique transmis (~4 caractères par token).
+// 4000 caractères ≈ 1000 tokens : un plafond dur qui protège des messages longs.
+export const MAX_HISTORY_CHARS = 4000
+
 // Durée pendant laquelle un provider reste affiché comme « provider indisponible »
 // avant de repasser opérationnel (les quotas gratuits se réinitialisant côté
 // fournisseur). Un appel réussi efface le statut immédiatement.

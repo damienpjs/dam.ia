@@ -1,4 +1,4 @@
-import type { ILLMProvider } from "./types"
+import type { ILLMProvider, IConversationMessage } from "./types"
 import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS } from "@/constants/llm"
 import { isQuotaExceededError, QuotaExceededError } from "./errors"
 import { buildSystemPrompt } from "./system-prompt"
@@ -20,7 +20,7 @@ export class GroqProvider implements ILLMProvider {
     this.model = model
   }
 
-  async *streamResponse(message: string): AsyncIterable<string> {
+  async *streamResponse(message: string, history: IConversationMessage[] = []): AsyncIterable<string> {
     const abortController = new AbortController()
     const timeout = setTimeout(() => abortController.abort(), GROQ_TIMEOUT_MS)
 
@@ -36,6 +36,7 @@ export class GroqProvider implements ILLMProvider {
           stream: true,
           messages: [
             { role: "system", content: buildSystemPrompt() },
+            ...history.map((m) => ({ role: m.role, content: m.content })),
             { role: "user", content: message },
           ],
         }),

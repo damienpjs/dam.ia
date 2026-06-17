@@ -77,6 +77,7 @@ describe("chat-service", () => {
         role: "user",
         content: "Bonjour",
         sources: null,
+        status: "ok",
       })
     })
 
@@ -91,6 +92,7 @@ describe("chat-service", () => {
         role: "assistant",
         content: "Salut !",
         sources: null,
+        status: "ok",
       })
     })
 
@@ -106,6 +108,22 @@ describe("chat-service", () => {
         role: "assistant",
         content: "Avec sources",
         sources,
+        status: "ok",
+      })
+    })
+
+    it("doit persister le statut 'error' pour une réponse de repli", async () => {
+      mockReturning.mockResolvedValue([{ id: "msg-err" }])
+
+      const id = await saveMessage("session-123", "assistant", "⚠️ Une erreur est survenue. Réessaie dans un instant.", undefined, "error")
+
+      expect(id).toBe("msg-err")
+      expect(mockValues).toHaveBeenCalledWith({
+        sessionId: "session-123",
+        role: "assistant",
+        content: "⚠️ Une erreur est survenue. Réessaie dans un instant.",
+        sources: null,
+        status: "error",
       })
     })
   })

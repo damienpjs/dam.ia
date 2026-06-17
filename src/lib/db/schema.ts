@@ -7,6 +7,14 @@ import type { ISourceInfo } from "@/lib/stream-chat"
 export const messageRoleEnum = pgEnum("message_role", ["user", "assistant"])
 
 /**
+ * Enum pour le statut d'un message.
+ * "ok" : message normal (question utilisateur ou réponse assistant valide, fallback quota inclus).
+ * "error" : réponse assistant de repli affichée quand le LLM a échoué techniquement.
+ * Permet de styliser/masquer les actions au rechargement et d'exclure ces messages d'un futur historique LLM.
+ */
+export const messageStatusEnum = pgEnum("message_status", ["ok", "error"])
+
+/**
  * Table des sessions de chat.
  * Chaque conversation démarre une nouvelle session.
  */
@@ -30,6 +38,10 @@ export const messages = pgTable("messages", {
     .references(() => chatSessions.id, { onDelete: "cascade" }),
   role: messageRoleEnum("role").notNull(),
   content: text("content").notNull(),
+  /**
+   * Statut du message. "ok" par défaut ; "error" pour les réponses assistant de repli (échec LLM).
+   */
+  status: messageStatusEnum("status").notNull().default("ok"),
   /**
    * Sources RAG attachées à une réponse assistant (null pour les messages utilisateur).
    * Permet de réafficher les sources au rechargement d'une conversation.

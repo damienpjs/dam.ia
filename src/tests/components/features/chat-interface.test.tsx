@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { ChatInterface } from "@/components/features/chat-interface"
 import type { IStreamChatOptions } from "@/lib/stream-chat"
 import { streamChat } from "@/lib/stream-chat"
+import { SUGGESTIONS, SUGGESTIONS_STORAGE_KEY } from "@/constants/chat"
 
 // Mock streamChat pour simuler le streaming
 vi.mock("@/lib/stream-chat", () => ({
@@ -363,7 +364,7 @@ describe("ChatInterface", () => {
     render(<ChatInterface />)
 
     // Cliquer sur chaque suggestion une par une
-    const suggestions = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"]
+    const suggestions = SUGGESTIONS
     for (let i = 0; i < suggestions.length; i++) {
       const suggestion = suggestions[i]
       // Attendre que les suggestions réapparaissent (fin du streaming précédent)
@@ -506,6 +507,49 @@ describe("ChatInterface", () => {
       expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-existing-456")
     })
 
+    it("restaure une réponse de repli avec le style d'erreur", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-with-error")
+
+      const mockMessages = [
+        { id: "msg-1", role: "user", content: "Question sans réponse", status: "ok", sources: null, createdAt: new Date().toISOString() },
+        { id: "msg-2", role: "assistant", content: "⚠️ Une erreur est survenue. Réessaie dans un instant.", status: "error", sources: null, createdAt: new Date().toISOString() },
+      ]
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: mockMessages }),
+      }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      expect(screen.getByText("⚠️ Une erreur est survenue. Réessaie dans un instant.")).toBeInTheDocument()
+    })
+
+    it("applique le style d'erreur quand onComplete renvoie status 'error'", async () => {
+      mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+        const response = "⚠️ Une erreur est survenue. Réessaie dans un instant."
+        for (const char of response) {
+          options.onChunk(char)
+        }
+        options.onComplete?.({ status: "error" })
+      })
+
+      const user = setup()
+      render(<ChatInterface />)
+
+      const textarea = screen.getByLabelText("Message à envoyer")
+      await user.type(textarea, "Provoque une erreur")
+      await user.keyboard("{Enter}")
+
+      await waitFor(() => {
+        expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
+      }, { timeout: 2000 })
+    })
+
     it("supprime le sessionId du localStorage et démarre une nouvelle session si le fetch échoue", async () => {
       localStorage.setItem("dam_ia_chat_session_id", "session-invalid")
 
@@ -608,10 +652,7 @@ describe("ChatInterface", () => {
     })
 
     it("masque le bloc suggestions si toutes sont dans localStorage", () => {
-      localStorage.setItem(
-        "dam_ia_used_suggestions",
-        JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"])
-      )
+      localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify(SUGGESTIONS))
 
       render(<ChatInterface />)
 

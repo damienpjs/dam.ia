@@ -10,6 +10,7 @@ import { streamChat, type IStreamResult, type ISourceInfo } from "@/lib/stream-c
 import { cn } from "@/lib/utils"
 
 import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, SUGGESTIONS, WELCOME_MESSAGE } from "@/constants/chat"
+import { LLM_STATUS_REFRESH_EVENT } from "@/constants/llm"
 
 function loadUsedSuggestions(): Set<string> {
   if (typeof window === "undefined") return new Set()
@@ -101,7 +102,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     fetch(`/api/chat/session/${storedSessionId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Session non disponible")
-        const data = (await res.json()) as { messages: Array<{ id: string; role: "user" | "assistant"; content: string; sources: ISourceInfo[] | null; createdAt: string }> }
+        const data = (await res.json()) as { messages: Array<{ id: string; role: "user" | "assistant"; content: string; status: "ok" | "error"; sources: ISourceInfo[] | null; createdAt: string }> }
         if (!data.messages.length) {
           localStorage.removeItem(SESSION_STORAGE_KEY)
           return
@@ -195,9 +196,14 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           if (result.sources && result.sources.length > 0) {
             setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, sources: result.sources } : msg)))
           }
+          if (result.status === "error") {
+            setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, status: "error" } : msg)))
+          }
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
+          // Le quota d'un provider a pu changer pendant la réponse : on rafraîchit les pastilles.
+          window.dispatchEvent(new Event(LLM_STATUS_REFRESH_EVENT))
           if (!window.matchMedia("(pointer: coarse)").matches) {
             textareaRef.current?.focus()
           }
@@ -208,6 +214,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
+          window.dispatchEvent(new Event(LLM_STATUS_REFRESH_EVENT))
           if (!window.matchMedia("(pointer: coarse)").matches) {
             textareaRef.current?.focus()
           }

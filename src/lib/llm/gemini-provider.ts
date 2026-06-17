@@ -1,18 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import type { ILLMProvider } from "./types"
-import { PERSONA, GEMINI_TIMEOUT_MS } from "@/constants/llm"
+import { GEMINI_TIMEOUT_MS } from "@/constants/llm"
 import { isQuotaExceededError, QuotaExceededError } from "./errors"
+import { buildSystemPrompt } from "./system-prompt"
+import { markOperational, markQuotaExceeded } from "./quota-status"
 
-/**
- * Construit le system prompt complet avec le persona et le contexte documentaire.
- * Le contenu est chargé depuis /content/*.md et injecté après le persona.
- *
- * @returns System prompt complet
- */
-export function buildSystemPrompt(): string {
-  const today = new Date().toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" })
-  return `Date du jour : ${today}\n\n` + PERSONA
-}
+// Réexporté pour compatibilité avec les imports existants.
+export { buildSystemPrompt }
 
 /**
  * Provider Gemini utilisant le SDK officiel Google.
@@ -47,11 +41,15 @@ export class GeminiProvider implements ILLMProvider {
           yield text
         }
       }
+
+      // Stream terminé sans erreur : le quota est disponible.
+      markOperational("gemini")
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new Error("La requête a expiré (timeout)")
       }
       if (isQuotaExceededError(error)) {
+        markQuotaExceeded("gemini")
         throw new QuotaExceededError()
       }
       throw error

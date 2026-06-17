@@ -32,7 +32,14 @@ type TStreamChunk = {
   sources?: ISourceInfo[]
   sessionId?: string
   messageId?: string
+  status?: "ok" | "error"
 }
+
+/**
+ * Message de repli neutre stocké et affiché lorsqu'une erreur technique du LLM survient.
+ * On évite d'exposer le message d'erreur brut à l'utilisateur (et de le persister).
+ */
+const ERROR_FALLBACK_MESSAGE = "⚠️ Une erreur est survenue. Réessaie dans un instant."
 
 /**
  * Encode un chunk pour le streaming
@@ -161,27 +168,45 @@ export async function POST(request: NextRequest): Promise<Response> {
           }
           controller.enqueue(encoder.encode(encodeChunk(finalChunk)))
         } catch (error) {
+          // Statut et contenu à persister selon le type d'échec.
+          // Le fallback quota est une vraie réponse utile → "ok" ; une erreur technique → "error".
+          let status: "ok" | "error" = "error"
+          let fallbackResponse = ""
+
           if (error instanceof QuotaExceededError) {
+            status = "ok"
             // Fallback : message d'excuse + réponse via MockProvider
             const notice = "⏳ Notre assistant IA est temporairement indisponible en raison d'un trop grand nombre de demandes. " + "Voici une réponse pré-enregistrée en attendant :\n\n"
+            fallbackResponse += notice
             controller.enqueue(encoder.encode(encodeChunk({ content: notice, done: false })))
 
             const fallback = new MockProvider()
             for await (const text of fallback.streamResponse(sanitized)) {
+              fallbackResponse += text
               controller.enqueue(encoder.encode(encodeChunk({ content: text, done: false })))
             }
           } else {
-            const errorMessage = error instanceof Error ? error.message : "Erreur inconnue"
-            const errorChunk: TStreamChunk = {
-              content: `\n\n⚠️ ${errorMessage}`,
-              done: false,
+            console.warn("[LLM] ❌ Erreur de génération:", error instanceof Error ? error.message : error)
+            fallbackResponse = ERROR_FALLBACK_MESSAGE
+            controller.enqueue(encoder.encode(encodeChunk({ content: fallbackResponse, done: false })))
+          }
+
+          // Persister la réponse de repli pour éviter les bulles utilisateur orphelines au rechargement
+          let assistantMessageId: string | undefined
+          if (sessionId) {
+            try {
+              assistantMessageId = await saveMessage(sessionId, "assistant", fallbackResponse, undefined, status)
+            } catch (dbError) {
+              console.warn("[DB] ❌ Impossible de sauvegarder la réponse de repli:", dbError instanceof Error ? dbError.message : dbError)
             }
-            controller.enqueue(encoder.encode(encodeChunk(errorChunk)))
           }
 
           const finalChunk: TStreamChunk = {
             content: "",
             done: true,
+            sessionId,
+            messageId: assistantMessageId,
+            status,
           }
           controller.enqueue(encoder.encode(encodeChunk(finalChunk)))
         } finally {

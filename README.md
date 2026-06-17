@@ -42,6 +42,27 @@ src/
   tests/            # Tests unitaires (miroir de src/)
 ```
 
+## Variables d'environnement
+
+Copier `.env.example` vers `.env` puis renseigner les clés.
+
+| Variable         | Requis | Description                                                                 |
+| ---------------- | ------ | --------------------------------------------------------------------------- |
+| `LLM_PROVIDER`   | non    | Force un provider : `gemini`, `groq` ou `mock`. Vide = auto-détection.      |
+| `GEMINI_API_KEY` | non\*  | Clé Google Gemini (provider primaire) — [aistudio.google.com](https://aistudio.google.com/apikey) |
+| `GROQ_API_KEY`   | non\*  | Clé Groq (provider de secours) — [console.groq.com](https://console.groq.com/keys) |
+| `DATABASE_URL`   | non    | Connection string Neon PostgreSQL (persistance du chat)                     |
+| `QDRANT_URL`     | non    | URL de l'instance Qdrant (base vectorielle RAG)                             |
+| `QDRANT_API_KEY` | non    | Clé Qdrant (requise pour Qdrant Cloud)                                       |
+
+\* Si aucune clé LLM n'est fournie, l'application bascule sur le `MockProvider` (réponses pré-enregistrées).
+
+### Fallback multi-provider
+
+Quand les clés Gemini **et** Groq sont présentes, les requêtes utilisent une chaîne de fallback **Gemini → Groq** : si le quota de Gemini est atteint (HTTP 429), le système bascule automatiquement et en temps réel sur Groq, qui dispose d'un quota gratuit indépendant. Si les deux quotas sont épuisés, une réponse de repli (`MockProvider`) est servie avec un message d'attente.
+
+Le header du chat affiche une **pastille de statut par provider actif** (point vert = opérationnel, point ambre = quota atteint), selon la configuration : une seule pastille si un provider est forcé, les deux si la chaîne de fallback est active, aucune en mode mock. Le statut est exposé par `GET /api/llm/status` et rafraîchi après chaque réponse.
+
 ## Tests et couverture
 
 Les tests sont écrits avec **Vitest** + **@testing-library/react**.  

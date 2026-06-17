@@ -169,13 +169,15 @@ describe("POST /api/chat", () => {
     const chunks = await readStreamToChunks(response.body!)
     const fullMessage = chunksToFullMessage(chunks)
 
-    // L'erreur est incluse dans le stream
+    // Un message de repli neutre est affiché (l'erreur brute n'est pas exposée à l'utilisateur)
     expect(fullMessage).toContain("⚠️")
-    expect(fullMessage).toContain("Provider error")
+    expect(fullMessage).toContain("Une erreur est survenue")
+    expect(fullMessage).not.toContain("Provider error")
 
-    // Le dernier chunk a done: true
+    // Le dernier chunk a done: true et un statut "error"
     const lastChunk = chunks[chunks.length - 1]
     expect(lastChunk.done).toBe(true)
+    expect(lastChunk.status).toBe("error")
   })
 
   it("gère les erreurs de parsing JSON", async () => {
@@ -238,6 +240,28 @@ describe("POST /api/chat", () => {
     // Le stream se termine proprement
     const lastChunk = chunks[chunks.length - 1]
     expect(lastChunk.done).toBe(true)
+  })
+
+  it("persiste la réponse de fallback quota comme un message assistant 'ok'", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    const request = createMockRequest({ message: "quota-test", sessionId: "session-quota" })
+    const response = await POST(request)
+
+    const chunks = await readStreamToChunks(response.body!)
+    const lastChunk = chunks[chunks.length - 1]
+
+    // Le fallback (notice + réponse mock) est sauvegardé avec le statut "ok"
+    expect(saveMessage).toHaveBeenCalledWith("session-quota", "assistant", expect.stringContaining("temporairement indisponible"), undefined, "ok")
+    expect(lastChunk.status).toBe("ok")
+    expect(lastChunk.messageId).toBe("mock-message-id")
+  })
+
+  it("persiste une réponse de repli 'error' quand le provider échoue", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    const request = createMockRequest({ message: "error-test", sessionId: "session-err" })
+    await POST(request).then((r) => readStreamToChunks(r.body!))
+
+    expect(saveMessage).toHaveBeenCalledWith("session-err", "assistant", expect.stringContaining("Une erreur est survenue"), undefined, "error")
   })
 
   it("enrichit le message avec le contexte RAG quand des chunks sont trouvés", async () => {
@@ -418,7 +442,7 @@ describe("POST /api/chat", () => {
     expect(lastChunk.messageId).toBeUndefined()
   })
 
-  it("affiche 'Erreur inconnue' quand le provider throw une valeur non-Error", async () => {
+  it("affiche le message de repli neutre quand le provider throw une valeur non-Error", async () => {
     const { createLLMProvider } = await import("@/lib/llm")
     vi.mocked(createLLMProvider).mockReturnValueOnce({
       async *streamResponse() {
@@ -432,6 +456,8 @@ describe("POST /api/chat", () => {
     expect(response.status).toBe(200)
     const chunks = await readStreamToChunks(response.body!)
     const fullMessage = chunksToFullMessage(chunks)
-    expect(fullMessage).toContain("Erreur inconnue")
+    expect(fullMessage).toContain("Une erreur est survenue")
+    const lastChunk = chunks[chunks.length - 1]
+    expect(lastChunk.status).toBe("error")
   })
 })

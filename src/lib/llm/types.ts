@@ -13,4 +13,4 @@ export interface ILLMProvider {
 /**
  * Types de providers LLM supportés
  */
-export type TLLMProviderName = "gemini" | "mock"
+export type TLLMProviderName = "gemini" | "groq" | "mock"

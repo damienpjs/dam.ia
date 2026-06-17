@@ -4,6 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react"
 import { AnimatedBackground } from "@/components/features/animated-background"
 import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
+import { ProviderStatus } from "@/components/features/provider-status"
 import { TECHS } from "@/constants/landing"
 import { WELCOME_MESSAGE, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
@@ -116,6 +117,7 @@ export default function Home() {
             <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
               dam.ia
             </button>
+            <ProviderStatus />
           </div>
         </header>
 

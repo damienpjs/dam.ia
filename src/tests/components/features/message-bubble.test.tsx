@@ -363,4 +363,35 @@ describe("MessageBubble", () => {
       expect(screen.getByText("Salut ! Je vais bien, merci.")).toBeInTheDocument()
     })
   })
+
+  describe("statut d'erreur", () => {
+    const errorMessage: IMessage = {
+      id: "err",
+      role: "assistant",
+      content: "⚠️ Une erreur est survenue. Réessaie dans un instant.",
+      status: "error",
+      createdAt: new Date("2024-01-01T10:00:02"),
+    }
+
+    it("applique le style d'erreur à une réponse assistant en échec", () => {
+      render(<MessageBubble message={errorMessage} />)
+      expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
+      expect(screen.getByTestId("message-bubble-error")).toHaveClass("text-destructive")
+    })
+
+    it("masque le bouton copier sur une bulle d'erreur", () => {
+      render(<MessageBubble message={errorMessage} />)
+      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
+    })
+
+    it("n'applique pas le style d'erreur à un message assistant normal", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      expect(screen.queryByTestId("message-bubble-error")).not.toBeInTheDocument()
+    })
+
+    it("ignore le statut error sur un message utilisateur", () => {
+      render(<MessageBubble message={{ ...userMessage, status: "error" }} />)
+      expect(screen.queryByTestId("message-bubble-error")).not.toBeInTheDocument()
+    })
+  })
 })

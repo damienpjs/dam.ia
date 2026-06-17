@@ -3,10 +3,13 @@ import { db } from "./index"
 import { chatSessions, messages, feedbacks } from "./schema"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
+export type TMessageStatus = "ok" | "error"
+
 export interface ISessionMessage {
   id: string
   role: "user" | "assistant"
   content: string
+  status: TMessageStatus
   sources: ISourceInfo[] | null
   createdAt: Date
 }
@@ -23,12 +26,13 @@ export async function createSession(): Promise<string> {
 /**
  * Sauvegarde un message dans une session.
  * Les sources RAG (optionnelles) ne concernent que les réponses assistant.
+ * Le statut vaut "error" pour une réponse assistant de repli après un échec LLM, sinon "ok".
  * @returns L'ID du message créé
  */
-export async function saveMessage(sessionId: string, role: "user" | "assistant", content: string, sources?: ISourceInfo[]): Promise<string> {
+export async function saveMessage(sessionId: string, role: "user" | "assistant", content: string, sources?: ISourceInfo[], status: TMessageStatus = "ok"): Promise<string> {
   const [message] = await db
     .insert(messages)
-    .values({ sessionId, role, content, sources: sources ?? null })
+    .values({ sessionId, role, content, sources: sources ?? null, status })
     .returning({ id: messages.id })
   return message.id
 }
@@ -43,6 +47,7 @@ export async function getSessionMessages(sessionId: string): Promise<ISessionMes
       id: messages.id,
       role: messages.role,
       content: messages.content,
+      status: messages.status,
       sources: messages.sources,
       createdAt: messages.createdAt,
     })

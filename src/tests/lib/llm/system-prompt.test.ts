@@ -1,5 +1,21 @@
 import { describe, it, expect } from "vitest"
 import { PERSONA } from "@/constants/llm"
+import { buildSystemPrompt } from "@/lib/llm/system-prompt"
+
+describe("buildSystemPrompt", () => {
+  it("combine la date du jour avec le persona", () => {
+    const result = buildSystemPrompt()
+
+    expect(result).toContain(PERSONA)
+    expect(result).toContain("Date du jour :")
+  })
+
+  it("place la date avant le persona", () => {
+    const result = buildSystemPrompt()
+
+    expect(result.indexOf("Date du jour :")).toBeLessThan(result.indexOf(PERSONA))
+  })
+})
 
 describe("SYSTEM_PROMPT", () => {
   it("est une chaîne non vide", () => {

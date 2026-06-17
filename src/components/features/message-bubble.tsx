@@ -5,12 +5,16 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
+export type TMessageStatus = "ok" | "error"
+
 export interface IMessage {
   id: string
   content: string
   role: "user" | "assistant"
   createdAt: Date
   sources?: ISourceInfo[]
+  /** "error" pour une réponse assistant de repli après un échec LLM. Style distinct, actions masquées. */
+  status?: TMessageStatus
 }
 
 export type TMessageRole = IMessage["role"]
@@ -38,6 +42,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
   const [tapped, setTapped] = useState(false)
   const bubbleRef = useRef<HTMLDivElement>(null)
   const isUser = message.role === "user"
+  const isError = !isUser && message.status === "error"
   const isEmpty = !message.content
   const showSkeleton = !isUser && isStreaming && isEmpty
   const showCursor = !isUser && isStreaming && !isEmpty
@@ -78,9 +83,14 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
 
       <div className={cn("relative", showSkeleton ? "w-[75%]" : "max-w-[75%]")}>
         <div
+          data-testid={isError ? "message-bubble-error" : undefined}
           className={cn(
             "break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed tracking-wide",
-            isUser ? "rounded-br-sm bg-white/8 text-[#F9B288] ring-1 ring-[#F9B288]/20 shadow-sm" : "rounded-bl-sm border border-border bg-card text-card-foreground",
+            isUser
+              ? "rounded-br-sm bg-white/8 text-[#F9B288] ring-1 ring-[#F9B288]/20 shadow-sm"
+              : isError
+                ? "rounded-bl-sm border border-destructive/30 bg-destructive/10 text-destructive"
+                : "rounded-bl-sm border border-border bg-card text-card-foreground",
           )}
         >
           {showSkeleton ? (
@@ -112,7 +122,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
           )}
         </div>
 
-        {message.content && !isStreaming && showActions && (
+        {message.content && !isStreaming && showActions && !isError && (
           <div className="absolute -top-3 right-1 flex gap-1">
             {isUser && onReuse && (
               <button

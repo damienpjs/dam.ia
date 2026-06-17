@@ -15,6 +15,13 @@
       "when": 1781691727093,
       "tag": "0001_clear_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781709409297,
+      "tag": "0002_natural_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

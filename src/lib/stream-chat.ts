@@ -10,12 +10,15 @@ export interface ISourceInfo {
 /**
  * Type pour les chunks reçus de l'API chat
  */
+export type TMessageStatus = "ok" | "error"
+
 export type TStreamChunk = {
   content: string
   done: boolean
   sources?: ISourceInfo[]
   sessionId?: string
   messageId?: string
+  status?: TMessageStatus
 }
 
 /**
@@ -25,6 +28,8 @@ export interface IStreamResult {
   sources?: ISourceInfo[]
   sessionId?: string
   messageId?: string
+  /** Statut de la réponse assistant ("error" pour un repli après échec LLM). */
+  status?: TMessageStatus
 }
 
 /**
@@ -98,6 +103,7 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
           if (chunk.sources) result.sources = chunk.sources
           if (chunk.sessionId) result.sessionId = chunk.sessionId
           if (chunk.messageId) result.messageId = chunk.messageId
+          if (chunk.status) result.status = chunk.status
         }
         if (!chunk.done && chunk.content) {
           onChunk(chunk.content)

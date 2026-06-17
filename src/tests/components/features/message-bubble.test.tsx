@@ -245,6 +245,16 @@ describe("MessageBubble", () => {
       expect(copyButton).toHaveClass("opacity-0")
     })
 
+    it("ne révèle le bouton au survol que sur les appareils à pointeur fin (évite le hover persistant sur tactile)", () => {
+      render(<MessageBubble message={assistantMessage} />)
+      const copyButton = screen.getByTestId("copy-button")
+
+      // Le hover CSS est conditionné par (hover:hover) and (pointer:fine) :
+      // sur tactile, seul l'état `tapped` contrôle la visibilité, garantissant le masquage.
+      expect(copyButton).toHaveClass("[@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100")
+      expect(copyButton).not.toHaveClass("group-hover/bubble:opacity-100")
+    })
+
     it("masque le bouton quand on clique en dehors de la bulle", () => {
       render(<MessageBubble message={assistantMessage} />)
       const bubble = screen.getByTestId("message-bubble")

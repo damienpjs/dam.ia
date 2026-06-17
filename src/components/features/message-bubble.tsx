@@ -120,7 +120,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
                 onClick={handleReuse}
                 aria-label="Remettre dans le tchat"
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity group-hover/bubble:opacity-100",
+                  "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
                   tapped && "opacity-100",
                 )}
               >
@@ -136,7 +136,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
               onClick={handleCopy}
               aria-label={copied ? "Copié" : "Copier le message"}
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity group-hover/bubble:opacity-100",
+                "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
                 tapped && "opacity-100",
                 copied && "text-green-500",
               )}

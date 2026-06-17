@@ -28,15 +28,16 @@ afterEach(() => {
 })
 
 describe("Page d'accueil (/)", () => {
-  it("affiche le titre principal avec le nom 'Damien'", () => {
+  it("affiche l'accroche principale", () => {
     render(<Home />)
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument()
-    expect(screen.getByText("Damien")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/discute avec mon double IA/i)
   })
 
-  it("affiche la description du profil", () => {
-    render(<Home />)
-    expect(screen.getByText(/Lead Tech JS/i)).toBeInTheDocument()
+  it("met en exergue un terme avec un dégradé animé", () => {
+    const { container } = render(<Home />)
+    const highlight = container.querySelector(".text-gradient-animated")
+    expect(highlight).not.toBeNull()
+    expect(highlight).toHaveTextContent(/double IA/i)
   })
 
   it("affiche la bulle d'accueil comme premier message", () => {

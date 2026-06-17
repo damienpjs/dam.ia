@@ -84,27 +84,15 @@ export default function Home() {
       <AnimatedBackground />
 
       {/* Accueil */}
-      <div
-        aria-hidden={chatOpen}
-        className={`flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}
-      >
+      <div aria-hidden={chatOpen} className={`flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
         <main className="flex w-full flex-col items-center gap-8 text-center">
-          {/* Titre */}
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Hey, je suis <span className="bg-gradient-to-r from-[#F9B288] to-[#FCC8A8] bg-clip-text text-transparent">Damien</span>
-            </h1>
-            <h2 className="mx-auto max-w-md text-2xl text-zinc-400">Lead Tech JS</h2>
-            <p className="mx-auto max-w-md text-lg text-zinc-200">Discute avec moi pour en savoir plus sur mon parcours et mes projets.</p>
-          </div>
+          {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
+          <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Discute avec mon <span className="text-gradient-animated">double IA</span>
+          </h1>
 
           {/* Bulle d'accueil = premier message de la conversation, cliquable */}
-          <button
-            type="button"
-            onClick={openChat}
-            aria-label="Commencer la conversation"
-            className="group flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4"
-          >
+          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
             <div ref={heroRef} className={`animate-hero-float transition-transform duration-300 group-hover:-translate-y-1 ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
               <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
             </div>

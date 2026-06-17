@@ -41,12 +41,12 @@ const setup = () => userEvent.setup({ delay: null })
 describe("ChatInterface", () => {
   it("affiche le message de bienvenue de l'assistant au chargement", () => {
     render(<ChatInterface />)
-    expect(screen.getByText(/Damien Pasulj/i)).toBeInTheDocument()
+    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
   })
 
   it("affiche le message de bienvenue dans une bulle assistant (bg-card)", () => {
     render(<ChatInterface />)
-    const bubble = screen.getByText(/Damien Pasulj/i)
+    const bubble = screen.getByText(/Je suis Damien/i)
     expect(bubble).toHaveClass("bg-card")
   })
 
@@ -549,7 +549,7 @@ describe("ChatInterface", () => {
       render(<ChatInterface />)
 
       expect(screen.getByTestId("session-loader")).toBeInTheDocument()
-      expect(screen.queryByText(/Damien Pasulj/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Je suis Damien/i)).not.toBeInTheDocument()
       expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
     })
 

@@ -49,7 +49,7 @@ function TypingIndicator() {
 export const WELCOME_MESSAGE: IMessage = {
   id: "welcome",
   role: "assistant",
-  content: "👋 Je suis Damien Pasulj, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
+  content: "👋 Je suis Damien, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
   createdAt: new Date(),
 }
 
@@ -104,10 +104,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           return
         }
         sessionIdRef.current = storedSessionId
-        setMessages([
-          WELCOME_MESSAGE,
-          ...data.messages.map((m) => ({ ...m, createdAt: new Date(m.createdAt) })),
-        ])
+        setMessages([WELCOME_MESSAGE, ...data.messages.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }))])
       })
       .catch(() => {
         localStorage.removeItem(SESSION_STORAGE_KEY)
@@ -263,12 +260,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         ) : (
           <div className={cn("mx-auto flex max-w-3xl flex-col gap-4 transition-opacity duration-300", messagesVisible ? "opacity-100" : "opacity-0")}>
             {messages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isStreaming={message.id === streamingMessageId}
-                onReuse={message.role === "user" ? handleReuseMessage : undefined}
-              />
+              <MessageBubble key={message.id} message={message} isStreaming={message.id === streamingMessageId} onReuse={message.role === "user" ? handleReuseMessage : undefined} />
             ))}
 
             {/* Suggestions de questions */}

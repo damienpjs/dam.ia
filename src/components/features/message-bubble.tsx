@@ -75,7 +75,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
         {isUser ? "🫵" : "DP"}
       </div>
 
-      <div className={cn("relative", showSkeleton ? "w-full" : "max-w-[75%]")}>
+      <div className={cn("relative", showSkeleton ? "w-[75%]" : "max-w-[75%]")}>
         <div
           className={cn(
             "break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed tracking-wide",

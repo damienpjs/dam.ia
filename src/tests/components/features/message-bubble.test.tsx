@@ -75,6 +75,13 @@ describe("MessageBubble", () => {
     expect(screen.getByTestId("streaming-skeleton")).toBeInTheDocument()
   })
 
+  it("donne au skeleton la même largeur que la largeur max des messages texte (75%)", () => {
+    const emptyMessage: IMessage = { id: "3", role: "assistant", content: "", createdAt: new Date() }
+    render(<MessageBubble message={emptyMessage} isStreaming />)
+    const skeletonWrapper = screen.getByTestId("streaming-skeleton").parentElement?.parentElement
+    expect(skeletonWrapper).toHaveClass("w-[75%]")
+  })
+
   it("n'affiche pas le skeleton pour un message assistant avec du contenu en streaming", () => {
     render(<MessageBubble message={assistantMessage} isStreaming />)
     expect(screen.queryByTestId("streaming-skeleton")).not.toBeInTheDocument()

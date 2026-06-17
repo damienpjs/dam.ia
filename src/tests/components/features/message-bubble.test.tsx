@@ -57,10 +57,11 @@ describe("MessageBubble", () => {
     expect(avatar).toHaveTextContent("🫵")
   })
 
-  it("rend l'avatar 'DP' pour les messages assistant", () => {
+  it("rend l'image d'avatar pour les messages assistant", () => {
     const { container } = render(<MessageBubble message={assistantMessage} />)
-    const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveTextContent("DP")
+    const avatarImg = container.querySelector("[aria-hidden='true'] img")
+    expect(avatarImg).toBeInTheDocument()
+    expect(avatarImg).toHaveAttribute("src")
   })
 
   it("applique le gradient peach sur l'avatar assistant", () => {

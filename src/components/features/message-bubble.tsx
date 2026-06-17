@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
@@ -71,8 +72,8 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
 
   return (
     <div ref={bubbleRef} data-testid="message-bubble" onClick={handleBubbleTap} className={cn("group/bubble flex w-full items-end gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white")}>
-        {isUser ? "🫵" : "DP"}
+      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white")}>
+        {isUser ? "🫵" : <Image src="/bot-avatar.png" alt="" width={32} height={32} className="h-full w-full object-cover" />}
       </div>
 
       <div className={cn("relative", showSkeleton ? "w-[75%]" : "max-w-[75%]")}>

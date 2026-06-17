@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
+import { MessageBubble } from "@/components/features/message-bubble"
+import type { IMessage } from "@/components/features/message-bubble"
 import { streamChat, type IStreamResult } from "@/lib/stream-chat"
 import { cn } from "@/lib/utils"
 
-const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
-const SUGGESTIONS_STORAGE_KEY = "dam_ia_used_suggestions"
+import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, SUGGESTIONS, WELCOME_MESSAGE } from "@/constants/chat"
 
 function loadUsedSuggestions(): Set<string> {
   if (typeof window === "undefined") return new Set()
@@ -26,8 +26,6 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 function generateId(): string {
   return crypto.randomUUID()
 }
-
-const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"]
 
 function SessionLoader() {
   return (
@@ -55,13 +53,6 @@ function TypingIndicator() {
       </div>
     </div>
   )
-}
-
-export const WELCOME_MESSAGE: IMessage = {
-  id: "welcome",
-  role: "assistant",
-  content: "👋 Je suis Damien, lead tech JS. Pose-moi tes questions sur mon parcours, mes compétences ou mes projets.",
-  createdAt: new Date(),
 }
 
 interface IChatInterfaceProps {

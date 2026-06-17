@@ -1,14 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { EMBEDDING_MODEL, EMBEDDING_DIMENSION } from "@/constants/rag"
 
-/**
- * Modèle d'embedding Gemini utilisé
- */
-export const EMBEDDING_MODEL = "gemini-embedding-001"
-
-/**
- * Dimension des vecteurs produits par gemini-embedding-001
- */
-export const EMBEDDING_DIMENSION = 3072
+export { EMBEDDING_MODEL, EMBEDDING_DIMENSION }
 
 /**
  * Crée un client d'embeddings Gemini.

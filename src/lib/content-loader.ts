@@ -1,5 +1,8 @@
 import fs from "fs"
 import path from "path"
+import { CONTENT_DIR } from "@/constants/rag"
+
+export { CONTENT_DIR }
 
 /**
  * Interface représentant un document de contenu chargé
@@ -10,11 +13,6 @@ export interface IContentDocument {
   /** Contenu brut du fichier markdown */
   content: string
 }
-
-/**
- * Chemin par défaut vers le dossier de contenu
- */
-export const CONTENT_DIR = path.join(process.cwd(), "content")
 
 /**
  * Charge tous les fichiers markdown du dossier /content.

@@ -8,6 +8,8 @@ startYear: 2024
 endYear: null
 tags: [react, typescript, nextjs, gitlab, ci-cd, lead]
 current: true
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Lead React/TypeScript/Next.js chez Apizee

@@ -2,6 +2,8 @@
 title: "Profil Personnel"
 category: profil
 tags: [contact, localisation, langues, loisirs]
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Profil Personnel

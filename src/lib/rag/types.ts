@@ -22,4 +22,6 @@ export interface ISearchResult {
   source: string
   /** Score de similarité (0-1) */
   score: number
+  /** Métadonnées extraites du frontmatter (sourceUrl, sourceLabel, etc.) */
+  metadata?: Record<string, unknown>
 }

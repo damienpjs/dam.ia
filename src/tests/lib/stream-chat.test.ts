@@ -55,7 +55,7 @@ describe("streamChat", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Bonjour" }),
+      body: JSON.stringify({ message: "Bonjour", sessionId: undefined }),
       signal: undefined,
     })
   })
@@ -95,7 +95,7 @@ describe("streamChat", () => {
     await streamChat("test", { onChunk: vi.fn(), onComplete })
 
     expect(onComplete).toHaveBeenCalledTimes(1)
-    expect(onComplete).toHaveBeenCalledWith(undefined)
+    expect(onComplete).toHaveBeenCalledWith({})
   })
 
   it("transmet les sources RAG via onComplete", async () => {
@@ -113,7 +113,35 @@ describe("streamChat", () => {
     const onComplete = vi.fn()
     await streamChat("test", { onChunk: vi.fn(), onComplete })
 
-    expect(onComplete).toHaveBeenCalledWith(sources)
+    expect(onComplete).toHaveBeenCalledWith({ sources })
+  })
+
+  it("transmet le sessionId et messageId via onComplete", async () => {
+    const chunks: TStreamChunk[] = [
+      { content: "Ok", done: false },
+      { content: "", done: true, sessionId: "sess-123", messageId: "msg-456" },
+    ]
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    const onComplete = vi.fn()
+    await streamChat("test", { onChunk: vi.fn(), onComplete })
+
+    expect(onComplete).toHaveBeenCalledWith({ sessionId: "sess-123", messageId: "msg-456" })
+  })
+
+  it("envoie le sessionId dans la requête fetch", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse([{ content: "", done: true }]))
+    vi.stubGlobal("fetch", mockFetch)
+
+    await streamChat("test", { onChunk: vi.fn(), sessionId: "sess-abc" })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/chat",
+      expect.objectContaining({
+        body: JSON.stringify({ message: "test", sessionId: "sess-abc" }),
+      }),
+    )
   })
 
   it("appelle onError en cas d'erreur HTTP", async () => {

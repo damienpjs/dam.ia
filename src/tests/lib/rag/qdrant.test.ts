@@ -126,8 +126,8 @@ describe("searchSimilarChunks", () => {
   it("doit retourner les résultats formatés", async () => {
     const mockClient = {
       search: vi.fn().mockResolvedValue([
-        { payload: { text: "Chunk 1", source: "cv" }, score: 0.95 },
-        { payload: { text: "Chunk 2", source: "profil" }, score: 0.8 },
+        { payload: { text: "Chunk 1", source: "cv", metadata: { sourceUrl: "/cv.pdf" } }, score: 0.95 },
+        { payload: { text: "Chunk 2", source: "profil", metadata: { sourceLabel: "CV (PDF)" } }, score: 0.8 },
       ]),
     }
 
@@ -136,8 +136,8 @@ describe("searchSimilarChunks", () => {
     const results = await searchSimilarChunks(mockClient as any, [0.1], 5)
 
     expect(results).toEqual([
-      { text: "Chunk 1", source: "cv", score: 0.95 },
-      { text: "Chunk 2", source: "profil", score: 0.8 },
+      { text: "Chunk 1", source: "cv", score: 0.95, metadata: { sourceUrl: "/cv.pdf" } },
+      { text: "Chunk 2", source: "profil", score: 0.8, metadata: { sourceLabel: "CV (PDF)" } },
     ])
     expect(mockClient.search).toHaveBeenCalledWith(COLLECTION_NAME, {
       vector: [0.1],
@@ -155,6 +155,6 @@ describe("searchSimilarChunks", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const results = await searchSimilarChunks(mockClient as any, [0.1], 3)
 
-    expect(results).toEqual([{ text: "", source: "", score: 0.5 }])
+    expect(results).toEqual([{ text: "", source: "", score: 0.5, metadata: undefined }])
   })
 })

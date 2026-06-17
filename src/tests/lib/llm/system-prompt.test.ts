@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { PERSONA } from "@/lib/llm/persona"
+import { PERSONA } from "@/constants/llm"
 
 describe("SYSTEM_PROMPT", () => {
   it("est une chaîne non vide", () => {

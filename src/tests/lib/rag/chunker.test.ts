@@ -113,6 +113,20 @@ describe("splitTextIntoChunks", () => {
       expect(chunk.length).toBeGreaterThan(0)
     }
   })
+
+  it("doit ignorer les chunks qui deviennent vides après trim", () => {
+    // Texte avec une large zone d'espaces au milieu pour que le slice tombe sur du whitespace
+    const text = "A" + " ".repeat(600) + "B"
+    const chunks = splitTextIntoChunks(text, 300, 10)
+
+    // Le contenu utile ne doit pas être perdu
+    expect(chunks.some((c) => c.includes("A"))).toBe(true)
+    expect(chunks.some((c) => c.includes("B"))).toBe(true)
+    // Aucun chunk ne doit être vide
+    for (const chunk of chunks) {
+      expect(chunk.trim().length).toBeGreaterThan(0)
+    }
+  })
 })
 
 describe("generateChunkId", () => {

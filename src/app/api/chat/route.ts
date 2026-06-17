@@ -3,6 +3,7 @@ import { createLLMProvider, MockProvider } from "@/lib/llm"
 import { sanitizeMessage, MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
+import { createSession, saveMessage } from "@/lib/db/chat-service"
 import type { ISearchResult } from "@/lib/rag/types"
 
 /**
@@ -10,6 +11,7 @@ import type { ISearchResult } from "@/lib/rag/types"
  */
 interface IChatRequest {
   message: string
+  sessionId?: string
 }
 
 /**
@@ -18,6 +20,7 @@ interface IChatRequest {
 interface ISourceInfo {
   label: string
   source: string
+  url?: string
 }
 
 /**
@@ -27,6 +30,8 @@ type TStreamChunk = {
   content: string
   done: boolean
   sources?: ISourceInfo[]
+  sessionId?: string
+  messageId?: string
 }
 
 /**
@@ -37,39 +42,25 @@ function encodeChunk(chunk: TStreamChunk): string {
 }
 
 /**
- * Mapping des noms de fichiers source vers des labels lisibles
- */
-const SOURCE_LABELS: Record<string, string> = {
-  "competences-soft": "Soft Skills",
-  "competences-techniques": "Compétences Techniques",
-  cv: "CV",
-  "experience-apizee": "Apizee",
-  "experience-elloha-dev": "elloha — Dev",
-  "experience-elloha-lead": "elloha — Lead",
-  "experience-elloha-web": "elloha — Web",
-  "formation-idem": "Formation IDEM",
-  profil: "Profil",
-}
-
-/**
- * Déduplique et formate les sources RAG pour le client
+ * Déduplique et formate les sources RAG pour le client.
+ * Regroupe par sourceUrl (depuis le frontmatter/metadata) au lieu de par fichier .md.
+ * Seules les sources effectivement retrouvées par la recherche vectorielle apparaissent.
  */
 function formatSources(results: ISearchResult[]): ISourceInfo[] {
   const seen = new Set<string>()
-  const sources = results
-    .filter((r) => {
-      if (seen.has(r.source)) return false
-      seen.add(r.source)
-      return true
-    })
-    .map((r) => ({
-      label: SOURCE_LABELS[r.source] ?? r.source,
-      source: r.source,
-    }))
+  const sources: ISourceInfo[] = []
 
-  // Toujours ajouter le CV en dernière position s'il n'est pas déjà présent
-  if (!seen.has("cv")) {
-    sources.push({ label: SOURCE_LABELS["cv"], source: "cv" })
+  for (const r of results) {
+    const url = r.metadata?.sourceUrl as string | undefined
+    const key = url ?? r.source
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    sources.push({
+      label: (r.metadata?.sourceLabel as string) ?? r.source,
+      source: r.source,
+      url,
+    })
   }
 
   return sources
@@ -87,7 +78,7 @@ function formatSources(results: ISearchResult[]): ISourceInfo[] {
 export async function POST(request: NextRequest): Promise<Response> {
   try {
     const body = (await request.json()) as IChatRequest
-    const { message } = body
+    const { message, sessionId: incomingSessionId } = body
 
     if (!message || typeof message !== "string") {
       return new Response(JSON.stringify({ error: "Le champ 'message' est requis" }), {
@@ -123,12 +114,26 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
     }
 
+    // Persistence DB (graceful — ne bloque pas le chat si la DB est down)
+    let sessionId = incomingSessionId
+    try {
+      if (!sessionId) {
+        sessionId = await createSession()
+      }
+      await saveMessage(sessionId, "user", sanitized)
+    } catch (dbError) {
+      console.warn("[DB] ❌ Impossible de sauvegarder le message utilisateur:", dbError instanceof Error ? dbError.message : dbError)
+      sessionId = undefined
+    }
+
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
+        let fullResponse = ""
 
         try {
           for await (const text of provider.streamResponse(enrichedMessage)) {
+            fullResponse += text
             const chunk: TStreamChunk = {
               content: text,
               done: false,
@@ -136,11 +141,23 @@ export async function POST(request: NextRequest): Promise<Response> {
             controller.enqueue(encoder.encode(encodeChunk(chunk)))
           }
 
-          // Chunk final avec les sources RAG
+          // Sauvegarder la réponse assistant en DB
+          let assistantMessageId: string | undefined
+          if (sessionId) {
+            try {
+              assistantMessageId = await saveMessage(sessionId, "assistant", fullResponse, sources.length > 0 ? sources : undefined)
+            } catch (dbError) {
+              console.warn("[DB] ❌ Impossible de sauvegarder la réponse assistant:", dbError instanceof Error ? dbError.message : dbError)
+            }
+          }
+
+          // Chunk final avec les sources RAG, sessionId et messageId
           const finalChunk: TStreamChunk = {
             content: "",
             done: true,
             sources: sources.length > 0 ? sources : undefined,
+            sessionId,
+            messageId: assistantMessageId,
           }
           controller.enqueue(encoder.encode(encodeChunk(finalChunk)))
         } catch (error) {

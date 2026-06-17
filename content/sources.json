@@ -1,0 +1,13 @@
+[
+  {
+    "id": "linkedin",
+    "url": "https://www.linkedin.com/in/damien-pasulj-700928ba/",
+    "label": "LinkedIn"
+  },
+  {
+    "id": "site-perso",
+    "url": "https://damienpasulj.com",
+    "label": "damienpasulj.com",
+    "jsRendering": true
+  }
+]

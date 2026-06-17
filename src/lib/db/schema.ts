@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, integer, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, uuid, text, timestamp, integer, pgEnum, jsonb } from "drizzle-orm/pg-core"
+import type { ISourceInfo } from "@/lib/stream-chat"
 
 /**
  * Enum pour le rôle des messages (user ou assistant)
@@ -29,6 +30,11 @@ export const messages = pgTable("messages", {
     .references(() => chatSessions.id, { onDelete: "cascade" }),
   role: messageRoleEnum("role").notNull(),
   content: text("content").notNull(),
+  /**
+   * Sources RAG attachées à une réponse assistant (null pour les messages utilisateur).
+   * Permet de réafficher les sources au rechargement d'une conversation.
+   */
+  sources: jsonb("sources").$type<ISourceInfo[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 

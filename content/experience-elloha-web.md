@@ -8,6 +8,8 @@ startYear: 2014
 endYear: 2017
 tags: [dotnetnuke, cms, web, tourisme]
 current: false
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Développeur Web chez elloha

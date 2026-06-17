@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Plus_Jakarta_Sans, Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 
@@ -21,6 +21,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Dam.ia - Let's chat !",
   description: "Lead Tech JS — Discute avec l'IA de Damien pour en savoir plus sur son parcours et ses projets.",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({

@@ -4,6 +4,7 @@
 export interface ISourceInfo {
   label: string
   source: string
+  url?: string
 }
 
 /**
@@ -13,6 +14,17 @@ export type TStreamChunk = {
   content: string
   done: boolean
   sources?: ISourceInfo[]
+  sessionId?: string
+  messageId?: string
+}
+
+/**
+ * Résultat retourné à la fin du stream
+ */
+export interface IStreamResult {
+  sources?: ISourceInfo[]
+  sessionId?: string
+  messageId?: string
 }
 
 /**
@@ -22,11 +34,13 @@ export interface IStreamChatOptions {
   /** Callback appelé à chaque nouveau caractère reçu */
   onChunk: (content: string) => void
   /** Callback appelé quand le stream est terminé */
-  onComplete?: (sources?: ISourceInfo[]) => void
+  onComplete?: (result: IStreamResult) => void
   /** Callback appelé en cas d'erreur */
   onError?: (error: Error) => void
   /** Signal pour annuler la requête */
   signal?: AbortSignal
+  /** ID de session existant (pour continuer une conversation) */
+  sessionId?: string
 }
 
 /**
@@ -48,13 +62,13 @@ export interface IStreamChatOptions {
  * ```
  */
 export async function streamChat(message: string, options: IStreamChatOptions): Promise<void> {
-  const { onChunk, onComplete, onError, signal } = options
+  const { onChunk, onComplete, onError, signal, sessionId } = options
 
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, sessionId }),
       signal,
     })
 
@@ -69,7 +83,7 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
     }
 
     const decoder = new TextDecoder()
-    let sources: ISourceInfo[] | undefined
+    const result: IStreamResult = {}
 
     while (true) {
       const { done, value } = await reader.read()
@@ -80,8 +94,10 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
 
       for (const line of lines) {
         const chunk = JSON.parse(line) as TStreamChunk
-        if (chunk.done && chunk.sources) {
-          sources = chunk.sources
+        if (chunk.done) {
+          if (chunk.sources) result.sources = chunk.sources
+          if (chunk.sessionId) result.sessionId = chunk.sessionId
+          if (chunk.messageId) result.messageId = chunk.messageId
         }
         if (!chunk.done && chunk.content) {
           onChunk(chunk.content)
@@ -89,7 +105,7 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
       }
     }
 
-    onComplete?.(sources)
+    onComplete?.(result)
   } catch (error) {
     // Ignorer les erreurs d'annulation
     if (error instanceof Error && error.name === "AbortError") {

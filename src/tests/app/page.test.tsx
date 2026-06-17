@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { describe, it, expect, vi, afterEach } from "vitest"
+import { render, screen, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
 
@@ -8,19 +8,35 @@ vi.mock("@/components/features/animated-background", () => ({
 }))
 
 vi.mock("@/components/features/chat-interface", () => ({
-  ChatInterface: () => <div data-testid="chat-interface" />,
+  ChatInterface: ({ messagesVisible }: { messagesVisible?: boolean }) => <div data-testid="chat-interface" data-messages-visible={String(messagesVisible)} />,
 }))
 
+// Force des dimensions non nulles pour exercer le morph (jsdom renvoie 0 par défaut)
+function stubLayout() {
+  const rect = { top: 100, left: 0, right: 300, bottom: 150, width: 300, height: 50, x: 0, y: 100, toJSON: () => ({}) } as DOMRect
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect)
+}
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe("Page d'accueil (/)", () => {
-  it("affiche le titre principal avec le nom 'Damien'", () => {
+  it("affiche l'accroche principale", () => {
     render(<Home />)
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument()
-    expect(screen.getByText("Damien")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/discute avec mon double IA/i)
   })
 
-  it("affiche la description du profil", () => {
+  it("met en exergue un terme avec un dégradé animé", () => {
+    const { container } = render(<Home />)
+    const highlight = container.querySelector(".text-gradient-animated")
+    expect(highlight).not.toBeNull()
+    expect(highlight).toHaveTextContent(/double IA/i)
+  })
+
+  it("affiche la bulle d'accueil comme premier message", () => {
     render(<Home />)
-    expect(screen.getByText(/Lead Tech JS/i)).toBeInTheDocument()
+    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
   })
 
   it("affiche le bouton CTA pour démarrer le chat", () => {
@@ -42,11 +58,10 @@ describe("Page d'accueil (/)", () => {
     expect(screen.getByTestId("animated-background")).toBeInTheDocument()
   })
 
-  it("ouvre le panneau chat au clic sur le bouton CTA", async () => {
+  it("ouvre le panneau chat au clic sur la bulle d'accueil", async () => {
     const user = userEvent.setup()
     render(<Home />)
-    const btn = screen.getByRole("button", { name: /commencer la conversation/i })
-    await user.click(btn)
+    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
     expect(screen.getByTestId("chat-interface")).toBeInTheDocument()
   })
 
@@ -55,6 +70,37 @@ describe("Page d'accueil (/)", () => {
     render(<Home />)
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
     await user.click(screen.getByRole("button", { name: /dam\.ia/i }))
+    expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
+  })
+
+  it("anime la bulle d'accueil (morph) vers le haut du chat puis révèle les messages", async () => {
+    stubLayout()
+    const user = userEvent.setup()
+    render(<Home />)
+
+    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
+
+    // Pendant le morph : le clone est présent et la liste des messages est masquée
+    const clone = screen.getByTestId("welcome-clone")
+    expect(clone).toBeInTheDocument()
+    expect(screen.getByTestId("chat-interface")).toHaveAttribute("data-messages-visible", "false")
+
+    // Fin de la transition : le clone disparaît, les messages deviennent visibles
+    fireEvent.transitionEnd(clone)
+    expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
+    expect(screen.getByTestId("chat-interface")).toHaveAttribute("data-messages-visible", "true")
+  })
+
+  it("réinitialise le morph à la fermeture pendant la transition", async () => {
+    stubLayout()
+    const user = userEvent.setup()
+    render(<Home />)
+
+    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
+    expect(screen.getByTestId("welcome-clone")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /dam\.ia/i }))
+    expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })
 })

@@ -1,14 +1,78 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useCallback, useLayoutEffect, useRef, useState } from "react"
 import { AnimatedBackground } from "@/components/features/animated-background"
 import { ChatInterface } from "@/components/features/chat-interface"
+import { MessageBubble } from "@/components/features/message-bubble"
+import { TECHS } from "@/constants/landing"
+import { WELCOME_MESSAGE, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
+
+type TPhase = "landing" | "opening" | "chat"
+
+interface ICloneState {
+  rect: DOMRect
+  offsetY: number
+  morph: boolean
+}
 
 export default function Home() {
-  const [chatOpen, setChatOpen] = useState(false)
+  const [phase, setPhase] = useState<TPhase>("landing")
+  const [clone, setClone] = useState<ICloneState | null>(null)
 
-  const techs = ["Tailwind CSS", "shadcn/ui", "Three.js", "TypeScript", "Next.js", "Vercel", "Qdrant", "Gemini"]
+  const heroRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const chatOpen = phase !== "landing"
+
+  const clearFallback = useCallback(() => {
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current)
+    fallbackTimerRef.current = null
+  }, [])
+
+  // Fin du morph : la bulle clone disparaît, le vrai message d'accueil prend le relais
+  const finishMorph = useCallback(() => {
+    clearFallback()
+    setClone(null)
+    setPhase("chat")
+  }, [clearFallback])
+
+  // Clic sur la bulle d'accueil : on capture sa position avant de monter le chat
+  const openChat = useCallback(() => {
+    if (phase !== "landing") return
+    const rect = heroRef.current?.getBoundingClientRect()
+    setClone(rect && rect.width > 0 ? { rect, offsetY: 0, morph: false } : null)
+    setPhase("opening")
+  }, [phase])
+
+  const closeChat = useCallback(() => {
+    clearFallback()
+    setClone(null)
+    setPhase("landing")
+  }, [clearFallback])
+
+  // Une fois le chat (et son header) montés, on lance le glissement de la bulle vers le haut
+  useLayoutEffect(() => {
+    if (phase !== "opening") return
+
+    const headerRect = headerRef.current?.getBoundingClientRect()
+    if (!clone || !headerRect) {
+      finishMorph()
+      return
+    }
+
+    const offsetY = headerRect.bottom + MESSAGES_TOP_PADDING - clone.rect.top
+
+    const raf = requestAnimationFrame(() => setClone((prev) => (prev ? { ...prev, offsetY, morph: true } : prev)))
+    // Filet de sécurité si transitionend ne se déclenche pas
+    fallbackTimerRef.current = setTimeout(finishMorph, MORPH_DURATION_MS + 120)
+
+    return () => cancelAnimationFrame(raf)
+    // On ne relance qu'au changement de phase (clone est défini de façon synchrone avant le passage en "opening")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, finishMorph])
+
+  const showClone = phase === "opening" && clone !== null
 
   return (
     <>
@@ -16,29 +80,26 @@ export default function Home() {
 
       {/* Accueil */}
       <div aria-hidden={chatOpen} className={`flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
-        <main className="flex flex-col items-center gap-6 text-center">
-          {/* Titre */}
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Hey, je suis <span className="bg-gradient-to-r from-[#F9B288] to-[#FCC8A8] bg-clip-text text-transparent">Damien</span>
-            </h1>
-            <h2 className="mx-auto max-w-md text-2xl text-zinc-400">Lead Tech JS</h2>
-            <p className="mx-auto max-w-md text-lg text-zinc-200">Discute avec moi pour en savoir plus sur mon parcours et mes projets.</p>
-          </div>
+        <main className="flex w-full flex-col items-center gap-8 text-center">
+          {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
+          <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Discute avec mon <span className="text-gradient-animated">double IA</span>
+          </h1>
 
-          {/* CTA */}
-          <Button
-            size="lg"
-            onClick={() => setChatOpen(true)}
-            className="group mt-4 cursor-pointer rounded-full border border-border bg-card/50 px-8 py-3 text-lg font-medium  backdrop-blur-sm transition-colors hover:border-[#F9B288]/50 hover:bg-[#F9B288]/10 hover:text-white"
-          >
-            Commencer la conversation
-            <span className="ml-2 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
-          </Button>
+          {/* Bulle d'accueil = premier message de la conversation, cliquable */}
+          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
+            <div ref={heroRef} className={`animate-hero-float transition-transform duration-300 group-hover:-translate-y-1 ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
+              <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
+            </div>
+            <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-[#F9B288]">
+              Clique sur la bulle pour démarrer la conversation
+              <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
+            </p>
+          </button>
 
           {/* Tech stack badges */}
-          <div className="mt-8 flex flex-wrap max-w-sm justify-center gap-2 text-xs text-zinc-400">
-            {techs.map((tech) => (
+          <div className="flex max-w-sm flex-wrap justify-center gap-2 text-xs text-zinc-400">
+            {TECHS.map((tech) => (
               <span key={tech} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur-sm">
                 {tech}
               </span>
@@ -47,20 +108,41 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Chat — slide in depuis le bas */}
-      <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-all duration-500 ease-out ${chatOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
+      {/* Chat — fondu pur : la bulle d'accueil assure le mouvement via le morph */}
+      <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         {/* Header */}
-        <header className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
+        <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
           <div className="mx-auto flex max-w-3xl items-center justify-between">
-            <button onClick={() => setChatOpen(false)} className="bg-clip-text text-sm font-semibold text-white">
+            <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
               dam.ia
             </button>
           </div>
         </header>
 
         {/* Zone de chat */}
-        {chatOpen && <ChatInterface />}
+        {chatOpen && <ChatInterface messagesVisible={phase === "chat"} />}
       </div>
+
+      {/* Bulle clone qui glisse de la landing vers le haut du chat */}
+      {showClone && clone && (
+        <div
+          data-testid="welcome-clone"
+          aria-hidden="true"
+          onTransitionEnd={finishMorph}
+          style={{
+            position: "fixed",
+            top: clone.rect.top,
+            left: clone.rect.left,
+            width: clone.rect.width,
+            zIndex: 50,
+            pointerEvents: "none",
+            transform: clone.morph ? `translateY(${clone.offsetY}px)` : "translateY(0)",
+            transition: clone.morph ? `transform ${MORPH_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)` : "none",
+          }}
+        >
+          <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
+        </div>
+      )}
     </>
   )
 }

@@ -1,16 +1,8 @@
 import { QdrantClient } from "@qdrant/js-client-rest"
 import type { IContentChunk, ISearchResult } from "./types"
-import { EMBEDDING_DIMENSION } from "./embeddings"
+import { EMBEDDING_DIMENSION, COLLECTION_NAME, DEFAULT_TOP_K } from "@/constants/rag"
 
-/**
- * Nom de la collection Qdrant pour les chunks de contenu
- */
-export const COLLECTION_NAME = "damia_content"
-
-/**
- * Nombre de résultats par défaut pour la recherche
- */
-export const DEFAULT_TOP_K = 5
+export { COLLECTION_NAME, DEFAULT_TOP_K }
 
 /**
  * Crée un client Qdrant configuré via les variables d'environnement.
@@ -92,5 +84,6 @@ export async function searchSimilarChunks(client: QdrantClient, queryVector: num
     text: (result.payload?.text as string) ?? "",
     source: (result.payload?.source as string) ?? "",
     score: result.score,
+    metadata: (result.payload?.metadata as Record<string, unknown>) ?? undefined,
   }))
 }

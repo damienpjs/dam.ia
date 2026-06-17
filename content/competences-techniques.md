@@ -3,6 +3,8 @@ title: "Compétences Techniques"
 category: competences
 type: hard-skills
 tags: [react, typescript, nextjs, nodejs, ci-cd, csharp]
+sourceUrl: "/cv-damien-pasulj.pdf"
+sourceLabel: "CV (PDF)"
 ---
 
 # Compétences Techniques
@@ -42,7 +44,7 @@ Grâce à ma formation initiale en UI/UX :
 
 ## Technologies IA
 
-- OpenAI API
+- Claude / OpenAi / Gemini
 - Modèles de langage (LLM)
 - RAG (Retrieval-Augmented Generation)
 - Qdrant (vector database)

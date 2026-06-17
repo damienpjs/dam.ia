@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { ChatInterface } from "@/components/features/chat-interface"
-import type { IStreamChatOptions, ISourceInfo } from "@/lib/stream-chat"
+import type { IStreamChatOptions } from "@/lib/stream-chat"
 import { streamChat } from "@/lib/stream-chat"
 
 // Mock streamChat pour simuler le streaming
@@ -12,7 +12,7 @@ vi.mock("@/lib/stream-chat", () => ({
     for (const char of response) {
       options.onChunk(char)
     }
-    options.onComplete?.()
+    options.onComplete?.({})
   }),
 }))
 
@@ -25,12 +25,14 @@ beforeEach(() => {
     for (const char of response) {
       options.onChunk(char)
     }
-    options.onComplete?.()
+    options.onComplete?.({})
   })
 })
 
 afterEach(() => {
   vi.clearAllMocks()
+  vi.unstubAllGlobals()
+  localStorage.clear()
 })
 
 // Helper : user sans délai inter-touches pour des tests rapides
@@ -39,13 +41,23 @@ const setup = () => userEvent.setup({ delay: null })
 describe("ChatInterface", () => {
   it("affiche le message de bienvenue de l'assistant au chargement", () => {
     render(<ChatInterface />)
-    expect(screen.getByText(/Damien Pasulj/i)).toBeInTheDocument()
+    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
   })
 
   it("affiche le message de bienvenue dans une bulle assistant (bg-card)", () => {
     render(<ChatInterface />)
-    const bubble = screen.getByText(/Damien Pasulj/i)
+    const bubble = screen.getByText(/Je suis Damien/i)
     expect(bubble).toHaveClass("bg-card")
+  })
+
+  it("affiche la liste des messages par défaut (messagesVisible)", () => {
+    const { container } = render(<ChatInterface />)
+    expect(container.querySelector(".opacity-100.max-w-3xl")).not.toBeNull()
+  })
+
+  it("masque la liste des messages quand messagesVisible est false", () => {
+    const { container } = render(<ChatInterface messagesVisible={false} />)
+    expect(container.querySelector(".opacity-0.max-w-3xl")).not.toBeNull()
   })
 
   it("rend le textarea de saisie", () => {
@@ -231,14 +243,14 @@ describe("ChatInterface", () => {
   })
 
   it("stocke les sources RAG dans le message assistant quand elles sont fournies", async () => {
-    const mockSources: ISourceInfo[] = [
+    const mockSources = [
       { label: "CV", source: "cv" },
       { label: "Apizee", source: "experience-apizee" },
     ]
 
     mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
       options.onChunk("Réponse avec sources.")
-      options.onComplete?.(mockSources)
+      options.onComplete?.({ sources: mockSources })
     })
 
     const user = setup()
@@ -374,5 +386,294 @@ describe("ChatInterface", () => {
 
     // Toutes les suggestions ont été utilisées
     expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
+  })
+
+  it("ne remet pas le focus sur le textarea sur un appareil tactile (onComplete)", async () => {
+    // Simuler un appareil tactile (pointer: coarse)
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = (query: string) =>
+      ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList
+
+    const user = setup()
+    render(<ChatInterface />)
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+    const focusSpy = vi.spyOn(textarea, "focus")
+
+    await user.type(textarea, "Bonjour")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    // focus() ne doit PAS être appelé sur un appareil tactile
+    expect(focusSpy).not.toHaveBeenCalled()
+    focusSpy.mockRestore()
+    window.matchMedia = originalMatchMedia
+  })
+
+  it("pré-remplit le textarea et met le focus après avoir cliqué sur le bouton de réutilisation", async () => {
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.type(screen.getByLabelText(/message à envoyer/i), "Message à réutiliser")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+    }, { timeout: 2000 })
+
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+    const focusSpy = vi.spyOn(textarea, "focus")
+
+    fireEvent.click(screen.getByTestId("reuse-button"))
+
+    expect(textarea).toHaveValue("Message à réutiliser")
+
+    await waitFor(() => {
+      expect(focusSpy).toHaveBeenCalled()
+    }, { timeout: 500 })
+
+    focusSpy.mockRestore()
+  })
+
+  describe("Persistance de session (localStorage)", () => {
+    it("sauvegarde le sessionId dans localStorage après réception depuis le stream", async () => {
+      mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+        options.onChunk("Réponse.")
+        options.onComplete?.({ sessionId: "session-abc-123" })
+      })
+
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-abc-123")
+      }, { timeout: 2000 })
+    })
+
+    it("ne sauvegarde rien dans localStorage si le stream ne retourne pas de sessionId", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+    })
+
+    it("restaure les messages d'une session existante au chargement", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-existing-456")
+
+      const mockMessages = [
+        { id: "msg-1", role: "user", content: "Message restauré", sources: null, createdAt: new Date().toISOString() },
+        { id: "msg-2", role: "assistant", content: "Réponse restaurée", sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }], createdAt: new Date().toISOString() },
+      ]
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: mockMessages }),
+      }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(screen.getByText("Message restauré")).toBeInTheDocument()
+        expect(screen.getByText("Réponse restaurée")).toBeInTheDocument()
+      }, { timeout: 2000 })
+
+      // Les sources persistées sont réaffichées après rechargement
+      expect(screen.getByTestId("message-sources")).toBeInTheDocument()
+      expect(screen.getByText("CV (PDF)")).toBeInTheDocument()
+
+      expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-existing-456")
+    })
+
+    it("supprime le sessionId du localStorage et démarre une nouvelle session si le fetch échoue", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-invalid")
+
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+      }, { timeout: 2000 })
+    })
+
+    it("supprime le sessionId si la réponse du serveur n'est pas ok", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-404")
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+      }, { timeout: 2000 })
+    })
+
+    it("supprime le sessionId si la session ne contient aucun message", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-empty")
+
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: [] }),
+      }))
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+      }, { timeout: 2000 })
+    })
+
+    it("affiche un loader à la place des messages pendant le chargement de la session", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-loader-test")
+
+      vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})))
+
+      render(<ChatInterface />)
+
+      expect(screen.getByTestId("session-loader")).toBeInTheDocument()
+      expect(screen.queryByText(/Je suis Damien/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
+    })
+
+    it("appelle la bonne URL de session au montage", async () => {
+      localStorage.setItem("dam_ia_chat_session_id", "session-check-url")
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ messages: [] }),
+      })
+      vi.stubGlobal("fetch", mockFetch)
+
+      render(<ChatInterface />)
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith("/api/chat/session/session-check-url")
+      }, { timeout: 2000 })
+    })
+  })
+
+  describe("Persistance des suggestions (localStorage)", () => {
+    it("sauvegarde la suggestion cliquée dans localStorage", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+
+      await user.click(screen.getByText("Quelles sont tes compétences ?"))
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+        expect(stored).toContain("Quelles sont tes compétences ?")
+      }, { timeout: 2000 })
+    })
+
+    it("ne ré-affiche pas une suggestion déjà cliquée au rechargement", () => {
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?"]))
+
+      render(<ChatInterface />)
+
+      expect(screen.queryByText("Quelles sont tes compétences ?")).not.toBeInTheDocument()
+      expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
+    })
+
+    it("affiche toujours une nouvelle suggestion absente du localStorage", () => {
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes projets"]))
+
+      render(<ChatInterface />)
+
+      expect(screen.queryByText("Quelles sont tes compétences ?")).not.toBeInTheDocument()
+      expect(screen.queryByText("Parle-moi de tes projets")).not.toBeInTheDocument()
+      expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
+    })
+
+    it("masque le bloc suggestions si toutes sont dans localStorage", () => {
+      localStorage.setItem(
+        "dam_ia_used_suggestions",
+        JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?"])
+      )
+
+      render(<ChatInterface />)
+
+      expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
+    })
+
+    it("accumule plusieurs suggestions cliquées dans localStorage", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+
+      await user.click(screen.getByText("Quelles sont tes compétences ?"))
+      await waitFor(() => {
+        expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      }, { timeout: 3000 })
+      await user.click(screen.getByText("Parle-moi de tes projets"))
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+        expect(stored).toContain("Quelles sont tes compétences ?")
+        expect(stored).toContain("Parle-moi de tes projets")
+      }, { timeout: 3000 })
+    })
+  })
+
+  it("ne remet pas le focus sur le textarea sur un appareil tactile (onError)", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = (query: string) =>
+      ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList
+
+    mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+      options.onError?.(new Error("Erreur réseau"))
+    })
+
+    const user = setup()
+    render(<ChatInterface />)
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+    const focusSpy = vi.spyOn(textarea, "focus")
+
+    await user.type(textarea, "Test")
+    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Désolé, une erreur est survenue/i)).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+
+    expect(focusSpy).not.toHaveBeenCalled()
+    focusSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+    window.matchMedia = originalMatchMedia
   })
 })

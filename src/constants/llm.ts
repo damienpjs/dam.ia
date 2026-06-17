@@ -10,7 +10,7 @@ export const GROQ_MODEL = "llama-3.3-70b-versatile"
 // Endpoint Groq compatible OpenAI (chat completions en streaming SSE)
 export const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-// Durée pendant laquelle un provider reste affiché comme « quota atteint »
+// Durée pendant laquelle un provider reste affiché comme « provider indisponible »
 // avant de repasser opérationnel (les quotas gratuits se réinitialisant côté
 // fournisseur). Un appel réussi efface le statut immédiatement.
 export const QUOTA_STATUS_TTL_MS = 10 * 60 * 1000

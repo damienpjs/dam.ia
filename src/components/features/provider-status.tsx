@@ -42,15 +42,11 @@ export function ProviderStatus() {
       {providers.map((provider) => {
         const operational = !provider.quotaExceeded
         const label = PROVIDER_LABELS[provider.name] ?? provider.name
-        const stateText = operational ? "opérationnel" : "quota atteint"
+        const stateText = operational ? "opérationnel" : "provider indisponible"
 
         return (
           <Tooltip key={provider.name} content={`${label} : ${stateText}`}>
-            <span
-              role="status"
-              aria-label={`${label} : ${stateText}`}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-zinc-300 backdrop-blur-sm"
-            >
+            <span role="status" aria-label={`${label} : ${stateText}`} className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-zinc-300 backdrop-blur-sm">
               <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", operational ? "bg-emerald-400" : "bg-amber-400")} />
               {label}
             </span>

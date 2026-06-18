@@ -7,6 +7,7 @@ import { QuotaExceededError } from "@/lib/llm/errors"
 vi.mock("@/lib/db/chat-service", () => ({
   createSession: vi.fn().mockResolvedValue("mock-session-id"),
   saveMessage: vi.fn().mockResolvedValue("mock-message-id"),
+  getSessionMessages: vi.fn().mockResolvedValue([]),
 }))
 
 // Mock du RAG pipeline
@@ -440,6 +441,68 @@ describe("POST /api/chat", () => {
     const chunks = await readStreamToChunks(response.body!)
     const lastChunk = chunks[chunks.length - 1]
     expect(lastChunk.messageId).toBeUndefined()
+  })
+
+  it("récupère l'historique et le transmet au provider quand un sessionId est fourni", async () => {
+    const { getSessionMessages } = await import("@/lib/db/chat-service")
+    const { createLLMProvider } = await import("@/lib/llm")
+
+    vi.mocked(getSessionMessages).mockResolvedValueOnce([
+      { id: "1", role: "user", content: "Tu connais React ?", status: "ok", sources: null, createdAt: new Date() },
+      { id: "2", role: "assistant", content: "Évidemment 👀", status: "ok", sources: null, createdAt: new Date() },
+    ])
+
+    let capturedHistory: unknown
+    vi.mocked(createLLMProvider).mockReturnValueOnce({
+      async *streamResponse(_message: string, history?: unknown) {
+        capturedHistory = history
+        yield "ok"
+      },
+    } as ReturnType<typeof createLLMProvider>)
+
+    const request = createMockRequest({ message: "Et en TypeScript ?", sessionId: "session-mem" })
+    const response = await POST(request)
+    await readStreamToChunks(response.body!)
+
+    expect(getSessionMessages).toHaveBeenCalledWith("session-mem")
+    expect(capturedHistory).toEqual([
+      { role: "user", content: "Tu connais React ?" },
+      { role: "assistant", content: "Évidemment 👀" },
+    ])
+  })
+
+  it("ne récupère pas d'historique pour une nouvelle session (pas de sessionId)", async () => {
+    const { getSessionMessages } = await import("@/lib/db/chat-service")
+
+    const request = createMockRequest({ message: "bonjour" })
+    const response = await POST(request)
+    await readStreamToChunks(response.body!)
+
+    expect(getSessionMessages).not.toHaveBeenCalled()
+  })
+
+  it("continue sans historique quand sa récupération échoue", async () => {
+    const { getSessionMessages } = await import("@/lib/db/chat-service")
+    vi.mocked(getSessionMessages).mockRejectedValueOnce(new Error("DB down"))
+
+    const request = createMockRequest({ message: "bonjour", sessionId: "session-ko" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    expect(chunksToFullMessage(chunks)).toBe("Réponse streamée.")
+  })
+
+  it("gère une erreur non-Error lors de la récupération de l'historique", async () => {
+    const { getSessionMessages } = await import("@/lib/db/chat-service")
+    vi.mocked(getSessionMessages).mockRejectedValueOnce("string history error")
+
+    const request = createMockRequest({ message: "bonjour", sessionId: "session-ko2" })
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const chunks = await readStreamToChunks(response.body!)
+    expect(chunksToFullMessage(chunks)).toBe("Réponse streamée.")
   })
 
   it("affiche le message de repli neutre quand le provider throw une valeur non-Error", async () => {

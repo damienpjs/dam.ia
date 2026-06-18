@@ -93,7 +93,7 @@ export default function Home() {
               <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
             </div>
             <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-[#F9B288]">
-              Clique sur la bulle pour démarrer la conversation
+              Démarrer la conversation
               <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
             </p>
           </button>

@@ -46,9 +46,10 @@ describe("MessageBubble", () => {
   })
 
   it("applique le style carte pour les messages assistant", () => {
-    render(<MessageBubble message={assistantMessage} />)
-    const bubble = screen.getByText("Salut ! Je vais bien, merci.")
-    expect(bubble).toHaveClass("bg-card")
+    const { container } = render(<MessageBubble message={assistantMessage} />)
+    const bubble = container.querySelector(".bg-card")
+    expect(bubble).toBeInTheDocument()
+    expect(bubble).toHaveTextContent("Salut ! Je vais bien, merci.")
   })
 
   it("rend l'avatar emoji pour les messages utilisateur", () => {
@@ -174,6 +175,47 @@ describe("MessageBubble", () => {
     render(<MessageBubble message={messageWithPlainSource} />)
     const el = screen.getByText("Source interne")
     expect(el.tagName).toBe("SPAN")
+  })
+
+  describe("rendu markdown", () => {
+    function assistantWith(content: string): IMessage {
+      return { id: "md", role: "assistant", content, createdAt: new Date() }
+    }
+
+    it("rend le gras markdown en <strong>", () => {
+      render(<MessageBubble message={assistantWith("Je maîtrise **React** et **Next.js**.")} />)
+      const strong = screen.getByText("React")
+      expect(strong.tagName).toBe("STRONG")
+    })
+
+    it("rend l'italique markdown en <em>", () => {
+      render(<MessageBubble message={assistantWith("Un peu d'*exploration* IA.")} />)
+      expect(screen.getByText("exploration").tagName).toBe("EM")
+    })
+
+    it("rend les listes markdown en éléments de liste", () => {
+      const { container } = render(<MessageBubble message={assistantWith("- React\n- Node.js")} />)
+      expect(container.querySelectorAll("li")).toHaveLength(2)
+    })
+
+    it("rend les liens markdown en ancres ouvrant un nouvel onglet", () => {
+      render(<MessageBubble message={assistantWith("Voir [mon LinkedIn](https://linkedin.com/in/music-all).")} />)
+      const link = screen.getByText("mon LinkedIn").closest("a")
+      expect(link).toHaveAttribute("href", "https://linkedin.com/in/music-all")
+      expect(link).toHaveAttribute("target", "_blank")
+      expect(link).toHaveAttribute("rel", "noopener noreferrer")
+    })
+
+    it("n'interprète pas le HTML brut (échappé par react-markdown)", () => {
+      render(<MessageBubble message={assistantWith("<img src=x onerror=alert(1)>")} />)
+      expect(screen.getByTestId("markdown-content").querySelector("img")).not.toBeInTheDocument()
+    })
+
+    it("n'applique pas le rendu markdown au contenu utilisateur", () => {
+      render(<MessageBubble message={{ id: "u", role: "user", content: "Texte **non gras**", createdAt: new Date() }} />)
+      expect(screen.getByText("Texte **non gras**")).toBeInTheDocument()
+      expect(screen.queryByTestId("markdown-content")).not.toBeInTheDocument()
+    })
   })
 
   describe("bouton copier", () => {

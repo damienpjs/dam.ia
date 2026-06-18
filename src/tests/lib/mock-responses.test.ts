@@ -26,7 +26,7 @@ describe("getMockResponse", () => {
   })
 
   it("reconnaît les questions sur les projets", () => {
-    const response = getMockResponse("Parle-moi de tes projets")
+    const response = getMockResponse("Parle-moi de tes soft skills")
     expect(response).toContain("React")
   })
 

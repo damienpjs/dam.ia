@@ -113,6 +113,24 @@ describe("GroqProvider", () => {
     expect(body.messages[1]).toEqual({ role: "user", content: "Quelles sont tes compétences ?" })
   })
 
+  it("insère l'historique conversationnel entre le system prompt et le message courant", async () => {
+    mockFetch.mockResolvedValue(makeStreamResponse([sseChunk("ok")]))
+
+    const provider = new GroqProvider("ma-cle")
+    for await (const _text of provider.streamResponse("Et en TypeScript ?", [
+      { role: "user", content: "Tu connais React ?" },
+      { role: "assistant", content: "Évidemment 👀" },
+    ])) {
+      // consume stream
+    }
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body.messages[0].role).toBe("system")
+    expect(body.messages[1]).toEqual({ role: "user", content: "Tu connais React ?" })
+    expect(body.messages[2]).toEqual({ role: "assistant", content: "Évidemment 👀" })
+    expect(body.messages[3]).toEqual({ role: "user", content: "Et en TypeScript ?" })
+  })
+
   it("permet de surcharger le modèle", async () => {
     mockFetch.mockResolvedValue(makeStreamResponse([sseChunk("ok")]))
 

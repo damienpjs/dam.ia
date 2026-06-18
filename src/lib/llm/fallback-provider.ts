@@ -1,4 +1,4 @@
-import type { ILLMProvider } from "./types"
+import type { ILLMProvider, IConversationMessage } from "./types"
 import { QuotaExceededError } from "./errors"
 
 /**
@@ -22,13 +22,13 @@ export class FallbackProvider implements ILLMProvider {
     this.providers = providers
   }
 
-  async *streamResponse(message: string): AsyncIterable<string> {
+  async *streamResponse(message: string, history: IConversationMessage[] = []): AsyncIterable<string> {
     for (let i = 0; i < this.providers.length; i++) {
       const isLast = i === this.providers.length - 1
       let emitted = false
 
       try {
-        for await (const text of this.providers[i].streamResponse(message)) {
+        for await (const text of this.providers[i].streamResponse(message, history)) {
           emitted = true
           yield text
         }

@@ -7,6 +7,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - **TypeScript 5** — typage statique
 - **Tailwind CSS 4** — styles
 - **shadcn/ui** — composants UI
+- **react-markdown + remark-gfm** — rendu markdown des réponses du bot
 - **Plus Jakarta Sans** — typographie principale (Google Fonts)
 - **Lucide React** — icônes
 - **Vitest** — tests unitaires (seuil de couverture : 95%)

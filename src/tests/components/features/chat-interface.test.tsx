@@ -46,9 +46,10 @@ describe("ChatInterface", () => {
   })
 
   it("affiche le message de bienvenue dans une bulle assistant (bg-card)", () => {
-    render(<ChatInterface />)
-    const bubble = screen.getByText(/Je suis Damien/i)
-    expect(bubble).toHaveClass("bg-card")
+    const { container } = render(<ChatInterface />)
+    const bubble = container.querySelector(".bg-card")
+    expect(bubble).toBeInTheDocument()
+    expect(bubble).toHaveTextContent(/Je suis Damien/i)
   })
 
   it("affiche la liste des messages par défaut (messagesVisible)", () => {
@@ -301,7 +302,7 @@ describe("ChatInterface", () => {
     render(<ChatInterface />)
     expect(screen.getByTestId("suggestions")).toBeInTheDocument()
     expect(screen.getByText("Quelles sont tes compétences ?")).toBeInTheDocument()
-    expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+    expect(screen.getByText("Parle-moi de tes soft skills")).toBeInTheDocument()
   })
 
   it("masque les suggestions pendant le chargement puis les réaffiche", async () => {
@@ -355,7 +356,7 @@ describe("ChatInterface", () => {
       },
       { timeout: 3000 },
     )
-    expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+    expect(screen.getByText("Parle-moi de tes soft skills")).toBeInTheDocument()
     expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
   })
 
@@ -432,9 +433,12 @@ describe("ChatInterface", () => {
     await user.type(screen.getByLabelText(/message à envoyer/i), "Message à réutiliser")
     await user.click(screen.getByRole("button", { name: /envoyer/i }))
 
-    await waitFor(() => {
-      expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
-    }, { timeout: 2000 })
+    await waitFor(
+      () => {
+        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
 
     const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
     const focusSpy = vi.spyOn(textarea, "focus")
@@ -443,9 +447,12 @@ describe("ChatInterface", () => {
 
     expect(textarea).toHaveValue("Message à réutiliser")
 
-    await waitFor(() => {
-      expect(focusSpy).toHaveBeenCalled()
-    }, { timeout: 500 })
+    await waitFor(
+      () => {
+        expect(focusSpy).toHaveBeenCalled()
+      },
+      { timeout: 500 },
+    )
 
     focusSpy.mockRestore()
   })
@@ -462,9 +469,12 @@ describe("ChatInterface", () => {
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
       await user.click(screen.getByRole("button", { name: /envoyer/i }))
 
-      await waitFor(() => {
-        expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-abc-123")
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-abc-123")
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("ne sauvegarde rien dans localStorage si le stream ne retourne pas de sessionId", async () => {
@@ -473,9 +483,12 @@ describe("ChatInterface", () => {
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
       await user.click(screen.getByRole("button", { name: /envoyer/i }))
 
-      await waitFor(() => {
-        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
 
       expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
     })
@@ -488,17 +501,23 @@ describe("ChatInterface", () => {
         { id: "msg-2", role: "assistant", content: "Réponse restaurée", sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }], createdAt: new Date().toISOString() },
       ]
 
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ messages: mockMessages }),
-      }))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ messages: mockMessages }),
+        }),
+      )
 
       render(<ChatInterface />)
 
-      await waitFor(() => {
-        expect(screen.getByText("Message restauré")).toBeInTheDocument()
-        expect(screen.getByText("Réponse restaurée")).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByText("Message restauré")).toBeInTheDocument()
+          expect(screen.getByText("Réponse restaurée")).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
 
       // Les sources persistées sont réaffichées après rechargement
       expect(screen.getByTestId("message-sources")).toBeInTheDocument()
@@ -515,16 +534,22 @@ describe("ChatInterface", () => {
         { id: "msg-2", role: "assistant", content: "⚠️ Une erreur est survenue. Réessaie dans un instant.", status: "error", sources: null, createdAt: new Date().toISOString() },
       ]
 
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ messages: mockMessages }),
-      }))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ messages: mockMessages }),
+        }),
+      )
 
       render(<ChatInterface />)
 
-      await waitFor(() => {
-        expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
 
       expect(screen.getByText("⚠️ Une erreur est survenue. Réessaie dans un instant.")).toBeInTheDocument()
     })
@@ -545,9 +570,12 @@ describe("ChatInterface", () => {
       await user.type(textarea, "Provoque une erreur")
       await user.keyboard("{Enter}")
 
-      await waitFor(() => {
-        expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("supprime le sessionId du localStorage et démarre une nouvelle session si le fetch échoue", async () => {
@@ -557,9 +585,12 @@ describe("ChatInterface", () => {
 
       render(<ChatInterface />)
 
-      await waitFor(() => {
-        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("supprime le sessionId si la réponse du serveur n'est pas ok", async () => {
@@ -569,30 +600,42 @@ describe("ChatInterface", () => {
 
       render(<ChatInterface />)
 
-      await waitFor(() => {
-        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("supprime le sessionId si la session ne contient aucun message", async () => {
       localStorage.setItem("dam_ia_chat_session_id", "session-empty")
 
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ messages: [] }),
-      }))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ messages: [] }),
+        }),
+      )
 
       render(<ChatInterface />)
 
-      await waitFor(() => {
-        expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("affiche un loader à la place des messages pendant le chargement de la session", async () => {
       localStorage.setItem("dam_ia_chat_session_id", "session-loader-test")
 
-      vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => new Promise(() => {})),
+      )
 
       render(<ChatInterface />)
 
@@ -612,9 +655,12 @@ describe("ChatInterface", () => {
 
       render(<ChatInterface />)
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith("/api/chat/session/session-check-url")
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(mockFetch).toHaveBeenCalledWith("/api/chat/session/session-check-url")
+        },
+        { timeout: 2000 },
+      )
     })
   })
 
@@ -625,10 +671,13 @@ describe("ChatInterface", () => {
 
       await user.click(screen.getByText("Quelles sont tes compétences ?"))
 
-      await waitFor(() => {
-        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
-        expect(stored).toContain("Quelles sont tes compétences ?")
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+          expect(stored).toContain("Quelles sont tes compétences ?")
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("ne ré-affiche pas une suggestion déjà cliquée au rechargement", () => {
@@ -637,17 +686,17 @@ describe("ChatInterface", () => {
       render(<ChatInterface />)
 
       expect(screen.queryByText("Quelles sont tes compétences ?")).not.toBeInTheDocument()
-      expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      expect(screen.getByText("Parle-moi de tes soft skills")).toBeInTheDocument()
       expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
     })
 
     it("affiche toujours une nouvelle suggestion absente du localStorage", () => {
-      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes projets"]))
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes soft skills"]))
 
       render(<ChatInterface />)
 
       expect(screen.queryByText("Quelles sont tes compétences ?")).not.toBeInTheDocument()
-      expect(screen.queryByText("Parle-moi de tes projets")).not.toBeInTheDocument()
+      expect(screen.queryByText("Parle-moi de tes soft skills")).not.toBeInTheDocument()
       expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
     })
 
@@ -664,16 +713,22 @@ describe("ChatInterface", () => {
       render(<ChatInterface />)
 
       await user.click(screen.getByText("Quelles sont tes compétences ?"))
-      await waitFor(() => {
-        expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
-      }, { timeout: 3000 })
-      await user.click(screen.getByText("Parle-moi de tes projets"))
+      await waitFor(
+        () => {
+          expect(screen.getByText("Parle-moi de tes soft skills")).toBeInTheDocument()
+        },
+        { timeout: 3000 },
+      )
+      await user.click(screen.getByText("Parle-moi de tes soft skills"))
 
-      await waitFor(() => {
-        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
-        expect(stored).toContain("Quelles sont tes compétences ?")
-        expect(stored).toContain("Parle-moi de tes projets")
-      }, { timeout: 3000 })
+      await waitFor(
+        () => {
+          const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+          expect(stored).toContain("Quelles sont tes compétences ?")
+          expect(stored).toContain("Parle-moi de tes soft skills")
+        },
+        { timeout: 3000 },
+      )
     })
   })
 
@@ -689,9 +744,12 @@ describe("ChatInterface", () => {
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
       await user.click(screen.getByRole("button", { name: /envoyer/i }))
 
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
     })
 
     it("réinitialise les messages au message de bienvenue uniquement", async () => {
@@ -700,9 +758,12 @@ describe("ChatInterface", () => {
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
       await user.click(screen.getByRole("button", { name: /envoyer/i }))
 
-      await waitFor(() => {
-        expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
 
       await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
 
@@ -723,9 +784,12 @@ describe("ChatInterface", () => {
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
       await user.click(screen.getByRole("button", { name: /envoyer/i }))
 
-      await waitFor(() => {
-        expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-to-reset")
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(localStorage.getItem("dam_ia_chat_session_id")).toBe("session-to-reset")
+        },
+        { timeout: 2000 },
+      )
 
       await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
 
@@ -738,20 +802,26 @@ describe("ChatInterface", () => {
 
       // Utilise une suggestion (la retire et la persiste)
       await user.click(screen.getByText("Quelles sont tes compétences ?"))
-      await waitFor(() => {
-        const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
-        expect(stored).toContain("Quelles sont tes compétences ?")
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
+          expect(stored).toContain("Quelles sont tes compétences ?")
+        },
+        { timeout: 2000 },
+      )
 
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
 
       await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
 
       // Toutes les suggestions sont de nouveau visibles
       expect(screen.getByText("Quelles sont tes compétences ?")).toBeInTheDocument()
-      expect(screen.getByText("Parle-moi de tes projets")).toBeInTheDocument()
+      expect(screen.getByText("Parle-moi de tes soft skills")).toBeInTheDocument()
       expect(screen.getByText("Quel est ton parcours ?")).toBeInTheDocument()
       // Le localStorage des suggestions utilisées est vidé
       expect(localStorage.getItem("dam_ia_used_suggestions")).toBeNull()

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
+import Markdown, { type Components } from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
@@ -25,6 +27,40 @@ interface IMessageBubbleProps {
   onReuse?: (content: string) => void
   /** Affiche les boutons d'action (copier, réutiliser). Désactivé pour la bulle d'accueil de la landing. */
   showActions?: boolean
+}
+
+/** Les liens markdown s'ouvrent dans un nouvel onglet et héritent du style accent. */
+const markdownComponents: Components = {
+  a: ({ children, href }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-[#F9B288] underline decoration-[#F9B288]/40 underline-offset-2 hover:decoration-[#F9B288]">
+      {children}
+    </a>
+  ),
+}
+
+/**
+ * Rend le contenu markdown de l'assistant (gras, italique, listes, liens, code).
+ * Le HTML brut n'est jamais interprété : react-markdown l'échappe par défaut.
+ */
+function MarkdownMessage({ content }: { content: string }) {
+  return (
+    <div
+      data-testid="markdown-content"
+      className={cn(
+        "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "[&_p]:my-2 [&_strong]:font-semibold [&_em]:italic",
+        "[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5",
+        "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.85em]",
+        "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
+        "[&_h1]:my-2 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:my-2 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:font-semibold",
+        "[&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
+      )}
+    >
+      <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        {content}
+      </Markdown>
+    </div>
+  )
 }
 
 function StreamingSkeleton() {
@@ -97,7 +133,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
             <StreamingSkeleton />
           ) : (
             <>
-              {message.content}
+              {isUser ? message.content : <MarkdownMessage content={message.content} />}
               {showCursor && <span data-testid="streaming-cursor" className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-current align-text-bottom" />}
               {showSources && (
                 <div data-testid="message-sources" className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2.5">

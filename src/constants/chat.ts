@@ -3,7 +3,7 @@ import type { IMessage } from "@/components/features/message-bubble"
 export const SESSION_STORAGE_KEY = "dam_ia_chat_session_id"
 export const SUGGESTIONS_STORAGE_KEY = "dam_ia_used_suggestions"
 
-export const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes projets", "Quel est ton parcours ?", "Quels sont tes loisirs et passions ?", "Comment as-tu commencé à coder ?", "Quelles langues parles-tu ?"]
+export const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes soft skills", "Quel est ton parcours ?", "Quels sont tes loisirs et passions ?", "Que penses-tu du full remote ?", "Quelles langues parles-tu ?"]
 
 // Durée de l'animation morphe de la bulle d'accueil vers le haut du chat
 export const MORPH_DURATION_MS = 600

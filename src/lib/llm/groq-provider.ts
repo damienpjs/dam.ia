@@ -1,6 +1,6 @@
 import type { ILLMProvider, IConversationMessage } from "./types"
 import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS } from "@/constants/llm"
-import { isQuotaExceededError, QuotaExceededError } from "./errors"
+import { isQuotaExceededError, isServiceUnavailableError, QuotaExceededError, ServiceUnavailableError } from "./errors"
 import { buildSystemPrompt } from "./system-prompt"
 import { markOperational, markQuotaExceeded } from "./quota-status"
 
@@ -45,6 +45,10 @@ export class GroqProvider implements ILLMProvider {
 
       if (response.status === 429) {
         throw new QuotaExceededError()
+      }
+      // 503 : surcharge transitoire → erreur dédiée pour permettre la bascule.
+      if (response.status === 503) {
+        throw new ServiceUnavailableError()
       }
       if (!response.ok) {
         throw new Error(`Erreur API Groq (${response.status})`)
@@ -98,6 +102,9 @@ export class GroqProvider implements ILLMProvider {
       if (isQuotaExceededError(error)) {
         markQuotaExceeded("groq")
         throw new QuotaExceededError()
+      }
+      if (isServiceUnavailableError(error)) {
+        throw new ServiceUnavailableError()
       }
       throw error
     } finally {

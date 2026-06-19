@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import type { ILLMProvider, IConversationMessage } from "./types"
 import { GEMINI_TIMEOUT_MS } from "@/constants/llm"
-import { isQuotaExceededError, QuotaExceededError } from "./errors"
+import { isQuotaExceededError, isServiceUnavailableError, QuotaExceededError, ServiceUnavailableError } from "./errors"
 import { buildSystemPrompt } from "./system-prompt"
 import { markOperational, markQuotaExceeded } from "./quota-status"
 
@@ -54,6 +54,10 @@ export class GeminiProvider implements ILLMProvider {
       if (isQuotaExceededError(error)) {
         markQuotaExceeded("gemini")
         throw new QuotaExceededError()
+      }
+      // 503 / surcharge : erreur transitoire → on laisse le FallbackProvider basculer.
+      if (isServiceUnavailableError(error)) {
+        throw new ServiceUnavailableError()
       }
       throw error
     } finally {

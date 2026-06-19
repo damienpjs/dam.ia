@@ -1,10 +1,11 @@
 import type { ILLMProvider, IConversationMessage } from "./types"
-import { QuotaExceededError } from "./errors"
+import { QuotaExceededError, ServiceUnavailableError } from "./errors"
 
 /**
  * Provider composite qui enchaîne plusieurs providers par ordre de priorité.
  *
- * Si un provider lève une `QuotaExceededError` **avant d'avoir streamé le
+ * Si un provider lève une erreur transitoire — `QuotaExceededError` (quota 429)
+ * ou `ServiceUnavailableError` (surcharge 503) — **avant d'avoir streamé le
  * moindre token**, on bascule de façon transparente sur le suivant. Une fois
  * qu'un token a été émis, on ne peut plus basculer (sinon la réponse serait
  * tronquée puis dupliquée) : l'erreur est alors propagée.
@@ -34,11 +35,12 @@ export class FallbackProvider implements ILLMProvider {
         }
         return
       } catch (error) {
-        const canFallback = error instanceof QuotaExceededError && !emitted && !isLast
+        const isTransient = error instanceof QuotaExceededError || error instanceof ServiceUnavailableError
+        const canFallback = isTransient && !emitted && !isLast
         if (!canFallback) {
           throw error
         }
-        // Quota atteint sur ce provider et rien n'a été streamé → on tente le suivant.
+        // Erreur transitoire (quota/surcharge) et rien n'a été streamé → on tente le suivant.
       }
     }
   }

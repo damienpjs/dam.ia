@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { GroqProvider } from "@/lib/llm/groq-provider"
-import { QuotaExceededError } from "@/lib/llm/errors"
+import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
 import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS } from "@/constants/llm"
 
 /**
@@ -152,6 +152,17 @@ describe("GroqProvider", () => {
         // consume stream
       }
     }).rejects.toThrow(QuotaExceededError)
+  })
+
+  it("lance une ServiceUnavailableError sur un statut 503", async () => {
+    mockFetch.mockResolvedValue(makeStreamResponse([], 503))
+
+    const provider = new GroqProvider("fake-key")
+    await expect(async () => {
+      for await (const _text of provider.streamResponse("test")) {
+        // consume stream
+      }
+    }).rejects.toThrow(ServiceUnavailableError)
   })
 
   it("lance une erreur sur un statut non-2xx", async () => {

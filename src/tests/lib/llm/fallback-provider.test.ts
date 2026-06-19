@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { FallbackProvider } from "@/lib/llm/fallback-provider"
-import { QuotaExceededError } from "@/lib/llm/errors"
+import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
 import type { ILLMProvider } from "@/lib/llm/types"
 
 /**
@@ -48,7 +48,18 @@ describe("FallbackProvider", () => {
     await expect(collect(fallback)).rejects.toThrow(QuotaExceededError)
   })
 
-  it("propage immédiatement une erreur non liée au quota", async () => {
+  it("bascule sur le suivant quand le premier est indisponible (503) avant tout token", async () => {
+    const fallback = new FallbackProvider([fakeProvider([], new ServiceUnavailableError()), fakeProvider(["secours"])])
+    expect(await collect(fallback)).toBe("secours")
+  })
+
+  it("propage la ServiceUnavailableError si un token a déjà été émis", async () => {
+    const fallback = new FallbackProvider([fakeProvider(["déjà "], new ServiceUnavailableError()), fakeProvider(["secours"])])
+
+    await expect(collect(fallback)).rejects.toThrow(ServiceUnavailableError)
+  })
+
+  it("propage immédiatement une erreur non liée au quota ou à la disponibilité", async () => {
     const fallback = new FallbackProvider([fakeProvider([], new Error("boom")), fakeProvider(["secours"])])
 
     await expect(collect(fallback)).rejects.toThrow("boom")

@@ -62,7 +62,7 @@ Copier `.env.example` vers `.env` puis renseigner les clés.
 
 ### Fallback multi-provider
 
-Quand les clés Gemini **et** Groq sont présentes, les requêtes utilisent une chaîne de fallback **Gemini → Groq** : si le quota de Gemini est atteint (HTTP 429), le système bascule automatiquement et en temps réel sur Groq, qui dispose d'un quota gratuit indépendant. Si les deux quotas sont épuisés, une réponse de repli (`MockProvider`) est servie avec un message d'attente.
+Quand les clés Gemini **et** Groq sont présentes, les requêtes utilisent une chaîne de fallback **Gemini → Groq** : si Gemini renvoie une erreur transitoire — quota atteint (HTTP 429) **ou** modèle surchargé / temporairement indisponible (HTTP 503) — avant d'avoir streamé le moindre token, le système bascule automatiquement et en temps réel sur Groq, qui dispose d'un quota gratuit indépendant. À chaque nouvelle requête, la chaîne repart de Gemini : le retour sur le provider primaire est donc automatique dès qu'il redevient disponible. Si les deux providers sont indisponibles, une réponse de repli (`MockProvider`) est servie avec un message d'attente.
 
 Le header du chat affiche une **pastille de statut par provider actif** (point vert = disponible, point rouge = indisponible), selon la configuration : une seule pastille si un provider est forcé, les deux si la chaîne de fallback est active, aucune en mode mock. Le statut est exposé par `GET /api/llm/status` et rafraîchi après chaque réponse.
 

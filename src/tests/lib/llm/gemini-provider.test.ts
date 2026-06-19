@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { GeminiProvider, buildSystemPrompt } from "@/lib/llm/gemini-provider"
-import { QuotaExceededError } from "@/lib/llm/errors"
+import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
 import { PERSONA, GEMINI_TIMEOUT_MS } from "@/constants/llm"
 
 // Mock du pipeline RAG pour éviter les appels réseau dans les tests
@@ -156,6 +156,18 @@ describe("GeminiProvider", () => {
         // consume stream
       }
     }).rejects.toThrow(QuotaExceededError)
+  })
+
+  it("lance une ServiceUnavailableError sur erreur 503", async () => {
+    mockGenerateContentStream.mockRejectedValue(new Error("[503 Service Unavailable] This model is currently experiencing high demand"))
+
+    const provider = new GeminiProvider("fake-api-key")
+
+    await expect(async () => {
+      for await (const _text of provider.streamResponse("test")) {
+        // consume stream
+      }
+    }).rejects.toThrow(ServiceUnavailableError)
   })
 
   it("exporte GEMINI_TIMEOUT_MS", () => {

@@ -370,10 +370,10 @@ describe("MessageBubble", () => {
       expect(onReuse).toHaveBeenCalledWith("Bonjour, comment ça va ?")
     })
 
-    it("a l'aria-label 'Remettre dans le tchat'", () => {
+    it("a l'aria-label 'Renvoyer ce message'", () => {
       const onReuse = vi.fn()
       render(<MessageBubble message={userMessage} onReuse={onReuse} />)
-      expect(screen.getByTestId("reuse-button")).toHaveAttribute("aria-label", "Remettre dans le tchat")
+      expect(screen.getByTestId("reuse-button")).toHaveAttribute("aria-label", "Renvoyer ce message")
     })
 
     it("est visible quand la bulle est tappée (mobile)", () => {

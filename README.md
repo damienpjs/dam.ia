@@ -38,7 +38,7 @@ src/
   app/              # Pages Next.js (App Router)
   components/
     features/       # Composants métier (AnimatedBackground, ChatInterface, MessageBubble)
-    ui/             # Composants génériques (Button)
+    ui/             # Composants génériques (Button, Tooltip, ConfirmDialog)
   lib/              # Utilitaires partagés (utils, mock-responses)
   tests/            # Tests unitaires (miroir de src/)
 ```

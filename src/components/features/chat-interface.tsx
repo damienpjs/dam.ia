@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { Send, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip } from "@/components/ui/tooltip"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { MessageBubble } from "@/components/features/message-bubble"
 import type { IMessage } from "@/components/features/message-bubble"
 import { streamChat, type IStreamResult, type ISourceInfo } from "@/lib/stream-chat"
@@ -70,6 +71,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(loadUsedSuggestions)
   const [isLoadingSession, setIsLoadingSession] = useState(false)
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
   const sessionIdRef = useRef<string | undefined>(undefined)
 
   // Vérifie localStorage avant le premier paint pour éviter tout flash de contenu
@@ -275,18 +277,13 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     }
   }, [])
 
-  const handleReuseMessage = useCallback((content: string) => {
-    setInput(content)
-    setTimeout(() => {
-      const el = textareaRef.current
-      if (!el) return
-      el.style.height = "auto"
-      const maxHeight = 128
-      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
-      el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden"
-      el.focus()
-    }, 0)
-  }, [])
+  // Renvoie directement le message sélectionné, sans repasser par le champ de saisie.
+  const handleReuseMessage = useCallback(
+    (content: string) => {
+      void sendMessage(content)
+    },
+    [sendMessage],
+  )
 
   const remainingSuggestions = SUGGESTIONS.filter((s) => !usedSuggestions.has(s))
 
@@ -342,7 +339,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
                 type="button"
                 size="icon-lg"
                 variant="ghost"
-                onClick={handleReset}
+                onClick={() => setIsResetDialogOpen(true)}
                 disabled={isLoadingSession}
                 aria-label="Réinitialiser la conversation"
                 className="group/reset shrink-0 rounded-xl ring-1 ring-white/20 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-[#F9B288]/10 hover:text-[#F9B288]"
@@ -383,6 +380,17 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           </Tooltip>
         </form>
       </div>
+
+      <ConfirmDialog
+        open={isResetDialogOpen}
+        onOpenChange={setIsResetDialogOpen}
+        title="Réinitialiser la conversation ?"
+        description="Tous les messages échangés seront définitivement effacés. Cette action est irréversible."
+        confirmLabel="Réinitialiser"
+        cancelLabel="Annuler"
+        onConfirm={handleReset}
+        destructive
+      />
     </div>
   )
 }

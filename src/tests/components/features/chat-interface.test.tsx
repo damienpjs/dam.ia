@@ -69,19 +69,19 @@ describe("ChatInterface", () => {
 
   it("rend le bouton d'envoi", () => {
     render(<ChatInterface />)
-    expect(screen.getByRole("button", { name: /envoyer/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Envoyer"})).toBeInTheDocument()
   })
 
   it("désactive le bouton d'envoi quand l'input est vide", () => {
     render(<ChatInterface />)
-    expect(screen.getByRole("button", { name: /envoyer/i })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Envoyer"})).toBeDisabled()
   })
 
   it("active le bouton d'envoi quand l'input contient du texte", async () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-    expect(screen.getByRole("button", { name: /envoyer/i })).not.toBeDisabled()
+    expect(screen.getByRole("button", { name: "Envoyer"})).not.toBeDisabled()
   })
 
   it("met à jour l'input quand l'utilisateur tape", async () => {
@@ -96,7 +96,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Salut !")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
     expect(screen.getByText("Salut !")).toBeInTheDocument()
   })
 
@@ -105,7 +105,7 @@ describe("ChatInterface", () => {
     render(<ChatInterface />)
     const textarea = screen.getByLabelText(/message à envoyer/i)
     await user.type(textarea, "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
     expect(textarea).toHaveValue("")
   })
 
@@ -113,7 +113,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
     expect(screen.getByTestId("typing-indicator")).toBeInTheDocument()
   })
 
@@ -121,7 +121,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(() => expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument(), { timeout: 2000 })
   })
@@ -130,7 +130,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(() => expect(screen.queryByTestId("typing-indicator")).not.toBeInTheDocument(), { timeout: 2000 })
   })
@@ -158,7 +158,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "test")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
     expect(screen.getByLabelText(/message à envoyer/i)).not.toBeDisabled()
     expect(screen.getByLabelText(/message à envoyer/i)).not.toHaveAttribute("readonly")
   })
@@ -169,7 +169,7 @@ describe("ChatInterface", () => {
     const textarea = screen.getByLabelText(/message à envoyer/i)
     await user.type(textarea, "   ")
     // Le bouton reste disabled (input.trim() est vide)
-    expect(screen.getByRole("button", { name: /envoyer/i })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Envoyer"})).toBeDisabled()
     expect(screen.getAllByTestId("message-bubble")).toHaveLength(1)
   })
 
@@ -183,7 +183,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Test")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {
@@ -206,12 +206,12 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Test")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     // Attendre que le streaming commence (après le délai de 300ms)
     await waitFor(
       () => {
-        expect(screen.getByRole("button", { name: /envoyer/i })).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Envoyer"})).toBeDisabled()
       },
       { timeout: 1000 },
     )
@@ -230,7 +230,7 @@ describe("ChatInterface", () => {
     const focusSpy = vi.spyOn(textarea, "focus")
 
     await user.type(textarea, "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {
@@ -258,7 +258,7 @@ describe("ChatInterface", () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {
@@ -283,7 +283,7 @@ describe("ChatInterface", () => {
     const focusSpy = vi.spyOn(textarea, "focus")
 
     await user.type(textarea, "Test")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {
@@ -311,7 +311,7 @@ describe("ChatInterface", () => {
     expect(screen.getByTestId("suggestions")).toBeInTheDocument()
 
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     // Les suggestions disparaissent pendant le streaming
     await waitFor(
@@ -411,7 +411,7 @@ describe("ChatInterface", () => {
     const focusSpy = vi.spyOn(textarea, "focus")
 
     await user.type(textarea, "Bonjour")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {
@@ -426,12 +426,12 @@ describe("ChatInterface", () => {
     window.matchMedia = originalMatchMedia
   })
 
-  it("pré-remplit le textarea et met le focus après avoir cliqué sur le bouton de réutilisation", async () => {
+  it("renvoie directement le message au clic sur le bouton de réutilisation (sans repasser par le champ)", async () => {
     const user = setup()
     render(<ChatInterface />)
 
     await user.type(screen.getByLabelText(/message à envoyer/i), "Message à réutiliser")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {
@@ -440,21 +440,29 @@ describe("ChatInterface", () => {
       { timeout: 2000 },
     )
 
+    mockStreamChat.mockClear()
     const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
-    const focusSpy = vi.spyOn(textarea, "focus")
 
     fireEvent.click(screen.getByTestId("reuse-button"))
 
-    expect(textarea).toHaveValue("Message à réutiliser")
+    // Le message est renvoyé immédiatement : le champ de saisie reste vide…
+    expect(textarea).toHaveValue("")
 
+    // …et streamChat est appelé avec le contenu réutilisé
     await waitFor(
       () => {
-        expect(focusSpy).toHaveBeenCalled()
+        expect(mockStreamChat).toHaveBeenCalledWith("Message à réutiliser", expect.anything())
       },
-      { timeout: 500 },
+      { timeout: 2000 },
     )
 
-    focusSpy.mockRestore()
+    // Le message réutilisé apparaît une seconde fois dans la conversation
+    await waitFor(
+      () => {
+        expect(screen.getAllByText("Message à réutiliser")).toHaveLength(2)
+      },
+      { timeout: 2000 },
+    )
   })
 
   describe("Persistance de session (localStorage)", () => {
@@ -467,7 +475,7 @@ describe("ChatInterface", () => {
       const user = setup()
       render(<ChatInterface />)
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+      await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
       await waitFor(
         () => {
@@ -481,7 +489,7 @@ describe("ChatInterface", () => {
       const user = setup()
       render(<ChatInterface />)
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+      await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
       await waitFor(
         () => {
@@ -742,7 +750,7 @@ describe("ChatInterface", () => {
       const user = setup()
       render(<ChatInterface />)
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+      await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
       await waitFor(
         () => {
@@ -752,11 +760,11 @@ describe("ChatInterface", () => {
       )
     })
 
-    it("réinitialise les messages au message de bienvenue uniquement", async () => {
+    it("demande confirmation avant de réinitialiser et ne réinitialise pas si on annule", async () => {
       const user = setup()
       render(<ChatInterface />)
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+      await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
       await waitFor(
         () => {
@@ -766,6 +774,35 @@ describe("ChatInterface", () => {
       )
 
       await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+
+      // La modale de confirmation s'affiche
+      expect(screen.getByText("Réinitialiser la conversation ?")).toBeInTheDocument()
+
+      // Annuler ne réinitialise rien
+      await user.click(screen.getByRole("button", { name: "Annuler" }))
+
+      await waitFor(() => {
+        expect(screen.queryByText("Réinitialiser la conversation ?")).not.toBeInTheDocument()
+      })
+      expect(screen.getByText("Bonjour")).toBeInTheDocument()
+      expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+    })
+
+    it("réinitialise les messages au message de bienvenue uniquement après confirmation", async () => {
+      const user = setup()
+      render(<ChatInterface />)
+      await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
+      await user.click(screen.getByRole("button", { name: "Envoyer"}))
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
+
+      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: "Réinitialiser" }))
 
       expect(screen.queryByText("Bonjour")).not.toBeInTheDocument()
       expect(screen.queryByText("Réponse mockée de l'assistant.")).not.toBeInTheDocument()
@@ -782,7 +819,7 @@ describe("ChatInterface", () => {
       const user = setup()
       render(<ChatInterface />)
       await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
-      await user.click(screen.getByRole("button", { name: /envoyer/i }))
+      await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
       await waitFor(
         () => {
@@ -792,6 +829,7 @@ describe("ChatInterface", () => {
       )
 
       await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: "Réinitialiser" }))
 
       expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
     })
@@ -818,6 +856,7 @@ describe("ChatInterface", () => {
       )
 
       await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: "Réinitialiser" }))
 
       // Toutes les suggestions sont de nouveau visibles
       expect(screen.getByText("Quelles sont tes compétences ?")).toBeInTheDocument()
@@ -854,7 +893,7 @@ describe("ChatInterface", () => {
     const focusSpy = vi.spyOn(textarea, "focus")
 
     await user.type(textarea, "Test")
-    await user.click(screen.getByRole("button", { name: /envoyer/i }))
+    await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
     await waitFor(
       () => {

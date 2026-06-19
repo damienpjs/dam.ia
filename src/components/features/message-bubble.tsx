@@ -165,7 +165,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
                 data-testid="reuse-button"
                 type="button"
                 onClick={handleReuse}
-                aria-label="Remettre dans le tchat"
+                aria-label="Renvoyer ce message"
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
                   tapped && "opacity-100",

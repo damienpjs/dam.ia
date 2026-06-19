@@ -11,6 +11,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - **Plus Jakarta Sans** — typographie principale (Google Fonts)
 - **Lucide React** — icônes
 - **Vitest** — tests unitaires (seuil de couverture : 95%)
+- **Istanbul** (`@vitest/coverage-istanbul`) — rapport de couverture
 - **@testing-library/react** — utilitaires de test React
 
 ## Installation
@@ -21,15 +22,16 @@ npm install
 
 ## Scripts disponibles
 
-| Commande           | Description                                        |
-| ------------------ | -------------------------------------------------- |
-| `npm run dev`      | Lance le serveur de développement                  |
-| `npm run build`    | Build de production                                |
-| `npm run start`    | Lance le serveur de production                     |
-| `npm run lint`     | Vérifie le code avec ESLint                        |
-| `npm run test`     | Lance les tests en mode watch                      |
-| `npm run test:ci`  | Lance les tests avec coverage (mode CI)            |
-| `npm run coverage` | Génère le rapport de couverture dans `./coverage/` |
+| Commande             | Description                                                     |
+| -------------------- | -------------------------------------------------------------- |
+| `npm run dev`        | Lance le serveur de développement                              |
+| `npm run build`      | Build de production                                            |
+| `npm run start`      | Lance le serveur de production                                 |
+| `npm run lint`       | Vérifie le code avec ESLint                                  |
+| `npm run test`       | Lance les tests une fois avec coverage en console, puis quitte |
+| `npm run test:watch` | Lance les tests en mode watch (surveillance des fichiers)   |
+| `npm run test:ci`    | Lance les tests avec coverage (mode CI)                     |
+| `npm run coverage`   | Génère le rapport de couverture dans `./coverage/`          |
 
 ## Architecture
 
@@ -79,9 +81,9 @@ Les deux plafonds sont configurables dans `src/constants/llm.ts`. Sans `sessionI
 ## Tests et couverture
 
 Les tests sont écrits avec **Vitest** + **@testing-library/react**.  
-Le seuil de couverture est fixé à **95%** sur l'ensemble des métriques (lignes, fonctions, branches, instructions).
+La couverture est mesurée par **Istanbul** (`@vitest/coverage-istanbul`) et affichée directement en console après chaque `npm run test`. Le seuil est fixé à **95%** sur l'ensemble des métriques (lignes, fonctions, branches, instructions).
 
-Le rapport HTML de couverture est généré dans `./coverage/index.html` après `npm run coverage`.
+Le rapport HTML de couverture est aussi généré dans `./coverage/index.html` après `npm run test` ou `npm run coverage`.
 
 > **Note :** `animated-background.tsx` est exclu de la couverture car il utilise l'API Canvas, non disponible dans jsdom.
 

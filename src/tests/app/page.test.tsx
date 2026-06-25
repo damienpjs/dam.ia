@@ -69,7 +69,7 @@ describe("Page d'accueil (/)", () => {
     const user = userEvent.setup()
     render(<Home />)
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
-    await user.click(screen.getByRole("button", { name: /damienpasulj\(\);/i }))
+    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })
 
@@ -99,7 +99,7 @@ describe("Page d'accueil (/)", () => {
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
     expect(screen.getByTestId("welcome-clone")).toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /damienpasulj\(\);/i }))
+    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
     expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })

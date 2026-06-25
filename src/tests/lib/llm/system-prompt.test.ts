@@ -28,6 +28,11 @@ describe("SYSTEM_PROMPT", () => {
     expect(PERSONA).toContain("Lead Tech JS")
   })
 
+  it("met en avant le positionnement Product Builder & architecte IA", () => {
+    expect(PERSONA).toContain("Product Builder")
+    expect(PERSONA).toContain("architecte IA")
+  })
+
   it("mentionne les technologies clés", () => {
     expect(PERSONA).toContain("React")
     expect(PERSONA).toContain("Next.js")

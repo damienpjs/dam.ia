@@ -36,7 +36,7 @@ export function formatRAGContext(results: ISearchResult[]): string {
     return ""
   }
 
-  const formattedChunks = results.map((r, i) => `[Source: ${r.source} | Pertinence: ${(r.score * 100).toFixed(0)}%]\n${r.text}`).join("\n\n---\n\n")
+  const formattedChunks = results.map((r) => `[Source: ${r.source} | Pertinence: ${(r.score * 100).toFixed(0)}%]\n${r.text}`).join("\n\n---\n\n")
 
   return `
 

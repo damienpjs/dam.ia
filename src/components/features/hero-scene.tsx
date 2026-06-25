@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, ContactShadows, Grid, useAnimations, useGLTF } from "@react-three/drei"
 import * as THREE from "three"
@@ -197,9 +197,20 @@ function SceneContent() {
  * Hero scene plein écran, montée derrière l'UI. Le Canvas n'est rendu qu'après
  * le montage client pour éviter tout rendu/hydratation côté serveur.
  */
+/**
+ * Indique si le composant est monté côté client. S'appuie sur `useSyncExternalStore`
+ * pour renvoyer `false` au SSR et `true` au navigateur, sans `setState` dans un effet.
+ */
+function useIsMounted(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+}
+
 export function HeroScene() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const mounted = useIsMounted()
 
   return (
     <div className="fixed inset-0 -z-10" aria-hidden="true">

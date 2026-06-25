@@ -42,14 +42,16 @@ const setup = () => userEvent.setup({ delay: null })
 describe("ChatInterface", () => {
   it("affiche le message de bienvenue de l'assistant au chargement", () => {
     render(<ChatInterface />)
-    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
+    expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
+    // "Product Builder" est interprété en markdown et rendu en gras
+    expect(screen.getByText("Product Builder").tagName).toBe("STRONG")
   })
 
   it("affiche le message de bienvenue dans une bulle assistant (bg-card)", () => {
     const { container } = render(<ChatInterface />)
     const bubble = container.querySelector(".bg-card")
     expect(bubble).toBeInTheDocument()
-    expect(bubble).toHaveTextContent(/Je suis Damien/i)
+    expect(bubble).toHaveTextContent(/Product Builder & enthousiaste IA/i)
   })
 
   it("affiche la liste des messages par défaut (messagesVisible)", () => {
@@ -648,7 +650,7 @@ describe("ChatInterface", () => {
       render(<ChatInterface />)
 
       expect(screen.getByTestId("session-loader")).toBeInTheDocument()
-      expect(screen.queryByText(/Je suis Damien/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Product Builder & enthousiaste IA/i)).not.toBeInTheDocument()
       expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
     })
 
@@ -806,7 +808,7 @@ describe("ChatInterface", () => {
 
       expect(screen.queryByText("Bonjour")).not.toBeInTheDocument()
       expect(screen.queryByText("Réponse mockée de l'assistant.")).not.toBeInTheDocument()
-      expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
+      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
       expect(screen.getAllByTestId("message-bubble")).toHaveLength(1)
     })
 

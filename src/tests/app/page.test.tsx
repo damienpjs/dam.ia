@@ -31,12 +31,14 @@ describe("Page d'accueil (/)", () => {
     const { container } = render(<Home />)
     const highlight = container.querySelector(".text-gradient-animated")
     expect(highlight).not.toBeNull()
-    expect(highlight).toHaveTextContent(/double IA/i)
+    expect(highlight).toHaveTextContent(/Damien/i)
   })
 
   it("affiche la bulle d'accueil comme premier message", () => {
     render(<Home />)
-    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
+    expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
+    // "Product Builder" est mis en gras via markdown (**…**)
+    expect(screen.getByText("Product Builder").tagName).toBe("STRONG")
   })
 
   it("affiche le bouton CTA pour démarrer le chat", () => {

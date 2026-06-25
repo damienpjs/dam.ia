@@ -14,6 +14,6 @@ export const MESSAGES_TOP_PADDING = 24
 export const WELCOME_MESSAGE: IMessage = {
   id: "welcome",
   role: "assistant",
-  content: "👋 Product Builder & enthousiaste IA (avec un solide socle Lead Tech JS). Pose-moi tes questions sur mon parcours, mes compétences, mes projets, mes loisirs ou mes passions.",
+  content: "👋 **Product Builder** & **enthousiaste IA** (avec un solide socle en **Technical Lead JS**). On peut parle de mon parcours, mes projets, mes loisirs ou mes passions ;)",
   createdAt: new Date(),
 }

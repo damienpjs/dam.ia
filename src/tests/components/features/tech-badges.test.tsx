@@ -1,6 +1,21 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+
+// Fixture déterministe : on découple le composant du contenu réel de `landing`
+// (qui peut afficher toutes les technos d'un coup) afin de couvrir aussi la
+// branche « voir X + » même si, en prod, rien n'est masqué. On inclut une
+// entrée multi-logos pour exercer l'empilement (pile d'avatars).
+vi.mock("@/constants/landing", () => ({
+  TECHS_VISIBLE_COUNT: 2,
+  TECHS: [
+    { name: "TypeScript", logos: ["/logos/typescript.png"] },
+    { name: "Next.js", logos: ["/logos/nextjs.png"] },
+    { name: "Qdrant", logos: ["/logos/qdrant.png"] },
+    { name: "Suite Adobe", logos: ["/logos/photoshop.png", "/logos/illustrator.png", "/logos/indesign.png"] },
+  ],
+}))
+
 import { TechBadges } from "@/components/features/tech-badges"
 import { TECHS, TECHS_VISIBLE_COUNT } from "@/constants/landing"
 

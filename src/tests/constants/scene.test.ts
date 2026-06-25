@@ -57,7 +57,7 @@ describe("constants/scene", () => {
 
   it("expose des couleurs au format hexadécimal", () => {
     const hex = /^#[0-9a-fA-F]{6}$/
-    for (const color of [scene.SCENE_BG, scene.GRID_CELL_COLOR, scene.GRID_SECTION_COLOR, scene.KEY_LIGHT, scene.RIM_LIGHT, scene.FILL_LIGHT]) {
+    for (const color of [scene.SCENE_BG, scene.GRID_CELL_COLOR, scene.GRID_SECTION_COLOR, scene.KEY_LIGHT, scene.RIM_LIGHT, scene.FILL_LIGHT, scene.CRT_GLOW]) {
       expect(color).toMatch(hex)
     }
   })

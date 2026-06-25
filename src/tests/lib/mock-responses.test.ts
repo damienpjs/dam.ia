@@ -57,7 +57,7 @@ describe("getMockResponse", () => {
 
   it("reconnaît les questions sur 'qui es-tu'", () => {
     const response = getMockResponse("qui es-tu ?")
-    expect(response).toContain("Lead Tech JS")
+    expect(response).toContain("Technical Lead JS")
   })
 
   it("reconnaît les questions 'comment ça va'", () => {

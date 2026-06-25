@@ -52,11 +52,29 @@ export const MIN_POLAR = 0.2
 export const MAX_POLAR = Math.PI / 2 - 0.04
 
 // ── Couleurs de la scène (chemise tropicale + vibe CRT rétro) ────────────
-export const SCENE_BG = "#141d1c" // teal-charbon, raccord avec --background
-export const FOG_NEAR = 9
-export const FOG_FAR = 24
-export const GRID_CELL_COLOR = "#2f5a55" // teal sombre
-export const GRID_SECTION_COLOR = "#5f9d92" // teal plus clair, lignes principales
+export const SCENE_BG = "#15211c" // teal-charbon légèrement verdi (moniteur cathodique)
+export const FOG_NEAR = 11
+export const FOG_FAR = 30
+export const GRID_CELL_COLOR = "#356b50" // vert sombre (phosphore)
+export const GRID_SECTION_COLOR = "#74c08a" // vert CRT plus clair, lignes principales
 export const KEY_LIGHT = "#ffd6ab" // lumière chaude, nostalgique
 export const RIM_LIGHT = "#79c2bc" // teal (chemise)
 export const FILL_LIGHT = "#b9a6ef" // lavande douce (fleurs)
+/** Vert phosphore d'un vieux moniteur cathodique : ambiance/hémisphère. */
+export const CRT_GLOW = "#88e3b4"
+
+// ── Glitch CRT (post-processing GPU, déclenchement sporadique) ────────────
+/**
+ * Pause aléatoire (min/max, en secondes) entre deux glitchs : rare, « de temps
+ * en temps », pour rester sobre et raccord avec l'ambiance discrète.
+ */
+export const GLITCH_DELAY_MIN = 5
+export const GLITCH_DELAY_MAX = 12
+/** Durée (min/max, en secondes) d'un glitch : bref, comme une coupure de signal. */
+export const GLITCH_DURATION_MIN = 0.1
+export const GLITCH_DURATION_MAX = 0.28
+/** Intensité (min/max) du décalage de blocs : franc mais sans saturer. */
+export const GLITCH_STRENGTH_MIN = 0.15
+export const GLITCH_STRENGTH_MAX = 0.4
+/** Décalage d'aberration chromatique (RGB split) pendant le glitch. */
+export const GLITCH_CHROMATIC_OFFSET = 0.0015

@@ -3,6 +3,8 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, ContactShadows, Grid, useAnimations, useGLTF } from "@react-three/drei"
+import { EffectComposer, Glitch, ToneMapping } from "@react-three/postprocessing"
+import { GlitchMode, ToneMappingMode } from "postprocessing"
 import * as THREE from "three"
 import {
   MODEL_PATH,
@@ -32,6 +34,14 @@ import {
   KEY_LIGHT,
   RIM_LIGHT,
   FILL_LIGHT,
+  CRT_GLOW,
+  GLITCH_DELAY_MIN,
+  GLITCH_DELAY_MAX,
+  GLITCH_DURATION_MIN,
+  GLITCH_DURATION_MAX,
+  GLITCH_STRENGTH_MIN,
+  GLITCH_STRENGTH_MAX,
+  GLITCH_CHROMATIC_OFFSET,
 } from "@/constants/scene"
 
 type TWanderMode = "idle" | "walk"
@@ -145,17 +155,36 @@ function Character() {
   )
 }
 
+/**
+ * Indique si l'utilisateur a demandé à réduire les animations. S'abonne à la
+ * media query `prefers-reduced-motion` et renvoie `false` au SSR.
+ */
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      if (typeof window === "undefined") return () => {}
+      const mql = window.matchMedia("(prefers-reduced-motion: reduce)")
+      mql.addEventListener("change", onChange)
+      return () => mql.removeEventListener("change", onChange)
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  )
+}
+
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
 function SceneContent() {
+  const reducedMotion = usePrefersReducedMotion()
+
   return (
     <>
       <color attach="background" args={[SCENE_BG]} />
       <fog attach="fog" args={[SCENE_BG, FOG_NEAR, FOG_FAR]} />
 
-      <hemisphereLight intensity={0.35} color={RIM_LIGHT} groundColor={SCENE_BG} />
-      <ambientLight intensity={0.18} />
-      <directionalLight position={[5, 8, 4]} intensity={1.15} color={KEY_LIGHT} />
-      <directionalLight position={[-6, 3, -4]} intensity={0.55} color={RIM_LIGHT} />
+      <hemisphereLight intensity={0.55} color={CRT_GLOW} groundColor={SCENE_BG} />
+      <ambientLight intensity={0.3} color={CRT_GLOW} />
+      <directionalLight position={[5, 8, 4]} intensity={1.35} color={KEY_LIGHT} />
+      <directionalLight position={[-6, 3, -4]} intensity={0.7} color={RIM_LIGHT} />
       <pointLight position={[0, 2.2, -5]} intensity={6} distance={16} color={FILL_LIGHT} />
 
       <Suspense fallback={null}>
@@ -164,31 +193,25 @@ function SceneContent() {
 
       <ContactShadows position={[0, 0.01, 0]} opacity={0.5} blur={2.6} far={6} resolution={512} color="#000000" />
 
-      <Grid
-        args={[40, 40]}
-        infiniteGrid
-        cellSize={0.6}
-        cellThickness={0.6}
-        sectionSize={3}
-        sectionThickness={1}
-        cellColor={GRID_CELL_COLOR}
-        sectionColor={GRID_SECTION_COLOR}
-        fadeDistance={26}
-        fadeStrength={5}
-        followCamera={false}
-      />
+      <Grid args={[40, 40]} infiniteGrid cellSize={0.6} cellThickness={0.6} sectionSize={3} sectionThickness={1} cellColor={GRID_CELL_COLOR} sectionColor={GRID_SECTION_COLOR} fadeDistance={26} fadeStrength={5} followCamera={false} />
 
-      <OrbitControls
-        makeDefault
-        enablePan={false}
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={MIN_DISTANCE}
-        maxDistance={MAX_DISTANCE}
-        minPolarAngle={MIN_POLAR}
-        maxPolarAngle={MAX_POLAR}
-        target={CONTROLS_TARGET}
-      />
+      {/* Glitch CRT : décalage de blocs + RGB split, déclenché sporadiquement
+          sur tout le rendu. Désactivé si l'utilisateur réduit les animations. */}
+      {!reducedMotion && (
+        <EffectComposer>
+          <Glitch
+            mode={GlitchMode.SPORADIC}
+            delay={new THREE.Vector2(GLITCH_DELAY_MIN, GLITCH_DELAY_MAX)}
+            duration={new THREE.Vector2(GLITCH_DURATION_MIN, GLITCH_DURATION_MAX)}
+            strength={new THREE.Vector2(GLITCH_STRENGTH_MIN, GLITCH_STRENGTH_MAX)}
+            chromaticAberrationOffset={new THREE.Vector2(GLITCH_CHROMATIC_OFFSET, GLITCH_CHROMATIC_OFFSET)}
+          />
+          {/* Rétablit le tone mapping ACES du Canvas, que l'EffectComposer désactive. */}
+          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+        </EffectComposer>
+      )}
+
+      <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.08} minDistance={MIN_DISTANCE} maxDistance={MAX_DISTANCE} minPolarAngle={MIN_POLAR} maxPolarAngle={MAX_POLAR} target={CONTROLS_TARGET} />
     </>
   )
 }
@@ -220,10 +243,7 @@ export function HeroScene() {
         </Canvas>
       )}
       {/* Vignette : assombrit les bords pour renforcer l'atmosphère nostalgique. */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "radial-gradient(120% 120% at 50% 35%, transparent 55%, rgba(8,12,12,0.55) 100%)" }}
-      />
+      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(120% 120% at 50% 35%, transparent 55%, rgba(8,12,12,0.55) 100%)" }} />
       {/* Grésillement CRT : bandes qui défilent (roll bars) + lignes de balayage. */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="crt-band" />

@@ -14,7 +14,7 @@ export const MOCK_RULES: IMockRule[] = [
   },
   {
     pattern: /qui es.tu|tu es qui|c'est qui|présente.toi/i,
-    response: "Je suis l'IA de Damien, un Lead Tech JS passionné par React, Next.js et l'intelligence artificielle. Pose-moi tes questions !",
+    response: "Je suis l'IA de Damien : Product Builder & enthousiaste IA, avec un solide socle en Technical Lead JS (React, Next.js, Node.js). Pose-moi tes questions !",
   },
   {
     pattern: /compétence|skill|stack|technolog|maîtris/i,
@@ -22,7 +22,7 @@ export const MOCK_RULES: IMockRule[] = [
   },
   {
     pattern: /projet|réalisation|portfolio|travaux/i,
-    response: "Damien a conçu plusieurs applications IA, des architectures micro-services robustes et des interfaces React haute performance.",
+    response: "Damien conçoit des produits de bout en bout : applications IA (RAG, embeddings, Qdrant), architectures micro-services robustes et interfaces React haute performance.",
   },
   {
     pattern: /travail|boulot|emploi|poste|recru|disponible/i,
@@ -30,7 +30,7 @@ export const MOCK_RULES: IMockRule[] = [
   },
   {
     pattern: /expérience|parcours|cv|historique/i,
-    response: "Damien a plusieurs années d'expérience en développement front-end et full-stack, avec une spécialisation en React et Next.js.",
+    response: "Damien a plusieurs années d'expérience en développement front-end et full-stack (React, Next.js), un socle de Lead Tech JS sur lequel il construit aujourd'hui des produits et des architectures IA.",
   },
   {
     pattern: /merci|thanks|super|cool|génial|top|parfait/i,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import fs from "fs"
-import { loadContentDocuments, type IContentDocument } from "@/lib/content-loader"
+import { loadContentDocuments } from "@/lib/content-loader"
 
 describe("content-loader", () => {
   const mockContentDir = "/mock/content"

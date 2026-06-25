@@ -42,7 +42,7 @@ describe("MessageBubble", () => {
   it("applique le style bulle semi-transparent pour les messages utilisateur", () => {
     render(<MessageBubble message={userMessage} />)
     const bubble = screen.getByText("Bonjour, comment ça va ?")
-    expect(bubble).toHaveClass("text-[#F9B288]")
+    expect(bubble).toHaveClass("text-coral")
   })
 
   it("applique le style carte pour les messages assistant", () => {
@@ -65,10 +65,10 @@ describe("MessageBubble", () => {
     expect(avatarImg).toHaveAttribute("src")
   })
 
-  it("applique le gradient peach sur l'avatar assistant", () => {
+  it("applique le gradient corail sur l'avatar assistant", () => {
     const { container } = render(<MessageBubble message={assistantMessage} />)
     const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveClass("from-[#E8A070]")
+    expect(avatar).toHaveClass("from-coral-deep")
   })
 
   it("affiche le skeleton quand le message assistant est vide et en streaming", () => {

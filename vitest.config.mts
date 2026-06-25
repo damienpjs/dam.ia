@@ -16,7 +16,7 @@ export default defineConfig({
       exclude: [
         "src/tests/**",
         "src/app/layout.tsx",
-        "src/components/features/animated-background.tsx", // Canvas API — non testable avec jsdom
+        "src/components/features/hero-scene.tsx", // Canvas WebGL / three.js — non testable avec jsdom
         "src/**/*.d.ts",
         "src/lib/llm/types.ts", // Types-only, pas de code runtime
         "src/lib/rag/types.ts", // Types-only, pas de code runtime

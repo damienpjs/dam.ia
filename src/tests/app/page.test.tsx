@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
 
-vi.mock("@/components/features/animated-background", () => ({
-  AnimatedBackground: () => <div data-testid="animated-background" />,
+vi.mock("@/components/features/hero-scene", () => ({
+  HeroScene: () => <div data-testid="hero-scene" />,
 }))
 
 vi.mock("@/components/features/chat-interface", () => ({
@@ -24,19 +24,21 @@ afterEach(() => {
 describe("Page d'accueil (/)", () => {
   it("affiche l'accroche principale", () => {
     render(<Home />)
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/discute avec mon double IA/i)
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/salut ! moi c'est damien/i)
   })
 
   it("met en exergue un terme avec un dégradé animé", () => {
     const { container } = render(<Home />)
     const highlight = container.querySelector(".text-gradient-animated")
     expect(highlight).not.toBeNull()
-    expect(highlight).toHaveTextContent(/double IA/i)
+    expect(highlight).toHaveTextContent(/Damien/i)
   })
 
   it("affiche la bulle d'accueil comme premier message", () => {
     render(<Home />)
-    expect(screen.getByText(/Je suis Damien/i)).toBeInTheDocument()
+    expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
+    // "Product Builder" est mis en gras via markdown (**…**)
+    expect(screen.getByText("Product Builder").tagName).toBe("STRONG")
   })
 
   it("affiche le bouton CTA pour démarrer le chat", () => {
@@ -45,17 +47,17 @@ describe("Page d'accueil (/)", () => {
     expect(btn).toBeInTheDocument()
   })
 
-  it("affiche les badges tech stack", () => {
+  it("affiche les étiquettes des technos maîtrisées", () => {
     render(<Home />)
-    expect(screen.getByText("Next.js")).toBeInTheDocument()
     expect(screen.getByText("TypeScript")).toBeInTheDocument()
-    expect(screen.getByText("Gemini")).toBeInTheDocument()
+    expect(screen.getByText("Next.js")).toBeInTheDocument()
     expect(screen.getByText("Qdrant")).toBeInTheDocument()
+    expect(screen.getByText("C#")).toBeInTheDocument()
   })
 
-  it("rend l'AnimatedBackground", () => {
+  it("rend la hero scene 3D", () => {
     render(<Home />)
-    expect(screen.getByTestId("animated-background")).toBeInTheDocument()
+    expect(screen.getByTestId("hero-scene")).toBeInTheDocument()
   })
 
   it("ouvre le panneau chat au clic sur la bulle d'accueil", async () => {
@@ -65,11 +67,11 @@ describe("Page d'accueil (/)", () => {
     expect(screen.getByTestId("chat-interface")).toBeInTheDocument()
   })
 
-  it("ferme le panneau chat au clic sur dam.ia", async () => {
+  it("ferme le panneau chat au clic sur le logo", async () => {
     const user = userEvent.setup()
     render(<Home />)
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
-    await user.click(screen.getByRole("button", { name: /dam\.ia/i }))
+    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })
 
@@ -99,7 +101,7 @@ describe("Page d'accueil (/)", () => {
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
     expect(screen.getByTestId("welcome-clone")).toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /dam\.ia/i }))
+    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
     expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })

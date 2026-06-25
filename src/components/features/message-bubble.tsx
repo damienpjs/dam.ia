@@ -32,7 +32,7 @@ interface IMessageBubbleProps {
 /** Les liens markdown s'ouvrent dans un nouvel onglet et héritent du style accent. */
 const markdownComponents: Components = {
   a: ({ children, href }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-[#F9B288] underline decoration-[#F9B288]/40 underline-offset-2 hover:decoration-[#F9B288]">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-coral underline decoration-coral/40 underline-offset-2 hover:decoration-coral">
       {children}
     </a>
   ),
@@ -113,7 +113,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
 
   return (
     <div ref={bubbleRef} data-testid="message-bubble" onClick={handleBubbleTap} className={cn("group/bubble flex w-full items-end gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white")}>
+      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-coral-deep to-coral text-white")}>
         {isUser ? "🫵" : <Image src="/bot-avatar.png" alt="" width={32} height={32} className="h-full w-full object-cover" />}
       </div>
 
@@ -123,7 +123,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
           className={cn(
             "break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed tracking-wide",
             isUser
-              ? "rounded-br-sm bg-white/8 text-[#F9B288] ring-1 ring-[#F9B288]/20 shadow-sm"
+              ? "rounded-br-sm bg-white/8 text-coral ring-1 ring-coral/20 shadow-sm"
               : isError
                 ? "rounded-bl-sm border border-destructive/30 bg-destructive/10 text-destructive"
                 : "rounded-bl-sm border border-border bg-card text-card-foreground",
@@ -140,10 +140,10 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
                   <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Sources</span>
                   {message.sources!.map((s) => {
                     const baseClass =
-                      "inline-flex items-center rounded-full border border-[#F9B288]/20 bg-[#F9B288]/5 px-2 py-0.5 text-[11px] font-medium text-[#F9B288]/80 transition-colors hover:border-[#F9B288]/40 hover:bg-[#F9B288]/10 hover:text-[#F9B288]"
+                      "inline-flex items-center rounded-full border border-coral/20 bg-coral/5 px-2 py-0.5 text-[11px] font-medium text-coral/80 transition-colors hover:border-coral/40 hover:bg-coral/10 hover:text-coral"
 
                     return s.url ? (
-                      <a key={s.source} href={s.url} target="_blank" rel="noopener noreferrer" className={cn(baseClass, "cursor-pointer underline decoration-[#F9B288]/30 underline-offset-2")}>
+                      <a key={s.source} href={s.url} target="_blank" rel="noopener noreferrer" className={cn(baseClass, "cursor-pointer underline decoration-coral/30 underline-offset-2")}>
                         {s.label}
                       </a>
                     ) : (

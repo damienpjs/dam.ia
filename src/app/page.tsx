@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react"
-import { AnimatedBackground } from "@/components/features/animated-background"
+import { HeroScene } from "@/components/features/hero-scene"
 import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
 import { ProviderStatus } from "@/components/features/provider-status"
-import { TECHS } from "@/constants/landing"
+import { TechBadges } from "@/components/features/tech-badges"
 import { WELCOME_MESSAGE, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
 type TPhase = "landing" | "opening" | "chat"
@@ -77,35 +77,31 @@ export default function Home() {
 
   return (
     <>
-      <AnimatedBackground />
+      {/* Les bulles de réplique du personnage sont masquées quand la conversation est ouverte */}
+      <HeroScene bubblesEnabled={!chatOpen} />
 
-      {/* Accueil */}
-      <div aria-hidden={chatOpen} className={`flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+      {/* Accueil — pointer-events-none sur le conteneur pour laisser le clic-glissé
+          atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}
+      <div aria-hidden={chatOpen} className={`pointer-events-none flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
         <main className="flex w-full flex-col items-center gap-8 text-center">
           {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
           <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Discute avec mon <span className="text-gradient-animated">double IA</span>
+            Salut ! Moi c&apos;est <span className="text-gradient-animated">Damien.</span>
           </h1>
 
           {/* Bulle d'accueil = premier message de la conversation, cliquable */}
-          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
+          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group pointer-events-auto flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
             <div ref={heroRef} className={`animate-hero-float transition-transform duration-300 group-hover:-translate-y-1 ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
               <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
             </div>
-            <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-[#F9B288]">
+            <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-coral">
               Démarrer la conversation
               <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
             </p>
           </button>
 
-          {/* Tech stack badges */}
-          <div className="flex max-w-sm flex-wrap justify-center gap-2 text-xs text-zinc-400">
-            {TECHS.map((tech) => (
-              <span key={tech} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur-sm">
-                {tech}
-              </span>
-            ))}
-          </div>
+          {/* Étiquettes des technos maîtrisées (avec logos + « voir X + ») */}
+          <TechBadges />
         </main>
       </div>
 
@@ -115,7 +111,7 @@ export default function Home() {
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
           <div className="mx-auto flex max-w-3xl items-center justify-between">
             <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
-              dam.ia
+              Damien Pasulj
             </button>
             <ProviderStatus />
           </div>

@@ -55,6 +55,15 @@ describe("constants/scene", () => {
     expect(scene.FOG_NEAR).toBeLessThan(scene.FOG_FAR)
   })
 
+  it("configure la bulle de réplique (répliques, délais ordonnés, durée et hauteur)", () => {
+    expect(scene.BUBBLE_LINES.length).toBeGreaterThan(0)
+    expect(scene.BUBBLE_LINES.every((line) => line.trim().length > 0)).toBe(true)
+    expect(scene.BUBBLE_DELAY_MIN).toBeGreaterThan(0)
+    expect(scene.BUBBLE_DELAY_MAX).toBeGreaterThan(scene.BUBBLE_DELAY_MIN)
+    expect(scene.BUBBLE_DURATION).toBeGreaterThan(0)
+    expect(scene.BUBBLE_HEIGHT).toBeGreaterThan(scene.CHARACTER_HEIGHT)
+  })
+
   it("expose des couleurs au format hexadécimal", () => {
     const hex = /^#[0-9a-fA-F]{6}$/
     for (const color of [scene.SCENE_BG, scene.GRID_CELL_COLOR, scene.GRID_SECTION_COLOR, scene.KEY_LIGHT, scene.RIM_LIGHT, scene.FILL_LIGHT, scene.CRT_GLOW]) {

@@ -77,7 +77,8 @@ export default function Home() {
 
   return (
     <>
-      <HeroScene />
+      {/* Les bulles de réplique du personnage sont masquées quand la conversation est ouverte */}
+      <HeroScene bubblesEnabled={!chatOpen} />
 
       {/* Accueil — pointer-events-none sur le conteneur pour laisser le clic-glissé
           atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}

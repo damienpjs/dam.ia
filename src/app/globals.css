@@ -143,6 +143,12 @@ a {
   }
 }
 
+/* Conteneur de la bulle de réplique projetée par drei `Html` au-dessus du
+   personnage 3D : laisse passer les clics (orbite caméra) tout autour. */
+.speech-bubble-wrap {
+  pointer-events: none;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

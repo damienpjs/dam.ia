@@ -1,8 +1,8 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
-import { OrbitControls, ContactShadows, Grid, useAnimations, useGLTF } from "@react-three/drei"
+import { OrbitControls, ContactShadows, Grid, Html, useAnimations, useGLTF } from "@react-three/drei"
 import { EffectComposer, Glitch, ToneMapping } from "@react-three/postprocessing"
 import { GlitchMode, ToneMappingMode } from "postprocessing"
 import * as THREE from "three"
@@ -42,7 +42,13 @@ import {
   GLITCH_STRENGTH_MIN,
   GLITCH_STRENGTH_MAX,
   GLITCH_CHROMATIC_OFFSET,
+  BUBBLE_LINES,
+  BUBBLE_DELAY_MIN,
+  BUBBLE_DELAY_MAX,
+  BUBBLE_DURATION,
+  BUBBLE_HEIGHT,
 } from "@/constants/scene"
+import { cn } from "@/lib/utils"
 
 type TWanderMode = "idle" | "walk"
 
@@ -67,7 +73,7 @@ function lerpAngle(current: number, target: number, t: number): number {
  * d'animation et de support au déplacement (translation/rotation sur le sol).
  * Le modèle est normalisé (centré, pieds sur y=0, mis à l'échelle) une seule fois.
  */
-function Character() {
+function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const { scene, animations } = useGLTF(MODEL_PATH)
   const { actions } = useAnimations(animations, root)
@@ -105,6 +111,14 @@ function Character() {
     target: new THREE.Vector3(),
   })
 
+  // Bulle de réplique : apparaît/disparaît sporadiquement au-dessus du
+  // personnage. Le timer et l'état « visible » vivent dans des refs (mis à jour
+  // chaque frame) ; seules les transitions montrer/masquer déclenchent un
+  // re-render React. À chaque apparition, une réplique est tirée au hasard.
+  const [bubble, setBubble] = useState<{ visible: boolean; text: string }>({ visible: false, text: BUBBLE_LINES[0] })
+  const bubbleVisible = useRef(false)
+  const bubbleTimer = useRef(randRange(BUBBLE_DELAY_MIN, BUBBLE_DELAY_MAX))
+
   useEffect(() => {
     playAction(ANIM_IDLE)
   }, [playAction])
@@ -113,6 +127,28 @@ function Character() {
     const g = root.current
     if (!g) return
     const s = state.current
+
+    if (!bubblesEnabled) {
+      // Conversation ouverte : on masque la bulle et on gèle son timer.
+      if (bubbleVisible.current) {
+        bubbleVisible.current = false
+        bubbleTimer.current = randRange(BUBBLE_DELAY_MIN, BUBBLE_DELAY_MAX)
+        setBubble((prev) => ({ ...prev, visible: false }))
+      }
+    } else {
+      bubbleTimer.current -= dt
+      if (bubbleTimer.current <= 0) {
+        if (bubbleVisible.current) {
+          bubbleVisible.current = false
+          bubbleTimer.current = randRange(BUBBLE_DELAY_MIN, BUBBLE_DELAY_MAX)
+          setBubble((prev) => ({ ...prev, visible: false }))
+        } else {
+          bubbleVisible.current = true
+          bubbleTimer.current = BUBBLE_DURATION
+          setBubble({ visible: true, text: BUBBLE_LINES[Math.floor(Math.random() * BUBBLE_LINES.length)] })
+        }
+      }
+    }
 
     if (s.mode === "idle") {
       s.timer -= dt
@@ -151,6 +187,19 @@ function Character() {
       <group position={offset} scale={scale}>
         <primitive object={scene} />
       </group>
+      <Html position={[0, BUBBLE_HEIGHT, 0]} center wrapperClass="speech-bubble-wrap" zIndexRange={[20, 0]}>
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none relative w-max max-w-[15rem] origin-bottom rounded-2xl rounded-bl-sm border border-border bg-card/95 px-3.5 py-2 text-center text-[0.8rem] leading-snug font-medium tracking-wide text-card-foreground shadow-xl backdrop-blur-sm transition-all duration-300 ease-out select-none",
+            bubble.visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0",
+          )}
+        >
+          {bubble.text}
+          {/* Queue de la bulle, orientée vers le personnage. */}
+          <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] border-r border-b border-border bg-card/95" />
+        </div>
+      </Html>
     </group>
   )
 }
@@ -173,7 +222,7 @@ function usePrefersReducedMotion(): boolean {
 }
 
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
-function SceneContent() {
+function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const reducedMotion = usePrefersReducedMotion()
 
   return (
@@ -188,7 +237,7 @@ function SceneContent() {
       <pointLight position={[0, 2.2, -5]} intensity={6} distance={16} color={FILL_LIGHT} />
 
       <Suspense fallback={null}>
-        <Character />
+        <Character bubblesEnabled={bubblesEnabled} />
       </Suspense>
 
       <ContactShadows position={[0, 0.01, 0]} opacity={0.5} blur={2.6} far={6} resolution={512} color="#000000" />
@@ -232,14 +281,19 @@ function useIsMounted(): boolean {
   )
 }
 
-export function HeroScene() {
+interface IHeroSceneProps {
+  /** Affiche les bulles de réplique du personnage (masquées quand le chat est ouvert). */
+  bubblesEnabled?: boolean
+}
+
+export function HeroScene({ bubblesEnabled = true }: IHeroSceneProps = {}) {
   const mounted = useIsMounted()
 
   return (
     <div className="fixed inset-0 -z-10" aria-hidden="true">
       {mounted && (
         <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true }}>
-          <SceneContent />
+          <SceneContent bubblesEnabled={bubblesEnabled} />
         </Canvas>
       )}
       {/* Vignette : assombrit les bords pour renforcer l'atmosphère nostalgique. */}

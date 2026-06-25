@@ -37,17 +37,34 @@ describe("buildConversationHistory", () => {
     expect(result).toEqual([{ role: "assistant", content: "Réponse" }])
   })
 
-  it("applique la fenêtre glissante en gardant les plus récents", () => {
+  it("garde l'ancre de début + la fenêtre récente quand la conversation dépasse la fenêtre", () => {
     const many = Array.from({ length: MAX_HISTORY_MESSAGES + 4 }, (_, i) => msg(i % 2 === 0 ? "user" : "assistant", `m${i}`))
     const result = buildConversationHistory(many)
     expect(result).toHaveLength(MAX_HISTORY_MESSAGES)
-    // Le premier conservé est le 4e message d'origine (les 4 plus anciens sont coupés).
-    expect(result[0].content).toBe("m4")
+    // Ancre (2 par défaut) : les tout premiers messages sont préservés…
+    expect(result[0].content).toBe("m0")
+    expect(result[1].content).toBe("m1")
+    // …et la queue contient bien les plus récents.
     expect(result[result.length - 1].content).toBe(`m${MAX_HISTORY_MESSAGES + 3}`)
   })
 
-  it("respecte le maxMessages personnalisé", () => {
+  it("préserve la toute première question même dans une longue conversation", () => {
+    const many = [msg("user", "Quelle est ma première question ?"), msg("assistant", "Réponse 1"), ...Array.from({ length: MAX_HISTORY_MESSAGES * 2 }, (_, i) => msg(i % 2 === 0 ? "user" : "assistant", `bavardage ${i}`))]
+    const result = buildConversationHistory(many)
+    expect(result[0]).toEqual({ role: "user", content: "Quelle est ma première question ?" })
+  })
+
+  it("respecte le maxMessages personnalisé en combinant ancre et queue", () => {
     const result = buildConversationHistory([msg("user", "a"), msg("assistant", "b"), msg("user", "c"), msg("assistant", "d")], { maxMessages: 2 })
+    // anchorMessages par défaut (2) borné à maxMessages-1 = 1 : ancre [a] + queue [d].
+    expect(result).toEqual([
+      { role: "user", content: "a" },
+      { role: "assistant", content: "d" },
+    ])
+  })
+
+  it("désactive l'ancre quand anchorMessages vaut 0 (fenêtre purement glissante)", () => {
+    const result = buildConversationHistory([msg("user", "a"), msg("assistant", "b"), msg("user", "c"), msg("assistant", "d")], { maxMessages: 2, anchorMessages: 0 })
     expect(result).toEqual([
       { role: "user", content: "c" },
       { role: "assistant", content: "d" },

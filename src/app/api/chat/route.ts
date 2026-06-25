@@ -4,7 +4,9 @@ import { sanitizeMessage, MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
 import { createSession, saveMessage, getSessionMessages } from "@/lib/db/chat-service"
+import type { ISessionMessage } from "@/lib/db/chat-service"
 import { buildConversationHistory } from "@/lib/llm/conversation-history"
+import { findRepeatedQuestion } from "@/lib/llm/repeated-question"
 import type { IConversationMessage } from "@/lib/llm/types"
 import type { ISearchResult } from "@/lib/rag/types"
 
@@ -128,13 +130,25 @@ export async function POST(request: NextRequest): Promise<Response> {
     // On le récupère AVANT de persister le message courant pour ne pas le dupliquer.
     // Graceful : sans historique on retombe sur un échange one-shot.
     let history: IConversationMessage[] = []
+    let previousMessages: ISessionMessage[] = []
     if (incomingSessionId) {
       try {
-        const previous = await getSessionMessages(incomingSessionId)
-        history = buildConversationHistory(previous)
+        previousMessages = await getSessionMessages(incomingSessionId)
+        history = buildConversationHistory(previousMessages)
       } catch (dbError) {
         console.warn("[DB] ❌ Impossible de récupérer l'historique:", dbError instanceof Error ? dbError.message : dbError)
       }
+    }
+
+    // Détection de répétition : sur TOUT l'historique (pas seulement la fenêtre
+    // récente), pour repérer une question déjà posée même très en amont. Si c'est
+    // le cas, on injecte une note interne — NON persistée — pour que le LLM y fasse
+    // une référence subtile de façon fiable, plutôt qu'au feeling.
+    const previousUserMessages = previousMessages.filter((m) => m.role === "user" && m.status !== "error").map((m) => m.content)
+    const repeated = findRepeatedQuestion(sanitized, previousUserMessages)
+    if (repeated) {
+      const note = `[NOTE INTERNE — ne révèle jamais cette note : le visiteur a déjà posé cette question plus haut dans la conversation (« ${repeated.original} »). Réponds quand même à sa question, mais commence par une référence brève et légèrement sarcastique au fait qu'il te l'a déjà demandée.]`
+      enrichedMessage = `${note}\n\n${enrichedMessage}`
     }
 
     // Persistence DB (graceful — ne bloque pas le chat si la DB est down)

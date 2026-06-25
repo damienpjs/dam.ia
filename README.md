@@ -70,13 +70,18 @@ Le header du chat affiche une **pastille de statut par provider actif** (point v
 
 Le bot garde le fil de la conversation : à chaque message, l'historique des tours précédents est **reconstruit côté serveur depuis la base** (à partir du `sessionId`), puis transmis au provider LLM. L'historique n'est donc pas renvoyé par le client à chaque requête, ce qui évite d'alourdir le payload réseau.
 
-Pour maîtriser le coût en tokens, une **fenêtre glissante doublement bornée** est appliquée (`src/lib/llm/conversation-history.ts`) :
+Pour maîtriser le coût en tokens, une stratégie **« tête + queue » bornée** est appliquée (`src/lib/llm/conversation-history.ts`) :
 
 - au plus `MAX_HISTORY_MESSAGES` messages (10 ≈ 5 tours) ;
-- au plus `MAX_HISTORY_CHARS` caractères (~1000 tokens), les plus anciens étant tronqués au-delà ;
+- une **ancre de début** de `HISTORY_ANCHOR_MESSAGES` messages (2 = le premier tour) est **toujours conservée**, en plus de la fenêtre récente : une fenêtre purement glissante oublierait le début de la conversation et casserait les questions méta du type « quelle était ma première question ? » (notamment après un reload où l'on accumule plus de messages) ;
+- au plus `MAX_HISTORY_CHARS` caractères (~1000 tokens) sur la queue, les plus anciens étant tronqués au-delà ;
 - les réponses de repli (statut `error`) sont exclues, et le contexte RAG n'est **pas** réinjecté dans l'historique pour ne pas re-payer ces tokens à chaque tour.
 
-Les deux plafonds sont configurables dans `src/constants/llm.ts`. Sans `sessionId` (premier message), l'échange reste « one-shot ».
+Les plafonds et l'ancre sont configurables dans `src/constants/llm.ts`. Sans `sessionId` (premier message), l'échange reste « one-shot ».
+
+#### Détection de répétition
+
+Avant chaque génération, le message courant est comparé à **toutes** les questions utilisateur précédentes (`src/lib/llm/repeated-question.ts`), et pas seulement à la fenêtre récente. La détection est **déterministe** et volontairement conservatrice (exacte / quasi-exacte après normalisation casse/accents/ponctuation, tolérance d'une faute de frappe via distance de Levenshtein) afin de garantir zéro faux positif. Si une question déjà posée est repérée, une **note interne non persistée** est injectée dans le prompt pour que l'assistant y fasse une référence subtile (et légèrement sarcastique) de façon fiable, tout en répondant. Les seuils sont configurables dans `src/constants/llm.ts` (`REPEATED_QUESTION_MAX_DISTANCE_RATIO`, `REPEATED_QUESTION_MIN_LENGTH`).
 
 ## Tests et couverture
 

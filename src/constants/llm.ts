@@ -25,6 +25,24 @@ export const MAX_HISTORY_MESSAGES = 10
 // 4000 caractères ≈ 1000 tokens : un plafond dur qui protège des messages longs.
 export const MAX_HISTORY_CHARS = 4000
 
+// Nombre de messages de DÉBUT de conversation toujours conservés (ancre), en plus
+// de la fenêtre récente. Stratégie « tête + queue » : la fenêtre glissante seule
+// finit par oublier le tout début de la conversation, ce qui casse les questions
+// méta du type « quelle était ma première question ? » (surtout après un reload où
+// l'on accumule plus de messages). 2 = le premier tour (question + réponse).
+export const HISTORY_ANCHOR_MESSAGES = 2
+
+// Seuil de distance d'édition (Levenshtein) relative en-dessous duquel deux
+// questions normalisées sont considérées comme « la même » (détection de
+// répétition). Volontairement bas : on ne veut détecter qu'une question identique
+// ou quasi-identique (fautes de frappe, ponctuation), jamais deux sujets proches.
+export const REPEATED_QUESTION_MAX_DISTANCE_RATIO = 0.1
+
+// Longueur minimale (en caractères normalisés) d'une question pour être éligible à
+// la détection de répétition : évite que des messages très courts ("ok", "et ?")
+// déclenchent de faux positifs.
+export const REPEATED_QUESTION_MIN_LENGTH = 8
+
 // Durée pendant laquelle un provider reste affiché comme « provider indisponible »
 // avant de repasser opérationnel (les quotas gratuits se réinitialisant côté
 // fournisseur). Un appel réussi efface le statut immédiatement.

@@ -51,6 +51,98 @@ a {
   }
 }
 
+/* ── Effet CRT sur la hero scene : scanlines + bandes qui défilent + grésillement ──
+   Couches purement atmosphériques (derrière l'UI), teintées avec la charte
+   (teal #84c7c1, vert CRT #8fe388) pour rappeler un vieux terminal. */
+
+/* Texture de lignes de balayage, fixe, avec un léger grésillement d'intensité. */
+@keyframes crt-flicker {
+  0% {
+    opacity: 0.26;
+  }
+  18% {
+    opacity: 0.22;
+  }
+  34% {
+    opacity: 0.29;
+  }
+  52% {
+    opacity: 0.23;
+  }
+  70% {
+    opacity: 0.28;
+  }
+  86% {
+    opacity: 0.24;
+  }
+  100% {
+    opacity: 0.26;
+  }
+}
+
+.crt-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(143, 227, 136, 0.03) 0px,
+    rgba(8, 12, 12, 0) 1px,
+    rgba(8, 12, 12, 0.14) 2px,
+    rgba(8, 12, 12, 0.14) 3px
+  );
+  mix-blend-mode: soft-light;
+  animation: crt-flicker 4.5s steps(1, end) infinite;
+}
+
+/* Bande lumineuse qui balaie la scène de haut en bas (roll bar CRT). */
+@keyframes crt-roll {
+  0% {
+    transform: translateY(-22vh);
+  }
+  100% {
+    transform: translateY(122vh);
+  }
+}
+
+.crt-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 20vh;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(132, 199, 193, 0.03) 42%,
+    rgba(143, 227, 136, 0.055) 50%,
+    rgba(132, 199, 193, 0.03) 58%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: crt-roll 18s linear infinite;
+}
+
+/* Seconde bande, plus fine et plus lente, pour densifier le défilement. */
+.crt-band--thin {
+  height: 9vh;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(143, 227, 136, 0.04) 50%,
+    transparent 100%
+  );
+  animation-duration: 12s;
+  animation-delay: -4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-scanlines {
+    animation: none;
+    opacity: 0.24;
+  }
+  .crt-band {
+    display: none;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -183,7 +275,7 @@ a {
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-mono;
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
   }

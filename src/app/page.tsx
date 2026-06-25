@@ -85,7 +85,7 @@ export default function Home() {
         <main className="flex w-full flex-col items-center gap-8 text-center">
           {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
           <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Discute avec mon <span className="text-gradient-animated">double IA</span>
+            Salut ! Moi c&apos;est <span className="text-gradient-animated">Damien.</span>
           </h1>
 
           {/* Bulle d'accueil = premier message de la conversation, cliquable */}

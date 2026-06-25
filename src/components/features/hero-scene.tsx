@@ -224,6 +224,12 @@ export function HeroScene() {
         className="pointer-events-none absolute inset-0"
         style={{ background: "radial-gradient(120% 120% at 50% 35%, transparent 55%, rgba(8,12,12,0.55) 100%)" }}
       />
+      {/* Grésillement CRT : bandes qui défilent (roll bars) + lignes de balayage. */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="crt-band" />
+        <div className="crt-band crt-band--thin" />
+      </div>
+      <div className="crt-scanlines pointer-events-none absolute inset-0" />
     </div>
   )
 }

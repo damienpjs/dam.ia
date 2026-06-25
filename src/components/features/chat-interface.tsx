@@ -288,7 +288,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const remainingSuggestions = SUGGESTIONS.filter((s) => !usedSuggestions.has(s))
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden overflow-x-hidden font-[family-name:var(--font-chat)]">
+    <div className="flex flex-1 flex-col overflow-hidden overflow-x-hidden font-mono">
       {/* Zone de messages */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-6">
         {isLoadingSession ? (

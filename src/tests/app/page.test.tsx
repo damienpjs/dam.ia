@@ -24,7 +24,7 @@ afterEach(() => {
 describe("Page d'accueil (/)", () => {
   it("affiche l'accroche principale", () => {
     render(<Home />)
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/discute avec mon double IA/i)
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/salut ! moi c'est damien/i)
   })
 
   it("met en exergue un terme avec un dégradé animé", () => {

@@ -22,16 +22,10 @@ export const TECHS: ITech[] = [
   { name: "ComfyUI", logos: ["/logos/comfyui.png"] },
   { name: "Blender", logos: ["/logos/blender.png"] },
   {
-    name: "Suite Adobe",
-    logos: [
-      "/logos/adobe-photoshop.png",
-      "/logos/adobe-illustrator.png",
-      "/logos/adobe-indesign.png",
-      "/logos/adobe-premiere.png",
-      "/logos/adobe-aftereffects.png",
-    ],
+    name: "Adobe",
+    logos: ["/logos/adobe-photoshop.png", "/logos/adobe-illustrator.png", "/logos/adobe-indesign.png", "/logos/adobe-premiere.png", "/logos/adobe-aftereffects.png"],
   },
 ]
 
 /** Nombre d'étiquettes visibles avant le bouton « voir X plus ». */
-export const TECHS_VISIBLE_COUNT = 6
+export const TECHS_VISIBLE_COUNT = 9

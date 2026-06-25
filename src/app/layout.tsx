@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "damienpasulj(); - Lead Tech JS, Builder, Technologiste",
+  title: "Damien Pasulj - Lead Tech JS, Builder, Technologiste",
   description: "Lead Tech JS — Discute avec l'IA de Damien pour en savoir plus sur son parcours et ses projets.",
 }
 

@@ -110,7 +110,7 @@ export default function Home() {
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
           <div className="mx-auto flex max-w-3xl items-center justify-between">
             <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
-              damienpasulj();
+              Damien Pasulj
             </button>
             <ProviderStatus />
           </div>

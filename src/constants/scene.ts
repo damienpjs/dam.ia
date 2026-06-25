@@ -57,7 +57,16 @@ export const FOG_NEAR = 11
 export const FOG_FAR = 30
 export const GRID_CELL_COLOR = "#356b50" // vert sombre (phosphore)
 export const GRID_SECTION_COLOR = "#74c08a" // vert CRT plus clair, lignes principales
-export const KEY_LIGHT = "#ffd6ab" // lumière chaude, nostalgique
+export const KEY_LIGHT = "#abffe2" // couleur statique de repli (mouvement réduit) : vert phosphore
+/**
+ * La key light oscille en boucle entre une teinte chaude et une teinte froide,
+ * en écho au dégradé animé du prénom « Damien » dans le titre. Fondu sinusoïdal,
+ * sans à-coups, calé sur la même cadence (4 s) que l'animation CSS du titre.
+ */
+export const KEY_LIGHT_WARM = "#ffd6ab" // pêche chaude (nostalgie)
+export const KEY_LIGHT_COOL = "#abffe2" // vert phosphore froid (CRT)
+/** Durée d'un aller-retour complet chaud → froid → chaud, en secondes. */
+export const KEY_LIGHT_OSC_PERIOD_S = 4
 export const RIM_LIGHT = "#79c2bc" // teal (chemise)
 export const FILL_LIGHT = "#b9a6ef" // lavande douce (fleurs)
 /** Vert phosphore d'un vieux moniteur cathodique : ambiance/hémisphère. */

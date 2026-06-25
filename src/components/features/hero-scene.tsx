@@ -32,6 +32,9 @@ import {
   GRID_CELL_COLOR,
   GRID_SECTION_COLOR,
   KEY_LIGHT,
+  KEY_LIGHT_WARM,
+  KEY_LIGHT_COOL,
+  KEY_LIGHT_OSC_PERIOD_S,
   RIM_LIGHT,
   FILL_LIGHT,
   CRT_GLOW,
@@ -237,6 +240,30 @@ function AutoClearFix() {
   return null
 }
 
+/** Teintes de la key light, pré-instanciées une fois (évite le coût par frame). */
+const KEY_LIGHT_WARM_COLOR = new THREE.Color(KEY_LIGHT_WARM)
+const KEY_LIGHT_COOL_COLOR = new THREE.Color(KEY_LIGHT_COOL)
+
+/**
+ * Key light dont la couleur oscille en boucle entre une teinte chaude et froide,
+ * en écho au dégradé animé du prénom dans le titre. Le fondu suit une sinusoïde
+ * (donc sans à-coups au changement de sens), calée sur `KEY_LIGHT_OSC_PERIOD_S`.
+ * En mouvement réduit, la lumière reste fixe sur la teinte statique `KEY_LIGHT`.
+ */
+function KeyLight({ animated }: { animated: boolean }) {
+  const ref = useRef<THREE.DirectionalLight>(null)
+
+  useFrame((state) => {
+    const light = ref.current
+    if (!light || !animated) return
+    // t ∈ [0, 1] : 0 = chaud, 1 = froid, va-et-vient sur la période voulue.
+    const t = (Math.sin((state.clock.elapsedTime / KEY_LIGHT_OSC_PERIOD_S) * Math.PI * 2) + 1) / 2
+    light.color.copy(KEY_LIGHT_WARM_COLOR).lerp(KEY_LIGHT_COOL_COLOR, t)
+  })
+
+  return <directionalLight ref={ref} position={[5, 8, 4]} intensity={1.35} color={animated ? KEY_LIGHT_WARM : KEY_LIGHT} />
+}
+
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
 function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const reducedMotion = usePrefersReducedMotion()
@@ -248,7 +275,7 @@ function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
 
       <hemisphereLight intensity={0.55} color={CRT_GLOW} groundColor={SCENE_BG} />
       <ambientLight intensity={0.3} color={CRT_GLOW} />
-      <directionalLight position={[5, 8, 4]} intensity={1.35} color={KEY_LIGHT} />
+      <KeyLight animated={!reducedMotion} />
       <directionalLight position={[-6, 3, -4]} intensity={0.7} color={RIM_LIGHT} />
       <pointLight position={[0, 2.2, -5]} intensity={6} distance={16} color={FILL_LIGHT} />
 

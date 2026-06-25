@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react"
-import { AnimatedBackground } from "@/components/features/animated-background"
+import { HeroScene } from "@/components/features/hero-scene"
 import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
 import { ProviderStatus } from "@/components/features/provider-status"
@@ -77,10 +77,11 @@ export default function Home() {
 
   return (
     <>
-      <AnimatedBackground />
+      <HeroScene />
 
-      {/* Accueil */}
-      <div aria-hidden={chatOpen} className={`flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "pointer-events-none -translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+      {/* Accueil — pointer-events-none sur le conteneur pour laisser le clic-glissé
+          atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}
+      <div aria-hidden={chatOpen} className={`pointer-events-none flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
         <main className="flex w-full flex-col items-center gap-8 text-center">
           {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
           <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -88,11 +89,11 @@ export default function Home() {
           </h1>
 
           {/* Bulle d'accueil = premier message de la conversation, cliquable */}
-          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
+          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group pointer-events-auto flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
             <div ref={heroRef} className={`animate-hero-float transition-transform duration-300 group-hover:-translate-y-1 ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
               <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
             </div>
-            <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-[#F9B288]">
+            <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-coral">
               Démarrer la conversation
               <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
             </p>

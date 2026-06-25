@@ -34,7 +34,7 @@ function SessionLoader() {
   return (
     <div data-testid="session-loader" className="flex h-full items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#F9B288]/20 border-t-[#F9B288]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-coral/20 border-t-coral" />
         <p className="text-sm text-muted-foreground">Chargement de la conversation…</p>
       </div>
     </div>
@@ -44,7 +44,7 @@ function SessionLoader() {
 function TypingIndicator() {
   return (
     <div data-testid="typing-indicator" className="flex items-end gap-3">
-      <div aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-xs font-semibold text-white select-none">
+      <div aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-coral-deep to-coral text-xs font-semibold text-white select-none">
         AI
       </div>
       <div className="rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3">
@@ -309,7 +309,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
                       key={suggestion}
                       type="button"
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-[#F9B288]/50 hover:bg-[#F9B288]/10 hover:text-foreground"
+                      className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-coral/50 hover:bg-coral/10 hover:text-foreground"
                     >
                       {suggestion}
                     </button>
@@ -342,7 +342,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
                 onClick={() => setIsResetDialogOpen(true)}
                 disabled={isLoadingSession}
                 aria-label="Réinitialiser la conversation"
-                className="group/reset shrink-0 rounded-xl ring-1 ring-white/20 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-[#F9B288]/10 hover:text-[#F9B288]"
+                className="group/reset shrink-0 rounded-xl ring-1 ring-white/20 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-coral/10 hover:text-coral"
               >
                 <RotateCcw className="size-4 transition-transform duration-500 ease-out group-hover/reset:-rotate-180" />
               </Button>
@@ -373,7 +373,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
               size="icon-lg"
               disabled={!input.trim() || isTyping || isStreaming || isLoadingSession}
               aria-label="Envoyer"
-              className="shrink-0 bg-gradient-to-br from-[#E8A070] to-[#F9B288] text-white shadow-md shadow-[#F9B288]/20 hover:from-[#D99060] hover:to-[#E8A070] disabled:opacity-40"
+              className="shrink-0 bg-gradient-to-br from-coral-deep to-coral text-white shadow-md shadow-coral/20 hover:from-coral-deeper hover:to-coral-deep disabled:opacity-40"
             >
               <Send className="size-4" />
             </Button>

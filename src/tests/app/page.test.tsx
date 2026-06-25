@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
 
-vi.mock("@/components/features/animated-background", () => ({
-  AnimatedBackground: () => <div data-testid="animated-background" />,
+vi.mock("@/components/features/hero-scene", () => ({
+  HeroScene: () => <div data-testid="hero-scene" />,
 }))
 
 vi.mock("@/components/features/chat-interface", () => ({
@@ -53,9 +53,9 @@ describe("Page d'accueil (/)", () => {
     expect(screen.getByText("Qdrant")).toBeInTheDocument()
   })
 
-  it("rend l'AnimatedBackground", () => {
+  it("rend la hero scene 3D", () => {
     render(<Home />)
-    expect(screen.getByTestId("animated-background")).toBeInTheDocument()
+    expect(screen.getByTestId("hero-scene")).toBeInTheDocument()
   })
 
   it("ouvre le panneau chat au clic sur la bulle d'accueil", async () => {

@@ -471,6 +471,54 @@ describe("POST /api/chat", () => {
     ])
   })
 
+  it("injecte une note interne quand la question a déjà été posée", async () => {
+    const { getSessionMessages } = await import("@/lib/db/chat-service")
+    const { createLLMProvider } = await import("@/lib/llm")
+
+    vi.mocked(getSessionMessages).mockResolvedValueOnce([
+      { id: "1", role: "user", content: "Quel est ton parcours professionnel ?", status: "ok", sources: null, createdAt: new Date() },
+      { id: "2", role: "assistant", content: "Réponse", status: "ok", sources: null, createdAt: new Date() },
+    ])
+
+    let capturedMessage = ""
+    vi.mocked(createLLMProvider).mockReturnValueOnce({
+      async *streamResponse(message: string) {
+        capturedMessage = message
+        yield "ok"
+      },
+    } as ReturnType<typeof createLLMProvider>)
+
+    const request = createMockRequest({ message: "Quel est ton parcours professionnel ?", sessionId: "session-rep" })
+    const response = await POST(request)
+    await readStreamToChunks(response.body!)
+
+    expect(capturedMessage).toContain("NOTE INTERNE")
+    expect(capturedMessage).toContain("déjà posé")
+    // La question courante reste présente après la note.
+    expect(capturedMessage).toContain("Quel est ton parcours professionnel ?")
+  })
+
+  it("n'injecte aucune note quand la question est nouvelle", async () => {
+    const { getSessionMessages } = await import("@/lib/db/chat-service")
+    const { createLLMProvider } = await import("@/lib/llm")
+
+    vi.mocked(getSessionMessages).mockResolvedValueOnce([{ id: "1", role: "user", content: "Tu connais React ?", status: "ok", sources: null, createdAt: new Date() }])
+
+    let capturedMessage = ""
+    vi.mocked(createLLMProvider).mockReturnValueOnce({
+      async *streamResponse(message: string) {
+        capturedMessage = message
+        yield "ok"
+      },
+    } as ReturnType<typeof createLLMProvider>)
+
+    const request = createMockRequest({ message: "Et en TypeScript ?", sessionId: "session-new-q" })
+    const response = await POST(request)
+    await readStreamToChunks(response.body!)
+
+    expect(capturedMessage).not.toContain("NOTE INTERNE")
+  })
+
   it("ne récupère pas d'historique pour une nouvelle session (pas de sessionId)", async () => {
     const { getSessionMessages } = await import("@/lib/db/chat-service")
 

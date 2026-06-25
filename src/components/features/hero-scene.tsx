@@ -221,6 +221,22 @@ function usePrefersReducedMotion(): boolean {
   )
 }
 
+/**
+ * Corrige un conflit drei × postprocessing : le constructeur de l'`EffectComposer`
+ * (lib `postprocessing`) force `renderer.autoClear = false` de façon permanente.
+ * Or `ContactShadows` rend son ombre dans une render target via `gl.render()`, qui
+ * compte sur `autoClear` pour effacer la frame précédente. Sans ce reset, l'ombre
+ * s'accumule à chaque position du personnage et laisse des traces noires au sol.
+ * La priorité négative garantit l'exécution avant le rendu de `ContactShadows`
+ * (priorité 0).
+ */
+function AutoClearFix() {
+  useFrame((state) => {
+    state.gl.autoClear = true
+  }, -1)
+  return null
+}
+
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
 function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const reducedMotion = usePrefersReducedMotion()
@@ -240,6 +256,7 @@ function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
         <Character bubblesEnabled={bubblesEnabled} />
       </Suspense>
 
+      <AutoClearFix />
       <ContactShadows position={[0, 0.01, 0]} opacity={0.5} blur={2.6} far={6} resolution={512} color="#000000" />
 
       <Grid args={[40, 40]} infiniteGrid cellSize={0.6} cellThickness={0.6} sectionSize={3} sectionThickness={1} cellColor={GRID_CELL_COLOR} sectionColor={GRID_SECTION_COLOR} fadeDistance={26} fadeStrength={5} followCamera={false} />

@@ -14,7 +14,7 @@ export const MOCK_RULES: IMockRule[] = [
   },
   {
     pattern: /qui es.tu|tu es qui|c'est qui|présente.toi/i,
-    response: "Je suis l'IA de Damien : Product Builder & architecte IA, avec un solide socle Lead Tech JS (React, Next.js). Pose-moi tes questions !",
+    response: "Je suis l'IA de Damien : Product Builder & enthousiaste IA, avec un solide socle Lead Tech JS (React, Next.js). Pose-moi tes questions !",
   },
   {
     pattern: /compétence|skill|stack|technolog|maîtris/i,

@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Damien Pasulj — Product Builder & Architecte IA",
-  description: "Product Builder & architecte IA, ancré sur un solide socle Lead Tech JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+  title: "Damien Pasulj — Product Builder & enthousiaste IA",
+  description: "Product Builder & enthousiaste IA, ancré sur un solide socle Lead Tech JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
 }
 
 export const viewport: Viewport = {

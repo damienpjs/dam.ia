@@ -45,12 +45,12 @@ describe("Page d'accueil (/)", () => {
     expect(btn).toBeInTheDocument()
   })
 
-  it("affiche les badges tech stack", () => {
+  it("affiche les étiquettes des technos maîtrisées", () => {
     render(<Home />)
-    expect(screen.getByText("Next.js")).toBeInTheDocument()
     expect(screen.getByText("TypeScript")).toBeInTheDocument()
-    expect(screen.getByText("Gemini")).toBeInTheDocument()
+    expect(screen.getByText("Next.js")).toBeInTheDocument()
     expect(screen.getByText("Qdrant")).toBeInTheDocument()
+    expect(screen.getByText("C#")).toBeInTheDocument()
   })
 
   it("rend la hero scene 3D", () => {
@@ -65,11 +65,11 @@ describe("Page d'accueil (/)", () => {
     expect(screen.getByTestId("chat-interface")).toBeInTheDocument()
   })
 
-  it("ferme le panneau chat au clic sur dam.ia", async () => {
+  it("ferme le panneau chat au clic sur le logo", async () => {
     const user = userEvent.setup()
     render(<Home />)
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
-    await user.click(screen.getByRole("button", { name: /dam\.ia/i }))
+    await user.click(screen.getByRole("button", { name: /damienpasulj\(\);/i }))
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })
 
@@ -99,7 +99,7 @@ describe("Page d'accueil (/)", () => {
     await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
     expect(screen.getByTestId("welcome-clone")).toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /dam\.ia/i }))
+    await user.click(screen.getByRole("button", { name: /damienpasulj\(\);/i }))
     expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
   })

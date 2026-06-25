@@ -5,7 +5,7 @@ import { HeroScene } from "@/components/features/hero-scene"
 import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
 import { ProviderStatus } from "@/components/features/provider-status"
-import { TECHS } from "@/constants/landing"
+import { TechBadges } from "@/components/features/tech-badges"
 import { WELCOME_MESSAGE, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
 type TPhase = "landing" | "opening" | "chat"
@@ -99,14 +99,8 @@ export default function Home() {
             </p>
           </button>
 
-          {/* Tech stack badges */}
-          <div className="flex max-w-sm flex-wrap justify-center gap-2 text-xs text-zinc-400">
-            {TECHS.map((tech) => (
-              <span key={tech} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur-sm">
-                {tech}
-              </span>
-            ))}
-          </div>
+          {/* Étiquettes des technos maîtrisées (avec logos + « voir X + ») */}
+          <TechBadges />
         </main>
       </div>
 
@@ -116,7 +110,7 @@ export default function Home() {
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
           <div className="mx-auto flex max-w-3xl items-center justify-between">
             <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
-              dam.ia
+              damienpasulj();
             </button>
             <ProviderStatus />
           </div>

@@ -5,6 +5,7 @@ import Image from "next/image"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
+import { ThinkingPhrase } from "@/components/features/thinking-phrase"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
 export type TMessageStatus = "ok" | "error"
@@ -63,16 +64,6 @@ function MarkdownMessage({ content }: { content: string }) {
   )
 }
 
-function StreamingSkeleton() {
-  return (
-    <div data-testid="streaming-skeleton" className="flex flex-col gap-2 py-0.5">
-      <div className="h-3 w-full animate-pulse rounded-md bg-muted-foreground/20" />
-      <div className="h-3 w-4/5 animate-pulse rounded-md bg-muted-foreground/15 [animation-delay:150ms]" />
-      <div className="h-3 w-3/5 animate-pulse rounded-md bg-muted-foreground/10 [animation-delay:300ms]" />
-    </div>
-  )
-}
-
 export function MessageBubble({ message, isStreaming = false, onReuse, showActions = true }: IMessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [tapped, setTapped] = useState(false)
@@ -80,7 +71,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
   const isUser = message.role === "user"
   const isError = !isUser && message.status === "error"
   const isEmpty = !message.content
-  const showSkeleton = !isUser && isStreaming && isEmpty
+  const showThinking = !isUser && isStreaming && isEmpty
   const showCursor = !isUser && isStreaming && !isEmpty
   const showSources = !isUser && !isStreaming && message.sources && message.sources.length > 0
 
@@ -117,7 +108,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
         {isUser ? "🫵" : <Image src="/bot-avatar.png" alt="" width={32} height={32} className="h-full w-full object-cover" />}
       </div>
 
-      <div className={cn("relative", showSkeleton ? "w-[75%]" : "max-w-[75%]")}>
+      <div className={cn("relative", showThinking ? "w-[75%]" : "max-w-[75%]")}>
         <div
           data-testid={isError ? "message-bubble-error" : undefined}
           className={cn(
@@ -129,8 +120,8 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
                 : "rounded-bl-sm border border-border bg-card text-card-foreground",
           )}
         >
-          {showSkeleton ? (
-            <StreamingSkeleton />
+          {showThinking ? (
+            <ThinkingPhrase />
           ) : (
             <>
               {isUser ? message.content : <MarkdownMessage content={message.content} />}

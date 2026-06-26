@@ -27,6 +27,46 @@ a {
   }
 }
 
+/* Placeholder « Damien réfléchit… » : les trois points sautillent l'un après l'autre.
+   Le rebond n'occupe que le premier tiers du cycle (puis repos) : combiné aux
+   animation-delay décalés sur chaque point, on obtient une vague nette qui parcourt
+   les points individuellement avant de recommencer. */
+@keyframes thinking-dot {
+  0%,
+  30%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  15% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-thinking-dot {
+  display: inline-block;
+  animation: thinking-dot 1.4s ease-in-out infinite;
+}
+
+/* Délais décalés gérés ici (et non via les utilitaires Tailwind) : la classe
+   `.animate-thinking-dot` étant hors cascade-layer, le raccourci `animation:`
+   l'emporterait sur un `[animation-delay:…]` utilitaire (layered) et remettrait
+   le délai à 0 — d'où les points qui sautaient tous en même temps. */
+.animate-thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.animate-thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-thinking-dot {
+    animation: none;
+  }
+}
+
 /* Terme mis en exergue : dégradé pastel (teal → corail → sable → CRT) qui défile */
 @keyframes text-gradient {
   to {

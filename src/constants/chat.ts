@@ -5,6 +5,19 @@ export const SUGGESTIONS_STORAGE_KEY = "dam_ia_used_suggestions"
 
 export const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes soft skills", "Quel est ton parcours ?", "Quels sont tes loisirs et passions ?", "Que penses-tu du full remote ?", "Quelles langues parles-tu ?"]
 
+// Phrases de « réflexion » affichées (tapées lettre par lettre) en attendant la réponse de l'IA.
+// Ton un peu edgy / autodérision — les « … » sont ajoutés et animés séparément, ne pas les inclure ici.
+export const THINKING_PHRASES = [
+  "Hallucination en cours",
+  "Damien filozofe",
+  "Damien compile une réponse pas trop nulle",
+  "Damien tergiverse avec classe",
+  "Poignée de main secrète cognitive",
+  "Égarement dans le bruit latent de l'espace vide",
+  "Damien essaye de créer un lien humain",
+  "Réflexion en cours dans le phosphor",
+]
+
 // Durée de l'animation morphe de la bulle d'accueil vers le haut du chat
 export const MORPH_DURATION_MS = 600
 

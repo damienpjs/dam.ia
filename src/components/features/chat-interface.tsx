@@ -41,23 +41,6 @@ function SessionLoader() {
   )
 }
 
-function TypingIndicator() {
-  return (
-    <div data-testid="typing-indicator" className="flex items-end gap-3">
-      <div aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-coral-deep to-coral text-xs font-semibold text-white select-none">
-        AI
-      </div>
-      <div className="rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3">
-        <div className="flex items-center gap-1" aria-label="L'assistant est en train d'écrire">
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 interface IChatInterfaceProps {
   /** Masque la liste des messages pendant la transition d'ouverture (morph de la bulle d'accueil). */
   messagesVisible?: boolean
@@ -66,7 +49,6 @@ interface IChatInterfaceProps {
 export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const [messages, setMessages] = useState<IMessage[]>([WELCOME_MESSAGE])
   const [input, setInput] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(loadUsedSuggestions)
@@ -94,7 +76,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
       return
     }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isTyping, isStreaming])
+  }, [messages, isStreaming])
 
   // Restaure la session depuis localStorage au montage
   useEffect(() => {
@@ -148,7 +130,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   const sendMessage = useCallback(
     async (overrideContent?: string) => {
       const content = overrideContent ?? input.trim()
-      if (!content || isTyping || isStreaming) return
+      if (!content || isStreaming) return
 
       const userMessage: IMessage = {
         id: generateId(),
@@ -159,7 +141,6 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
 
       setMessages((prev) => [...prev, userMessage])
       setInput("")
-      setIsTyping(true)
 
       // Fermer le clavier virtuel sur mobile
       textareaRef.current?.blur()
@@ -173,13 +154,15 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         createdAt: new Date(),
       }
 
-      // Petit délai avant de commencer le stream (effet naturel)
-      await new Promise<void>((resolve) => setTimeout(resolve, 300))
-
+      // On affiche tout de suite la bulle assistant vide : c'est elle qui porte le
+      // placeholder « Damien réfléchit… » (ThinkingPhrase) tant que le contenu est vide.
       setMessages((prev) => [...prev, assistantMessage])
-      setIsTyping(false)
       setIsStreaming(true)
       setStreamingMessageId(assistantMessageId)
+
+      // Petit délai avant de commencer le stream (effet naturel) — la phrase de
+      // réflexion reste affichée pendant ce temps.
+      await new Promise<void>((resolve) => setTimeout(resolve, 300))
 
       // Créer un AbortController pour pouvoir annuler la requête
       abortControllerRef.current = new AbortController()
@@ -223,7 +206,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         },
       })
     },
-    [input, isTyping, isStreaming],
+    [input, isStreaming],
   )
 
   const handleKeyDown = useCallback(
@@ -268,7 +251,6 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     // Repart d'une conversation vierge
     setMessages([WELCOME_MESSAGE])
     setInput("")
-    setIsTyping(false)
     setIsStreaming(false)
     setStreamingMessageId(null)
 
@@ -300,7 +282,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
             ))}
 
             {/* Suggestions de questions */}
-            {remainingSuggestions.length > 0 && !isTyping && !isStreaming && (
+            {remainingSuggestions.length > 0 && !isStreaming && (
               <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
                 <p className="text-xs text-muted-foreground">Suggestions :</p>
                 <div className="flex flex-wrap gap-2">
@@ -318,7 +300,6 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
               </div>
             )}
 
-            {isTyping && <TypingIndicator />}
             <div ref={messagesEndRef} aria-hidden="true" />
           </div>
         )}
@@ -371,7 +352,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
             <Button
               type="submit"
               size="icon-lg"
-              disabled={!input.trim() || isTyping || isStreaming || isLoadingSession}
+              disabled={!input.trim() || isStreaming || isLoadingSession}
               aria-label="Envoyer"
               className="shrink-0 bg-gradient-to-br from-coral-deep to-coral text-white shadow-md shadow-coral/20 hover:from-coral-deeper hover:to-coral-deep disabled:opacity-40"
             >

@@ -27,6 +27,29 @@ a {
   }
 }
 
+/* Placeholder « Damien réfléchit… » : les trois points sautillent en boucle. */
+@keyframes thinking-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-thinking-dot {
+  display: inline-block;
+  animation: thinking-dot 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-thinking-dot {
+    animation: none;
+  }
+}
+
 /* Terme mis en exergue : dégradé pastel (teal → corail → sable → CRT) qui défile */
 @keyframes text-gradient {
   to {

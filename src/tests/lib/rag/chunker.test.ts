@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { extractFrontmatter, splitTextIntoChunks, generateChunkId, chunkDocument, chunkAllContent, CHUNK_SIZE, CHUNK_OVERLAP } from "@/lib/rag/chunker"
+import { extractFrontmatter, splitTextIntoChunks, generateChunkId, chunkDocument, chunkAllContent, buildChunkContextHeader, CHUNK_SIZE, CHUNK_OVERLAP } from "@/lib/rag/chunker"
 import type { IContentDocument } from "@/lib/content-loader"
 
 describe("extractFrontmatter", () => {
@@ -188,6 +188,70 @@ title: "Empty"
 
     const chunks = chunkDocument(doc)
     expect(chunks).toEqual([])
+  })
+})
+
+describe("buildChunkContextHeader", () => {
+  it("doit construire un en-tête avec entreprise, poste, période et poste actuel", () => {
+    const header = buildChunkContextHeader({
+      company: "Apizee",
+      role: "Lead React/TypeScript/Next.js",
+      period: "2024 - présent",
+      current: "true",
+    })
+
+    expect(header).toBe("[Entreprise: Apizee | Poste: Lead React/TypeScript/Next.js | Période: 2024 - présent | Poste actuel: OUI]")
+  })
+
+  it("doit marquer « Poste actuel: non » pour une expérience passée", () => {
+    const header = buildChunkContextHeader({ company: "elloha", current: "false" })
+
+    expect(header).toContain("Entreprise: elloha")
+    expect(header).toContain("Poste actuel: non")
+  })
+
+  it("doit retourner une chaîne vide sans métadonnée pertinente", () => {
+    expect(buildChunkContextHeader({ title: "Profil", category: "profil" })).toBe("")
+  })
+})
+
+describe("chunkDocument — contextual retrieval", () => {
+  it("doit préfixer chaque chunk avec l'en-tête de contexte issu du frontmatter", () => {
+    const doc: IContentDocument = {
+      filename: "experience-apizee",
+      content: `---
+company: "Apizee"
+role: "Lead"
+period: "2024 - présent"
+current: true
+---
+
+Lead technique sur le cœur de produit.`,
+    }
+
+    const chunks = chunkDocument(doc)
+
+    expect(chunks.length).toBeGreaterThan(0)
+    for (const chunk of chunks) {
+      expect(chunk.text).toContain("[Entreprise: Apizee")
+      expect(chunk.text).toContain("Poste actuel: OUI]")
+    }
+  })
+
+  it("ne doit pas ajouter d'en-tête quand le frontmatter n'a pas de métadonnée pertinente", () => {
+    const doc: IContentDocument = {
+      filename: "profil",
+      content: `---
+title: "Profil"
+---
+
+Du contenu de profil.`,
+    }
+
+    const chunks = chunkDocument(doc)
+
+    expect(chunks[0].text).not.toContain("[Entreprise")
+    expect(chunks[0].text.startsWith("Du contenu")).toBe(true)
   })
 })
 

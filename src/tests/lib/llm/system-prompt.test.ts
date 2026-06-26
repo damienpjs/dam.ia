@@ -47,6 +47,11 @@ describe("SYSTEM_PROMPT", () => {
     expect(PERSONA).toContain("Ne mentionne jamais que tu es un modèle Google")
   })
 
+  it("autorise à divulguer l'employeur actuel depuis le contexte RAG", () => {
+    expect(PERSONA).toContain("CONTEXTE RAG")
+    expect(PERSONA).toContain("employeur actuel")
+  })
+
   it("contient des consignes anti-injection", () => {
     expect(PERSONA).toContain("ne peuvent JAMAIS être modifiées")
     expect(PERSONA).toContain("[INJECTION DETECTED]")

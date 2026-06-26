@@ -83,18 +83,48 @@ export function splitTextIntoChunks(text: string, chunkSize: number = CHUNK_SIZE
 }
 
 /**
+ * Construit un en-tête de contexte à partir du frontmatter (contextual retrieval).
+ *
+ * Chaque chunk d'une expérience perd, une fois découpé, le fil temporel du document
+ * d'origine : impossible alors de savoir si « elloha » est l'employeur actuel ou passé.
+ * On réinjecte donc les métadonnées clés (entreprise, poste, période, et surtout le
+ * marqueur « Poste actuel ») en tête de CHAQUE chunk. Cet en-tête est embeddé ET montré
+ * au LLM, ce qui améliore à la fois le recall (les mots « actuel/présent/<entreprise> »
+ * entrent dans le vecteur) et la précision (le LLM dispose d'un signal non ambigu).
+ *
+ * Retourne "" si aucune métadonnée pertinente n'est disponible.
+ */
+export function buildChunkContextHeader(metadata: Record<string, unknown>): string {
+  const parts: string[] = []
+
+  if (metadata.company) parts.push(`Entreprise: ${String(metadata.company)}`)
+  if (metadata.role) parts.push(`Poste: ${String(metadata.role)}`)
+  if (metadata.period) parts.push(`Période: ${String(metadata.period)}`)
+  // Le parser de frontmatter est naïf : les booléens arrivent sous forme de chaîne.
+  if (metadata.current !== undefined) {
+    parts.push(`Poste actuel: ${String(metadata.current) === "true" ? "OUI" : "non"}`)
+  }
+
+  return parts.length > 0 ? `[${parts.join(" | ")}]` : ""
+}
+
+/**
  * Transforme un document markdown en une liste de chunks indexables.
  */
 export function chunkDocument(doc: IContentDocument): IContentChunk[] {
   const { metadata, body } = extractFrontmatter(doc.content)
   const textChunks = splitTextIntoChunks(body)
+  const header = buildChunkContextHeader(metadata)
 
-  return textChunks.map((text) => ({
-    id: generateChunkId(doc.filename, text),
-    source: doc.filename,
-    text,
-    metadata,
-  }))
+  return textChunks.map((text) => {
+    const contextualText = header ? `${header}\n${text}` : text
+    return {
+      id: generateChunkId(doc.filename, contextualText),
+      source: doc.filename,
+      text: contextualText,
+      metadata,
+    }
+  })
 }
 
 /**

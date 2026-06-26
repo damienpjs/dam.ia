@@ -8,21 +8,14 @@ export const SUGGESTIONS = ["Quelles sont tes compétences ?", "Parle-moi de tes
 // Phrases de « réflexion » affichées (tapées lettre par lettre) en attendant la réponse de l'IA.
 // Ton un peu edgy / autodérision — les « … » sont ajoutés et animés séparément, ne pas les inclure ici.
 export const THINKING_PHRASES = [
-  "Damien réfléchit",
-  "Damien consulte ses neurones",
-  "Damien chauffe les synapses",
-  "Damien fouille dans sa matière grise",
-  "Damien fait semblant de savoir",
-  "Damien improvise un truc intelligent",
-  "Damien gratte le fond du cerveau",
-  "Damien convoque le café",
-  "Damien rumine ta question",
+  "Hallucination en cours",
+  "Damien filozofe",
   "Damien compile une réponse pas trop nulle",
   "Damien tergiverse avec classe",
-  "Damien interroge son ego",
-  "Damien procrastine élégamment",
-  "Damien cherche une vanne potable",
-  "Damien recharge ses deux neurones",
+  "Poignée de main secrète cognitive",
+  "Égarement dans le bruit latent de l'espace vide",
+  "Damien essaye de créer un lien humain",
+  "Réflexion en cours dans le phosphor",
 ]
 
 // Durée de l'animation morphe de la bulle d'accueil vers le haut du chat

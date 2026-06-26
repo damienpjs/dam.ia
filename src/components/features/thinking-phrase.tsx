@@ -42,10 +42,11 @@ export function ThinkingPhrase() {
   return (
     <div data-testid="thinking-phrase" className="flex items-baseline text-sm leading-relaxed text-muted-foreground" aria-label="Damien réfléchit">
       <span aria-hidden="true">{shown}</span>
+      {/* Délais de cascade gérés en CSS via :nth-child (cf. globals.css) */}
       <span aria-hidden="true" className="ml-0.5 inline-flex">
         <span className="animate-thinking-dot">.</span>
-        <span className="animate-thinking-dot [animation-delay:200ms]">.</span>
-        <span className="animate-thinking-dot [animation-delay:400ms]">.</span>
+        <span className="animate-thinking-dot">.</span>
+        <span className="animate-thinking-dot">.</span>
       </span>
     </div>
   )

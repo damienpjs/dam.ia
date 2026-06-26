@@ -111,12 +111,12 @@ describe("ChatInterface", () => {
     expect(textarea).toHaveValue("")
   })
 
-  it("affiche l'indicateur de frappe après l'envoi", async () => {
+  it("affiche le placeholder de réflexion après l'envoi", async () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
     await user.click(screen.getByRole("button", { name: "Envoyer"}))
-    expect(screen.getByTestId("typing-indicator")).toBeInTheDocument()
+    expect(screen.getByTestId("thinking-phrase")).toBeInTheDocument()
   })
 
   it("affiche la réponse de l'assistant après le délai", async () => {
@@ -128,13 +128,13 @@ describe("ChatInterface", () => {
     await waitFor(() => expect(screen.getByText("Réponse mockée de l'assistant.")).toBeInTheDocument(), { timeout: 2000 })
   })
 
-  it("masque l'indicateur de frappe après la réponse", async () => {
+  it("masque le placeholder de réflexion après la réponse", async () => {
     const user = setup()
     render(<ChatInterface />)
     await user.type(screen.getByLabelText(/message à envoyer/i), "Bonjour")
     await user.click(screen.getByRole("button", { name: "Envoyer"}))
 
-    await waitFor(() => expect(screen.queryByTestId("typing-indicator")).not.toBeInTheDocument(), { timeout: 2000 })
+    await waitFor(() => expect(screen.queryByTestId("thinking-phrase")).not.toBeInTheDocument(), { timeout: 2000 })
   })
 
   it("envoie le message avec la touche Entrée", async () => {

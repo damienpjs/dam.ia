@@ -1,6 +1,14 @@
 // Longueur maximale autorisée pour un message utilisateur
 export const MAX_MESSAGE_LENGTH = 500
 
+// Longueur maximale autorisée pour un commentaire de feedback.
+// Empêche l'insertion de payloads volumineux qui gonfleraient la table `feedbacks`.
+export const MAX_FEEDBACK_COMMENT_LENGTH = 2000
+
+// Format UUID (toutes versions), case-insensitive.
+// Utilisé pour valider les identifiants reçus avant toute requête DB.
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // Patterns de prompt injection connus (FR + EN), case-insensitive
 export const INJECTION_PATTERNS: RegExp[] = [
   // Tentatives de remplacement d'instructions

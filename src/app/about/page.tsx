@@ -158,7 +158,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="hidden shrink-0 sm:block">
-              <Image src="/photo-damien.jpg" alt="Damien Pasulj" width={120} height={120} className="rounded-2xl object-cover grayscale transition-all duration-500 hover:grayscale-0" priority />
+              <Image src="/photo-damien.jpg" alt="Damien Pasulj" width={160} height={160} className="rounded-2xl object-cover" priority />
             </div>
           </div>
         </header>

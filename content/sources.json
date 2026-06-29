@@ -6,8 +6,8 @@
   },
   {
     "id": "site-perso",
-    "url": "https://damienpasulj.com",
-    "label": "damienpasulj.com",
-    "jsRendering": true
+    "url": "https://damienpasulj.com/about",
+    "displayUrl": "/about",
+    "label": "damienpasulj.com"
   }
 ]

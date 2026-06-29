@@ -8,8 +8,14 @@ import { generateChunkId } from "./chunker"
 export interface IWebSource {
   /** Identifiant unique (ex: "linkedin", "site-perso") */
   id: string
-  /** URL à scraper */
+  /** URL réellement scrapée pour extraire le contenu à indexer */
   url: string
+  /**
+   * URL affichée comme source cliquable dans les bulles de conversation.
+   * Permet de découpler la page indexée de la page mise en avant à l'utilisateur.
+   * Si absent, on retombe sur `url`.
+   */
+  displayUrl?: string
   /** Label affiché à l'utilisateur (ex: "LinkedIn") */
   label: string
   /**
@@ -98,7 +104,8 @@ export async function scrapeWebSource(source: IWebSource): Promise<IContentChunk
 
   const textChunks = splitTextIntoChunks(text)
   const metadata: Record<string, unknown> = {
-    sourceUrl: source.url,
+    // On indexe `url`, mais on affiche `displayUrl` (le lien des bulles) si fourni.
+    sourceUrl: source.displayUrl ?? source.url,
     sourceLabel: source.label,
   }
 

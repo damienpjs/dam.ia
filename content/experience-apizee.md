@@ -19,7 +19,7 @@ sourceLabel: "CV (PDF)"
 ## Missions principales
 
 - Lead technique sur le cœur de produit en React, TypeScript et Next.js
-- Mise en place et maintenance des pipelines GitLab CI/CD
+- Mise en place et maintenance de pipelines GitLab CI/CD
 - Définition de l'architecture front-end et des bonnes pratiques
 - Encadrement technique de l'équipe de développement
 

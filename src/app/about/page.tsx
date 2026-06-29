@@ -5,8 +5,7 @@ import { Timeline } from "@/components/features/timeline"
 
 export const metadata: Metadata = {
   title: "À propos",
-  description:
-    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
   alternates: {
     canonical: "/about",
   },
@@ -16,8 +15,7 @@ export const metadata: Metadata = {
     url: "https://damienpasulj.com/about",
     siteName: "Damien Pasulj",
     title: "À propos — Damien Pasulj",
-    description:
-      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+    description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
     images: [
       {
         url: "/photo-damien.jpg",
@@ -32,8 +30,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "À propos — Damien Pasulj",
-    description:
-      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+    description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
     images: ["/photo-damien.jpg"],
   },
 }
@@ -59,7 +56,7 @@ const TIMELINE: ITimelineEntry[] = [
     period: "2024 — présent",
     role: "Lead React / TypeScript / Next.js",
     org: "Apizee",
-    description: "Lead technique sur le cœur de produit, définition de l'architecture front-end et des bonnes pratiques, mise en place des pipelines GitLab CI/CD et encadrement de l'équipe.",
+    description: "Lead technique sur le cœur de produit, définition de l'architecture front-end et des bonnes pratiques, mise en place de pipelines GitLab CI/CD et encadrement de l'équipe.",
     stack: ["React", "TypeScript", "Next.js", "GitLab CI/CD"],
     current: true,
   },
@@ -94,11 +91,11 @@ const TIMELINE: ITimelineEntry[] = [
 
 const SKILL_GROUPS: ISkillGroup[] = [
   { label: "Stack principale", items: ["React", "TypeScript", "Next.js", "Node.js"] },
-  { label: "DevOps & outils", items: ["GitLab CI/CD", "Git", "Architecture front-end"] },
+  { label: "DevOps", items: ["GitLab CI/CD", "Git", "Architecture front-end"] },
   { label: "IA & RAG", items: ["LLM (Claude, OpenAI, Gemini)", "RAG", "Embeddings", "Qdrant"] },
-  { label: "Design & identité visuelle", items: ["UI/UX", "Identité visuelle", "Photoshop", "Illustrator", "InDesign", "After Effects", "Premiere Pro"] },
+  { label: "Design & identité visuelle", items: ["UI/UX", "Photoshop", "Illustrator", "InDesign", "After Effects", "Premiere Pro"] },
   { label: "Historique", items: ["ASP.NET / C# (5+ ans)", "DotNetNuke"] },
-  { label: "Soft skills", items: ["Organisation", "Travail d'équipe", "Communication", "Créativité"] },
+  { label: "Soft skills", items: ["Organisation", "Travail d'équipe", "Good vibes", "Créativité"] },
 ]
 
 const INTERESTS: string[] = ["Voyages", "Sport", "Philosophie", "Dessin"]
@@ -115,8 +112,7 @@ const jsonLd = {
   url: "https://damienpasulj.com",
   sameAs: ["https://www.linkedin.com/in/damien-pasulj-700928ba/"],
   jobTitle: "Product Builder & Lead React / TypeScript / Next.js",
-  description:
-    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Plus de onze ans d'expérience en front-end et en full-stack.",
+  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Plus de onze ans d'expérience en front-end et en full-stack.",
   image: "https://damienpasulj.com/photo-damien.jpg",
   worksFor: {
     "@type": "Organization",
@@ -157,18 +153,12 @@ export default function AboutPage() {
                 Product Builder &amp; <span className="text-gradient-animated">enthousiaste IA</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-                Je m&apos;appelle Damien Pasulj. Je conçois et construis des produits web, avec plus de onze ans d&apos;expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript — avec en filigrane une sensibilité esthète forgée à l&apos;école de design.
+                Je m&apos;appelle Damien Pasulj. Je conçois et construis des produits web, avec plus de onze ans d&apos;expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript — avec en filigrane une
+                sensibilité esthète forgée à l&apos;école de design.
               </p>
             </div>
             <div className="hidden shrink-0 sm:block">
-              <Image
-                src="/photo-damien.jpg"
-                alt="Damien Pasulj"
-                width={120}
-                height={120}
-                className="rounded-2xl object-cover grayscale transition-all duration-500 hover:grayscale-0"
-                priority
-              />
+              <Image src="/photo-damien.jpg" alt="Damien Pasulj" width={120} height={120} className="rounded-2xl object-cover grayscale transition-all duration-500 hover:grayscale-0" priority />
             </div>
           </div>
         </header>
@@ -178,17 +168,18 @@ export default function AboutPage() {
           <SectionLabel>Le fil rouge</SectionLabel>
           <div className="space-y-5 text-base leading-relaxed text-foreground/90">
             <p>
-              Tout a commencé à l&apos;IDEM, une école de design où j&apos;étudiais l&apos;ergonomie, l&apos;apparence et l&apos;identité visuelle des sites. Ce qui fait qu&apos;un site fonctionne — ou pas — d&apos;un point de vue marketing. Passionné d&apos;interfaces et de technologies depuis toujours, j&apos;ai aussi un côté esthète : j&apos;aime concevoir des choses, initialement inertes, et leur donner vie sur le web.
+              Tout a commencé à l&apos;IDEM, une école de design où j&apos;étudiais l&apos;ergonomie, l&apos;apparence et l&apos;identité visuelle des sites. Ce qui fait qu&apos;un site fonctionne — ou pas — d&apos;un point de vue marketing.
+              Passionné d&apos;interfaces et de technologies depuis toujours, j&apos;ai aussi un côté esthète : j&apos;aime concevoir des choses, initialement inertes, et leur donner vie sur le web.
             </p>
             <p>
-              Mais la surface ne suffisait pas. Je voulais comprendre l&apos;envers du décor — comment on passe d&apos;une maquette à un site en ligne. Cette curiosité m&apos;a conduit à mêler une année de design d&apos;interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.
+              Mais la surface ne suffisait pas. Je voulais comprendre l&apos;envers du décor — comment on passe d&apos;une maquette à un site en ligne. Cette curiosité m&apos;a conduit à mêler une année de design d&apos;interface à une année de
+              développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.
             </p>
             <p>
-              Pendant dix ans chez elloha, j&apos;ai grandi avec le produit : des premiers sites touristiques sous CMS jusqu&apos;à la refonte complète du cœur de l&apos;application en React, TypeScript et Next.js, que j&apos;ai eu la chance de mener en tant que lead. Aujourd&apos;hui, chez Apizee, je continue sur cette voie — architecture front-end, CI/CD et accompagnement d&apos;équipe.
+              Pendant dix ans chez elloha, j&apos;ai grandi avec le produit : des premiers sites touristiques sous CMS jusqu&apos;à la refonte complète du cœur de l&apos;application en React, TypeScript et Next.js, que j&apos;ai eu la chance de mener
+              en tant que lead. Aujourd&apos;hui, chez Apizee, je continue sur cette voie — architecture front-end, CI/CD et accompagnement d&apos;équipe.
             </p>
-            <p>
-              En parallèle, l&apos;IA générative est devenue un terrain de jeu et d&apos;exploration : LLM, RAG, embeddings. Ce site en est d&apos;ailleurs une démonstration — mon « double IA » répond à votre place pour parler de mon parcours.
-            </p>
+            <p>En parallèle, l&apos;IA générative est devenue un terrain de jeu et d&apos;exploration : LLM, RAG, embeddings. Ce site en est d&apos;ailleurs une démonstration — mon « double IA » répond à votre place pour parler de mon parcours.</p>
           </div>
         </section>
 
@@ -221,7 +212,7 @@ export default function AboutPage() {
         <section className="mb-20">
           <SectionLabel>En dehors du code</SectionLabel>
           <p className="mb-6 text-base leading-relaxed text-foreground/90">
-            Basé à Amélie-les-Bains, dans les Pyrénées-Orientales, je travaille en full remote depuis plus de six ans. Français langue maternelle, anglais courant. En dehors de l&apos;écran, je nourris ma curiosité autrement&nbsp;:
+            Basé dans les Pyrénées-Orientales, je travaille en full remote. Français langue maternelle, anglais courant. En dehors de l&apos;écran, je nourris ma curiosité autrement&nbsp;.
           </p>
           <ul className="flex flex-wrap gap-2">
             {INTERESTS.map((interest) => (
@@ -236,7 +227,8 @@ export default function AboutPage() {
         <section className="mb-20">
           <SectionLabel>Philosophie</SectionLabel>
           <p className="text-base leading-relaxed text-foreground/90">
-            Quelle que soit la mission, l&apos;objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet — et livrer quelque chose dont on est fier.
+            Quelle que soit la mission, l&apos;objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet — et
+            livrer quelque chose dont on est fier.
           </p>
         </section>
 

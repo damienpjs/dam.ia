@@ -8,6 +8,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - **Tailwind CSS 4** — styles
 - **shadcn/ui** — composants UI
 - **react-markdown + remark-gfm** — rendu markdown des réponses du bot
+- **@upstash/ratelimit + @upstash/redis** — rate limiting par IP (anti-spam)
 - **Plus Jakarta Sans** — typographie principale (Google Fonts)
 - **Lucide React** — icônes
 - **Vitest** — tests unitaires (seuil de couverture : 95%)
@@ -57,6 +58,8 @@ Copier `.env.example` vers `.env` puis renseigner les clés.
 | `DATABASE_URL`   | non    | Connection string Neon PostgreSQL (persistance du chat)                                           |
 | `QDRANT_URL`     | non    | URL de l'instance Qdrant (base vectorielle RAG)                                                   |
 | `QDRANT_API_KEY` | non    | Clé Qdrant (requise pour Qdrant Cloud)                                                            |
+| `UPSTASH_REDIS_REST_URL`   | non | URL REST Upstash Redis — active le rate limiting ([console.upstash.com](https://console.upstash.com)) |
+| `UPSTASH_REDIS_REST_TOKEN` | non | Token REST Upstash Redis                                                                          |
 
 \* Si aucune clé LLM n'est fournie, l'application bascule sur le `MockProvider` (réponses pré-enregistrées).
 
@@ -82,6 +85,17 @@ Les plafonds et l'ancre sont configurables dans `src/constants/llm.ts`. Sans `se
 #### Détection de répétition
 
 Avant chaque génération, le message courant est comparé à **toutes** les questions utilisateur précédentes (`src/lib/llm/repeated-question.ts`), et pas seulement à la fenêtre récente. La détection est **déterministe** et volontairement conservatrice (exacte / quasi-exacte après normalisation casse/accents/ponctuation, tolérance d'une faute de frappe via distance de Levenshtein) afin de garantir zéro faux positif. Si une question déjà posée est repérée, une **note interne non persistée** est injectée dans le prompt pour que l'assistant y fasse une référence subtile (et légèrement sarcastique) de façon fiable, tout en répondant. Les seuils sont configurables dans `src/constants/llm.ts` (`REPEATED_QUESTION_MAX_DISTANCE_RATIO`, `REPEATED_QUESTION_MIN_LENGTH`).
+
+## Sécurité & anti-spam
+
+Les routes API publiques étant exposées sans authentification, plusieurs garde-fous protègent les bases (Neon PostgreSQL, quota LLM) contre le spam automatisé :
+
+- **Rate limiting par IP** — un proxy Next.js ([`src/proxy.ts`](src/proxy.ts), convention Next 16 qui remplace `middleware.ts`) limite les requêtes `POST` sur `/api/chat` et `/api/feedback` via une fenêtre glissante Upstash Redis. Les seuils sont configurables dans [`src/constants/rate-limit.ts`](src/constants/rate-limit.ts) (15 req/min pour le chat, 30 req/min pour le feedback). En l'absence des variables `UPSTASH_*`, le rate limiting se **désactive proprement** (dev local, mode mock, CI).
+- **Validation des identifiants** — `messageId` (feedback) et `sessionId` (lecture de session) doivent être des **UUID** valides, rejetés en `400` avant toute requête DB ([`src/lib/validation.ts`](src/lib/validation.ts)).
+- **Plafonnement des entrées** — message du chat limité à `MAX_MESSAGE_LENGTH` (500) caractères, commentaire de feedback à `MAX_FEEDBACK_COMMENT_LENGTH` (2000), et taille du body bufferisé plafonnée via `experimental.proxyClientMaxBodySize` (64 ko) dans `next.config.ts`.
+- **Détection de prompt injection** — les messages sont analysés ([`src/lib/sanitize-message.ts`](src/lib/sanitize-message.ts)) et taggés `[INJECTION DETECTED]` avant transmission au LLM.
+
+> Les requêtes SQL passent toutes par Drizzle ORM (paramétrées) : pas d'injection SQL. Les clés/`DATABASE_URL` sont dans `.env` (gitignoré).
 
 ## Tests et couverture
 

@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server"
 import { saveFeedback } from "@/lib/db/chat-service"
+import { isUuid } from "@/lib/validation"
+import { MAX_FEEDBACK_COMMENT_LENGTH } from "@/constants/validation"
 
 /**
  * Interface pour le body de la requête POST
@@ -22,8 +24,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     const body = (await request.json()) as IFeedbackRequest
     const { messageId, rating, comment } = body
 
-    if (!messageId || typeof messageId !== "string") {
-      return new Response(JSON.stringify({ error: "Le champ 'messageId' est requis" }), {
+    if (!isUuid(messageId)) {
+      return new Response(JSON.stringify({ error: "Le champ 'messageId' doit être un UUID valide" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       })
@@ -31,6 +33,13 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     if (typeof rating !== "number" || rating < 1 || rating > 5) {
       return new Response(JSON.stringify({ error: "Le champ 'rating' doit être un nombre entre 1 et 5" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    if (comment !== undefined && (typeof comment !== "string" || comment.length > MAX_FEEDBACK_COMMENT_LENGTH)) {
+      return new Response(JSON.stringify({ error: `Le commentaire ne doit pas dépasser ${MAX_FEEDBACK_COMMENT_LENGTH} caractères` }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       })

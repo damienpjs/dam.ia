@@ -37,7 +37,8 @@ describe("Page À propos (/about)", () => {
   it("affiche les centres d'intérêt", () => {
     render(<AboutPage />)
     for (const interest of ["Voyages", "Sport", "Philosophie", "Dessin"]) {
-      expect(screen.getByText(interest)).toBeInTheDocument()
+      // Scopé sur les <li> : "Philosophie" est aussi un titre de section
+      expect(screen.getByText(interest, { selector: "li" })).toBeInTheDocument()
     }
   })
 

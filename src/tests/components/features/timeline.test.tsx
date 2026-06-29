@@ -7,15 +7,20 @@ function mockIntersectionObserver(intersecting: boolean) {
   const observe = vi.fn()
   const disconnect = vi.fn()
 
-  const MockObserver = vi.fn((callback: IntersectionObserverCallback) => {
+  // Fonction classique (non fléchée) pour être constructible avec `new`
+  const MockObserver = vi.fn(function (
+    this: IntersectionObserver,
+    callback: IntersectionObserverCallback,
+  ) {
+    this.observe = observe
+    this.disconnect = disconnect
     // Déclenche le callback immédiatement avec l'état voulu
     setTimeout(() => {
       callback(
         [{ isIntersecting: intersecting } as IntersectionObserverEntry],
-        {} as IntersectionObserver,
+        this,
       )
     }, 0)
-    return { observe, disconnect }
   })
 
   vi.stubGlobal("IntersectionObserver", MockObserver)

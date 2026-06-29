@@ -4,8 +4,38 @@ import Link from "next/link"
 import { Timeline } from "@/components/features/timeline"
 
 export const metadata: Metadata = {
-  title: "À propos — Damien Pasulj",
-  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+  title: "À propos",
+  description:
+    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    type: "profile",
+    locale: "fr_FR",
+    url: "https://damienpasulj.com/about",
+    siteName: "Damien Pasulj",
+    title: "À propos — Damien Pasulj",
+    description:
+      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+    images: [
+      {
+        url: "/photo-damien.jpg",
+        width: 120,
+        height: 120,
+        alt: "Damien Pasulj",
+      },
+    ],
+    firstName: "Damien",
+    lastName: "Pasulj",
+  },
+  twitter: {
+    card: "summary",
+    title: "À propos — Damien Pasulj",
+    description:
+      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+    images: ["/photo-damien.jpg"],
+  },
 }
 
 /** Une étape du parcours professionnel ou de formation. */
@@ -78,9 +108,37 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="mb-6 font-mono text-xs uppercase tracking-[0.2em] text-coral/70">{children}</p>
 }
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Damien Pasulj",
+  url: "https://damienpasulj.com",
+  sameAs: ["https://www.linkedin.com/in/damien-pasulj-700928ba/"],
+  jobTitle: "Product Builder & Lead React / TypeScript / Next.js",
+  description:
+    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Plus de onze ans d'expérience en front-end et en full-stack.",
+  image: "https://damienpasulj.com/photo-damien.jpg",
+  worksFor: {
+    "@type": "Organization",
+    name: "Apizee",
+  },
+  knowsAbout: ["React", "TypeScript", "Next.js", "Node.js", "Intelligence artificielle", "RAG", "Qdrant", "GitLab CI/CD"],
+  alumniOf: {
+    "@type": "EducationalOrganization",
+    name: "L'IDEM — École Supérieure des Métiers Créatifs et Numériques",
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Amélie-les-Bains",
+    addressRegion: "Pyrénées-Orientales",
+    addressCountry: "FR",
+  },
+}
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen w-full px-6 py-16 sm:px-8 sm:py-24">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <article className="mx-auto flex w-full max-w-2xl flex-col">
         {/* Retour vers l'accueil / le chat */}
         <nav className="mb-16">

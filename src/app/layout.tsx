@@ -19,8 +19,44 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Damien Pasulj — Product Builder & enthousiaste IA",
-  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+  metadataBase: new URL("https://damienpasulj.com"),
+  title: {
+    default: "Damien Pasulj — Product Builder & enthousiaste IA",
+    template: "%s — Damien Pasulj",
+  },
+  description:
+    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+  authors: [{ name: "Damien Pasulj", url: "https://damienpasulj.com" }],
+  creator: "Damien Pasulj",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: "https://damienpasulj.com",
+    siteName: "Damien Pasulj",
+    title: "Damien Pasulj — Product Builder & enthousiaste IA",
+    description:
+      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+    images: [
+      {
+        url: "/photo-damien.jpg",
+        width: 120,
+        height: 120,
+        alt: "Damien Pasulj",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Damien Pasulj — Product Builder & enthousiaste IA",
+    description:
+      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+    images: ["/photo-damien.jpg"],
+  },
 }
 
 export const viewport: Viewport = {

@@ -98,6 +98,32 @@ describe("scrapeWebSource", () => {
     })
   })
 
+  it("affiche displayUrl comme sourceUrl tout en scrapant url", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("<html><body><p>Contenu indexé depuis la page about.</p></body></html>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      }),
+    )
+
+    const sourceWithDisplay: IWebSource = {
+      id: "site-perso",
+      url: "https://example.com/about",
+      displayUrl: "/about",
+      label: "example.com",
+    }
+
+    const chunks = await scrapeWebSource(sourceWithDisplay)
+
+    // On scrape bien l'URL réelle…
+    expect(fetchSpy).toHaveBeenCalledWith("https://example.com/about", expect.anything())
+    // …mais la source affichée pointe vers displayUrl avec le label inchangé.
+    expect(chunks[0].metadata).toEqual({
+      sourceUrl: "/about",
+      sourceLabel: "example.com",
+    })
+  })
+
   it("retourne un tableau vide si la page ne contient pas de texte", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response("<html><head><style>x</style></head><body><script>y</script></body></html>", {

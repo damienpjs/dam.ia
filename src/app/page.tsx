@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { HeroScene } from "@/components/features/hero-scene"
 import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
@@ -102,6 +103,12 @@ export default function Home() {
 
           {/* Étiquettes des technos maîtrisées (avec logos + « voir X + ») */}
           <TechBadges />
+
+          {/* Lien discret vers la page about */}
+          <Link href="/about" className="pointer-events-auto font-mono text-xs text-zinc-600 transition-colors duration-300 hover:text-coral">
+            À propos
+            <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </Link>
         </main>
       </div>
 

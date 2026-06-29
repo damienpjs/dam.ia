@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
+import { Timeline } from "@/components/features/timeline"
 
 export const metadata: Metadata = {
   title: "À propos — Damien Pasulj",
@@ -64,7 +66,7 @@ const SKILL_GROUPS: ISkillGroup[] = [
   { label: "Stack principale", items: ["React", "TypeScript", "Next.js", "Node.js"] },
   { label: "DevOps & outils", items: ["GitLab CI/CD", "Git", "Architecture front-end"] },
   { label: "IA & RAG", items: ["LLM (Claude, OpenAI, Gemini)", "RAG", "Embeddings", "Qdrant"] },
-  { label: "Design (background UI/UX)", items: ["Photoshop", "Illustrator", "InDesign", "After Effects", "Premiere Pro"] },
+  { label: "Design & identité visuelle", items: ["UI/UX", "Identité visuelle", "Photoshop", "Illustrator", "InDesign", "After Effects", "Premiere Pro"] },
   { label: "Historique", items: ["ASP.NET / C# (5+ ans)", "DotNetNuke"] },
   { label: "Soft skills", items: ["Organisation", "Travail d'équipe", "Communication", "Créativité"] },
 ]
@@ -90,13 +92,27 @@ export default function AboutPage() {
 
         {/* En-tête éditorial */}
         <header className="mb-20">
-          <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-teal/80">À propos</p>
-          <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
-            Product Builder &amp; <span className="text-gradient-animated">enthousiaste IA</span>
-          </h1>
-          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-            Je m&apos;appelle Damien Pasulj. Je conçois et construis des produits web, avec plus de onze ans d&apos;expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript.
-          </p>
+          <div className="flex items-start gap-8">
+            <div className="flex-1">
+              <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-teal/80">À propos</p>
+              <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+                Product Builder &amp; <span className="text-gradient-animated">enthousiaste IA</span>
+              </h1>
+              <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+                Je m&apos;appelle Damien Pasulj. Je conçois et construis des produits web, avec plus de onze ans d&apos;expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript — avec en filigrane une sensibilité esthète forgée à l&apos;école de design.
+              </p>
+            </div>
+            <div className="hidden shrink-0 sm:block">
+              <Image
+                src="/photo-damien.jpg"
+                alt="Damien Pasulj"
+                width={120}
+                height={120}
+                className="rounded-2xl object-cover grayscale transition-all duration-500 hover:grayscale-0"
+                priority
+              />
+            </div>
+          </div>
         </header>
 
         {/* Introduction / narration */}
@@ -104,7 +120,10 @@ export default function AboutPage() {
           <SectionLabel>Le fil rouge</SectionLabel>
           <div className="space-y-5 text-base leading-relaxed text-foreground/90">
             <p>
-              Tout a commencé par un choix : sauter les bancs de l&apos;université pour me plonger directement dans le code. À l&apos;IDEM, j&apos;ai mêlé une année de design d&apos;interface à une année de développement — cette double sensibilité UI/UX et technique ne m&apos;a plus quitté depuis.
+              Tout a commencé à l&apos;IDEM, une école de design où j&apos;étudiais l&apos;ergonomie, l&apos;apparence et l&apos;identité visuelle des sites. Ce qui fait qu&apos;un site fonctionne — ou pas — d&apos;un point de vue marketing. Passionné d&apos;interfaces et de technologies depuis toujours, j&apos;ai aussi un côté esthète : j&apos;aime concevoir des choses, initialement inertes, et leur donner vie sur le web.
+            </p>
+            <p>
+              Mais la surface ne suffisait pas. Je voulais comprendre l&apos;envers du décor — comment on passe d&apos;une maquette à un site en ligne. Cette curiosité m&apos;a conduit à mêler une année de design d&apos;interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.
             </p>
             <p>
               Pendant dix ans chez elloha, j&apos;ai grandi avec le produit : des premiers sites touristiques sous CMS jusqu&apos;à la refonte complète du cœur de l&apos;application en React, TypeScript et Next.js, que j&apos;ai eu la chance de mener en tant que lead. Aujourd&apos;hui, chez Apizee, je continue sur cette voie — architecture front-end, CI/CD et accompagnement d&apos;équipe.
@@ -118,32 +137,7 @@ export default function AboutPage() {
         {/* Parcours — timeline */}
         <section className="mb-20">
           <SectionLabel>Parcours</SectionLabel>
-          <ol className="relative border-l border-border">
-            {TIMELINE.map((entry) => (
-              <li key={`${entry.org}-${entry.period}`} className="relative ml-6 pb-10 last:pb-0">
-                <span
-                  aria-hidden="true"
-                  className={`absolute -left-[1.9rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-background ${entry.current ? "bg-coral" : "bg-teal/60"}`}
-                />
-                <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{entry.period}</p>
-                <h2 className="mt-1.5 text-lg font-semibold text-foreground">
-                  {entry.role}
-                  {entry.current && <span className="ml-2 align-middle rounded-full bg-coral/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-coral">Actuel</span>}
-                </h2>
-                <p className="text-sm font-medium text-teal">{entry.org}</p>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{entry.description}</p>
-                {entry.stack && (
-                  <ul className="mt-3 flex flex-wrap gap-1.5">
-                    {entry.stack.map((tech) => (
-                      <li key={tech} className="rounded-full border border-border bg-card px-2.5 py-0.5 font-mono text-[11px] text-foreground/70">
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ol>
+          <Timeline entries={[...TIMELINE].reverse()} />
         </section>
 
         {/* Compétences */}
@@ -178,6 +172,14 @@ export default function AboutPage() {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* Philosophie */}
+        <section className="mb-20">
+          <SectionLabel>Philosophie</SectionLabel>
+          <p className="text-base leading-relaxed text-foreground/90">
+            Quelle que soit la mission, l&apos;objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet — et livrer quelque chose dont on est fier.
+          </p>
         </section>
 
         {/* Appel à l'action vers le chat */}

@@ -60,6 +60,7 @@ Copier `.env.example` vers `.env` puis renseigner les clés.
 | `QDRANT_API_KEY` | non    | Clé Qdrant (requise pour Qdrant Cloud)                                                            |
 | `UPSTASH_REDIS_REST_URL`   | non | URL REST Upstash Redis — active le rate limiting ([console.upstash.com](https://console.upstash.com)) |
 | `UPSTASH_REDIS_REST_TOKEN` | non | Token REST Upstash Redis                                                                          |
+| `ALLOWED_ORIGINS`          | non | Origines cross-origin autorisées (CSV) en plus du same-origin. Défaut : domaine de prod.          |
 
 \* Si aucune clé LLM n'est fournie, l'application bascule sur le `MockProvider` (réponses pré-enregistrées).
 
@@ -90,7 +91,8 @@ Avant chaque génération, le message courant est comparé à **toutes** les que
 
 Les routes API publiques étant exposées sans authentification, plusieurs garde-fous protègent les bases (Neon PostgreSQL, quota LLM) contre le spam automatisé :
 
-- **Rate limiting par IP** — un proxy Next.js ([`src/proxy.ts`](src/proxy.ts), convention Next 16 qui remplace `middleware.ts`) limite les requêtes `POST` sur `/api/chat` et `/api/feedback` via une fenêtre glissante Upstash Redis. Les seuils sont configurables dans [`src/constants/rate-limit.ts`](src/constants/rate-limit.ts) (15 req/min pour le chat, 30 req/min pour le feedback). En l'absence des variables `UPSTASH_*`, le rate limiting se **désactive proprement** (dev local, mode mock, CI).
+- **Contrôle d'origine (CORS)** — le proxy ([`src/proxy.ts`](src/proxy.ts)) rejette en `403` les `POST` cross-site sur `/api/chat` et `/api/feedback` et gère le preflight `OPTIONS` ([`src/lib/cors.ts`](src/lib/cors.ts)). Le **same-origin** est autorisé automatiquement (dev/preview/prod, sans config) ; des origines supplémentaires se déclarent via `ALLOWED_ORIGINS`. Protège contre l'abus navigateur cross-site (les requêtes scriptées sans `Origin` restent couvertes par le rate limiting).
+- **Rate limiting par IP** — le proxy Next.js ([`src/proxy.ts`](src/proxy.ts), convention Next 16 qui remplace `middleware.ts`) limite les requêtes `POST` sur `/api/chat` et `/api/feedback` via une fenêtre glissante Upstash Redis. Les seuils sont configurables dans [`src/constants/rate-limit.ts`](src/constants/rate-limit.ts) (15 req/min pour le chat, 30 req/min pour le feedback). En l'absence des variables `UPSTASH_*`, le rate limiting se **désactive proprement** (dev local, mode mock, CI).
 - **Validation des identifiants** — `messageId` (feedback) et `sessionId` (lecture de session) doivent être des **UUID** valides, rejetés en `400` avant toute requête DB ([`src/lib/validation.ts`](src/lib/validation.ts)).
 - **Plafonnement des entrées** — message du chat limité à `MAX_MESSAGE_LENGTH` (500) caractères, commentaire de feedback à `MAX_FEEDBACK_COMMENT_LENGTH` (2000), et taille du body bufferisé plafonnée via `experimental.proxyClientMaxBodySize` (64 ko) dans `next.config.ts`.
 - **Détection de prompt injection** — les messages sont analysés ([`src/lib/sanitize-message.ts`](src/lib/sanitize-message.ts)) et taggés `[INJECTION DETECTED]` avant transmission au LLM.

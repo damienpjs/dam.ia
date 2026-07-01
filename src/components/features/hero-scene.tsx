@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, ContactShadows, Grid, Html, useAnimations, useGLTF } from "@react-three/drei"
 import { EffectComposer, Glitch, ToneMapping } from "@react-three/postprocessing"
@@ -79,7 +79,7 @@ function lerpAngle(current: number, target: number, t: number): number {
 function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const { scene, animations } = useGLTF(MODEL_PATH)
-  const { actions } = useAnimations(animations, root)
+  const { actions, mixer } = useAnimations(animations, root)
   const currentAction = useRef<THREE.AnimationAction | null>(null)
 
   // Normalisation du modèle : on calcule l'échelle et l'offset pour centrer le
@@ -98,11 +98,17 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   }, [scene])
 
   const playAction = useCallback(
-    (name: string) => {
+    (name: string, immediate = false) => {
       const next = actions[name]
       if (!next || next === currentAction.current) return
-      next.reset().fadeIn(FADE_S).play()
-      currentAction.current?.fadeOut(FADE_S)
+      if (immediate) {
+        // Prise de contrôle instantanée (pas de fondu depuis la T-pose) : sert à
+        // poser le squelette avant le tout premier rendu.
+        next.reset().play()
+      } else {
+        next.reset().fadeIn(FADE_S).play()
+        currentAction.current?.fadeOut(FADE_S)
+      }
       currentAction.current = next
     },
     [actions],
@@ -122,9 +128,14 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const bubbleVisible = useRef(false)
   const bubbleTimer = useRef(randRange(BUBBLE_DELAY_MIN, BUBBLE_DELAY_MAX))
 
-  useEffect(() => {
-    playAction(ANIM_IDLE)
-  }, [playAction])
+  useLayoutEffect(() => {
+    // Démarre l'idle et applique immédiatement la première pose (mixer.update(0))
+    // avant le paint. L'effet de layout s'exécute de façon synchrone après le
+    // commit React et avant tout rendu three.js : le squelette est donc posé dès
+    // la première frame affichée, sans jamais passer par la pose de repos (T-pose).
+    playAction(ANIM_IDLE, true)
+    mixer.update(0)
+  }, [playAction, mixer])
 
   useFrame((_, dt) => {
     const g = root.current

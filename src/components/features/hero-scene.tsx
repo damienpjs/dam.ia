@@ -82,11 +82,6 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const { actions, mixer } = useAnimations(animations, root)
   const currentAction = useRef<THREE.AnimationAction | null>(null)
 
-  // Le personnage n'est révélé qu'une fois le squelette posé par l'animation,
-  // pour ne jamais laisser voir la pose de repos (T-pose) du modèle avant que
-  // le mixer n'ait appliqué sa première frame.
-  const [ready, setReady] = useState(false)
-
   // Normalisation du modèle : on calcule l'échelle et l'offset pour centrer le
   // personnage en (0,0) avec les pieds posés sur le sol.
   const { offset, scale } = useMemo(() => {
@@ -135,11 +130,11 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
 
   useLayoutEffect(() => {
     // Démarre l'idle et applique immédiatement la première pose (mixer.update(0))
-    // avant le paint, puis révèle le personnage : il apparaît donc directement
-    // animé, sans passer par la pose de repos.
+    // avant le paint. L'effet de layout s'exécute de façon synchrone après le
+    // commit React et avant tout rendu three.js : le squelette est donc posé dès
+    // la première frame affichée, sans jamais passer par la pose de repos (T-pose).
     playAction(ANIM_IDLE, true)
     mixer.update(0)
-    setReady(true)
   }, [playAction, mixer])
 
   useFrame((_, dt) => {
@@ -203,7 +198,7 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
 
   return (
     <group ref={root}>
-      <group position={offset} scale={scale} visible={ready}>
+      <group position={offset} scale={scale}>
         <primitive object={scene} />
       </group>
       <Html position={[0, BUBBLE_HEIGHT, 0]} center wrapperClass="speech-bubble-wrap" zIndexRange={[20, 0]}>

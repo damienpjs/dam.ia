@@ -108,14 +108,19 @@ Le rapport HTML de couverture est aussi généré dans `./coverage/index.html` a
 
 > **Note :** `animated-background.tsx` est exclu de la couverture car il utilise l'API Canvas, non disponible dans jsdom.
 
-### Intégration continue
+### Intégration continue & déploiement
 
-Un workflow GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) exécute le lint et les tests unitaires :
+L'intégration continue et les déploiements Vercel sont répartis par événement sur trois workflows GitHub Actions (un workflow par déclencheur, afin d'éviter les checks « skipped » sur les PR) :
 
-- à **chaque push** sur n'importe quelle branche de travail ;
-- sur chaque **pull request** vers `main` ou `develop`.
+| Workflow | Déclencheur | Rôle |
+|---|---|---|
+| [`ci.yml`](.github/workflows/ci.yml) | **pull request** vers `main` ou `develop` | Lint + tests, puis déploiement **preview** Vercel |
+| [`deploy-develop.yml`](.github/workflows/deploy-develop.yml) | **push** sur `develop` | Lint + tests, puis déploiement sur l'environnement **`develop`** (`vercel deploy --target=develop`) |
+| [`deploy-production.yml`](.github/workflows/deploy-production.yml) | **push** sur `main` | Lint + tests, puis déploiement **production** (`vercel deploy --prod`) |
 
-Le job échoue si le lint ou les tests échouent, ou si la couverture descend sous le seuil de **95%**. Pour bloquer le merge sur `main`, activer la protection de branche (_Settings → Branches_) avec le check **« Lint & tests »** requis.
+Dans chaque workflow, le déploiement (`needs: test`) n'est exécuté **que si le lint et les tests passent** ; le job échoue si la couverture descend sous le seuil de **95%**. Le build est réalisé côté Vercel. Pour bloquer le merge sur `main`, activer la protection de branche (_Settings → Branches_) avec le check **« Lint & tests »** requis.
+
+Secrets requis (_Settings → Secrets and variables → Actions_) : `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`. L'environnement Vercel **`develop`** doit exister côté Vercel (_Project Settings → Environments_) pour que `--target=develop` cible le bon environnement.
 
 ## Getting Started
 

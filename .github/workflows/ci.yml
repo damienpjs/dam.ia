@@ -54,7 +54,19 @@ jobs:
         run: npm i -g vercel@latest
 
       - name: Déployer la preview (build côté Vercel)
-        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          GIT_REF: ${{ github.head_ref }}
+          GIT_SHA: ${{ github.event.pull_request.head.sha }}
+          GIT_MSG: ${{ github.event.pull_request.title }}
+          GIT_ORG: ${{ github.repository_owner }}
+          GIT_REPO: ${{ github.event.repository.name }}
+        run: |
+          vercel deploy --token=${{ secrets.VERCEL_TOKEN }} \
+            --meta githubCommitRef="$GIT_REF" \
+            --meta githubCommitSha="$GIT_SHA" \
+            --meta githubCommitMessage="$GIT_MSG" \
+            --meta githubCommitOrg="$GIT_ORG" \
+            --meta githubCommitRepo="$GIT_REPO"
 
   deploy-production:
     name: Déploiement Production (Vercel)
@@ -73,4 +85,16 @@ jobs:
         run: npm i -g vercel@latest
 
       - name: Déployer en production (build côté Vercel)
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          GIT_REF: ${{ github.ref_name }}
+          GIT_SHA: ${{ github.sha }}
+          GIT_MSG: ${{ github.event.head_commit.message }}
+          GIT_ORG: ${{ github.repository_owner }}
+          GIT_REPO: ${{ github.event.repository.name }}
+        run: |
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} \
+            --meta githubCommitRef="$GIT_REF" \
+            --meta githubCommitSha="$GIT_SHA" \
+            --meta githubCommitMessage="$GIT_MSG" \
+            --meta githubCommitOrg="$GIT_ORG" \
+            --meta githubCommitRepo="$GIT_REPO"

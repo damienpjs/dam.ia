@@ -36,3 +36,41 @@ jobs:
 
       - name: Tests unitaires + couverture (seuil 95 %)
         run: npm run test:ci
+
+  deploy-preview:
+    name: Déploiement Preview (Vercel)
+    needs: test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer la CLI Vercel
+        run: npm i -g vercel@latest
+
+      - name: Déployer la preview (build côté Vercel)
+        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-production:
+    name: Déploiement Production (Vercel)
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer la CLI Vercel
+        run: npm i -g vercel@latest
+
+      - name: Déployer en production (build côté Vercel)
+        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}

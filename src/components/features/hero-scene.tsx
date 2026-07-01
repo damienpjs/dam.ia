@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, ContactShadows, Grid, Html, useAnimations, useGLTF } from "@react-three/drei"
 import { EffectComposer, Glitch, ToneMapping } from "@react-three/postprocessing"
@@ -79,8 +79,13 @@ function lerpAngle(current: number, target: number, t: number): number {
 function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const root = useRef<THREE.Group>(null!)
   const { scene, animations } = useGLTF(MODEL_PATH)
-  const { actions } = useAnimations(animations, root)
+  const { actions, mixer } = useAnimations(animations, root)
   const currentAction = useRef<THREE.AnimationAction | null>(null)
+
+  // Le personnage n'est révélé qu'une fois le squelette posé par l'animation,
+  // pour ne jamais laisser voir la pose de repos (T-pose) du modèle avant que
+  // le mixer n'ait appliqué sa première frame.
+  const [ready, setReady] = useState(false)
 
   // Normalisation du modèle : on calcule l'échelle et l'offset pour centrer le
   // personnage en (0,0) avec les pieds posés sur le sol.
@@ -98,11 +103,17 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   }, [scene])
 
   const playAction = useCallback(
-    (name: string) => {
+    (name: string, immediate = false) => {
       const next = actions[name]
       if (!next || next === currentAction.current) return
-      next.reset().fadeIn(FADE_S).play()
-      currentAction.current?.fadeOut(FADE_S)
+      if (immediate) {
+        // Prise de contrôle instantanée (pas de fondu depuis la T-pose) : sert à
+        // poser le squelette avant le tout premier rendu.
+        next.reset().play()
+      } else {
+        next.reset().fadeIn(FADE_S).play()
+        currentAction.current?.fadeOut(FADE_S)
+      }
       currentAction.current = next
     },
     [actions],
@@ -122,9 +133,14 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   const bubbleVisible = useRef(false)
   const bubbleTimer = useRef(randRange(BUBBLE_DELAY_MIN, BUBBLE_DELAY_MAX))
 
-  useEffect(() => {
-    playAction(ANIM_IDLE)
-  }, [playAction])
+  useLayoutEffect(() => {
+    // Démarre l'idle et applique immédiatement la première pose (mixer.update(0))
+    // avant le paint, puis révèle le personnage : il apparaît donc directement
+    // animé, sans passer par la pose de repos.
+    playAction(ANIM_IDLE, true)
+    mixer.update(0)
+    setReady(true)
+  }, [playAction, mixer])
 
   useFrame((_, dt) => {
     const g = root.current
@@ -187,7 +203,7 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
 
   return (
     <group ref={root}>
-      <group position={offset} scale={scale}>
+      <group position={offset} scale={scale} visible={ready}>
         <primitive object={scene} />
       </group>
       <Html position={[0, BUBBLE_HEIGHT, 0]} center wrapperClass="speech-bubble-wrap" zIndexRange={[20, 0]}>

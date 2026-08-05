@@ -1,21 +1,15 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-
-interface ITimelineEntry {
-  period: string
-  role: string
-  org: string
-  description: string
-  stack?: string[]
-  current?: boolean
-}
+import type { ITimelineEntry } from "@/constants/dictionary"
+import { useLocale } from "@/lib/locale-context"
 
 interface ITimelineItemProps {
   entry: ITimelineEntry
 }
 
 function TimelineItem({ entry }: ITimelineItemProps) {
+  const { t } = useLocale()
   const ref = useRef<HTMLLIElement>(null)
   const [visible, setVisible] = useState(false)
 
@@ -51,7 +45,7 @@ function TimelineItem({ entry }: ITimelineItemProps) {
       <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{entry.period}</p>
       <h2 className="mt-1.5 text-lg font-semibold text-foreground">
         {entry.role}
-        {entry.current && <span className="ml-2 align-middle rounded-full bg-coral/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-coral">Actuel</span>}
+        {entry.current && <span className="ml-2 align-middle rounded-full bg-coral/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-coral">{t.about.currentBadge}</span>}
       </h2>
       <p className="text-sm font-medium text-teal">{entry.org}</p>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{entry.description}</p>
@@ -75,7 +69,7 @@ interface ITimelineProps {
 export function Timeline({ entries }: ITimelineProps) {
   return (
     <ol className="relative border-l border-border">
-      {entries.map((entry, index) => (
+      {entries.map((entry) => (
         <TimelineItem key={`${entry.org}-${entry.period}`} entry={entry} />
       ))}
     </ol>

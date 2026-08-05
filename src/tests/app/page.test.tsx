@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
+import { renderWithLocale } from "@/tests/helpers/locale"
+import { DICTIONARIES } from "@/constants/dictionary"
 
 vi.mock("@/components/features/hero-scene", () => ({
   HeroScene: () => <div data-testid="hero-scene" />,
@@ -19,6 +21,7 @@ function stubLayout() {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  localStorage.clear()
 })
 
 describe("Page d'accueil (/)", () => {
@@ -104,5 +107,40 @@ describe("Page d'accueil (/)", () => {
     await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
     expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
+  })
+
+  describe("Sélecteur de langue", () => {
+    it("est présent sur l'accueil et dans le header de la conversation", () => {
+      render(<Home />)
+      // Un sur la landing, un dans le header du chat : celui qui est visible
+      // dépend de la phase, l'autre est masqué par l'opacité.
+      expect(screen.getAllByTestId("language-switcher")).toHaveLength(2)
+    })
+
+    it("traduit l'accroche, le CTA et le lien « à propos » en anglais", () => {
+      renderWithLocale(<Home />, "en")
+      const { landing } = DICTIONARIES.en
+
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(landing.greeting.trim())
+      expect(screen.getByRole("button", { name: landing.startConversationAria })).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: new RegExp(landing.aboutLink, "i") })).toHaveAttribute("href", "/about")
+    })
+
+    it("traduit la bulle d'accueil en anglais", () => {
+      renderWithLocale(<Home />, "en")
+      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/AI enthusiast/i)
+    })
+
+    it("bascule le contenu au clic sur EN", async () => {
+      const user = userEvent.setup()
+      renderWithLocale(<Home />, "fr")
+
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/moi c'est damien/i)
+
+      await user.click(screen.getAllByText("EN")[0])
+
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(DICTIONARIES.en.landing.greeting.trim())
+      expect(localStorage.getItem("dam_ia_locale")).toBe("en")
+    })
   })
 })

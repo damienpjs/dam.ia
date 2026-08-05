@@ -55,9 +55,7 @@ describe("constants/scene", () => {
     expect(scene.FOG_NEAR).toBeLessThan(scene.FOG_FAR)
   })
 
-  it("configure la bulle de réplique (répliques, délais ordonnés, durée et hauteur)", () => {
-    expect(scene.BUBBLE_LINES.length).toBeGreaterThan(0)
-    expect(scene.BUBBLE_LINES.every((line) => line.trim().length > 0)).toBe(true)
+  it("configure la bulle de réplique (délais ordonnés, durée et hauteur)", () => {
     expect(scene.BUBBLE_DELAY_MIN).toBeGreaterThan(0)
     expect(scene.BUBBLE_DELAY_MAX).toBeGreaterThan(scene.BUBBLE_DELAY_MIN)
     expect(scene.BUBBLE_DURATION).toBeGreaterThan(0)

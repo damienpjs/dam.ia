@@ -5,6 +5,7 @@ import Image from "next/image"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
+import { useLocale } from "@/lib/locale-context"
 import { ThinkingPhrase } from "@/components/features/thinking-phrase"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
@@ -65,6 +66,7 @@ function MarkdownMessage({ content }: { content: string }) {
 }
 
 export function MessageBubble({ message, isStreaming = false, onReuse, showActions = true }: IMessageBubbleProps) {
+  const { t } = useLocale()
   const [copied, setCopied] = useState(false)
   const [tapped, setTapped] = useState(false)
   const bubbleRef = useRef<HTMLDivElement>(null)
@@ -128,7 +130,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
               {showCursor && <span data-testid="streaming-cursor" className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-current align-text-bottom" />}
               {showSources && (
                 <div data-testid="message-sources" className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2.5">
-                  <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Sources</span>
+                  <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">{t.chat.sourcesLabel}</span>
                   {message.sources!.map((s) => {
                     const baseClass =
                       "inline-flex items-center rounded-full border border-coral/20 bg-coral/5 px-2 py-0.5 text-[11px] font-medium text-coral/80 transition-colors hover:border-coral/40 hover:bg-coral/10 hover:text-coral"
@@ -156,7 +158,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
                 data-testid="reuse-button"
                 type="button"
                 onClick={handleReuse}
-                aria-label="Renvoyer ce message"
+                aria-label={t.chat.reuse}
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
                   tapped && "opacity-100",
@@ -172,7 +174,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
               data-testid="copy-button"
               type="button"
               onClick={handleCopy}
-              aria-label={copied ? "Copié" : "Copier le message"}
+              aria-label={copied ? t.chat.copied : t.chat.copy}
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
                 tapped && "opacity-100",

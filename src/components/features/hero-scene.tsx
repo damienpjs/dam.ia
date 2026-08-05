@@ -45,12 +45,12 @@ import {
   GLITCH_STRENGTH_MIN,
   GLITCH_STRENGTH_MAX,
   GLITCH_CHROMATIC_OFFSET,
-  BUBBLE_LINES,
   BUBBLE_DELAY_MIN,
   BUBBLE_DELAY_MAX,
   BUBBLE_DURATION,
   BUBBLE_HEIGHT,
 } from "@/constants/scene"
+import { useLocale } from "@/lib/locale-context"
 import { cn } from "@/lib/utils"
 
 type TWanderMode = "idle" | "walk"
@@ -76,7 +76,7 @@ function lerpAngle(current: number, target: number, t: number): number {
  * d'animation et de support au déplacement (translation/rotation sur le sol).
  * Le modèle est normalisé (centré, pieds sur y=0, mis à l'échelle) une seule fois.
  */
-function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
+function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; bubbleLines: string[] }) {
   const root = useRef<THREE.Group>(null!)
   const { scene, animations } = useGLTF(MODEL_PATH)
   const { actions, mixer } = useAnimations(animations, root)
@@ -124,7 +124,7 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
   // personnage. Le timer et l'état « visible » vivent dans des refs (mis à jour
   // chaque frame) ; seules les transitions montrer/masquer déclenchent un
   // re-render React. À chaque apparition, une réplique est tirée au hasard.
-  const [bubble, setBubble] = useState<{ visible: boolean; text: string }>({ visible: false, text: BUBBLE_LINES[0] })
+  const [bubble, setBubble] = useState<{ visible: boolean; text: string }>({ visible: false, text: bubbleLines[0] })
   const bubbleVisible = useRef(false)
   const bubbleTimer = useRef(randRange(BUBBLE_DELAY_MIN, BUBBLE_DELAY_MAX))
 
@@ -159,7 +159,7 @@ function Character({ bubblesEnabled }: { bubblesEnabled: boolean }) {
         } else {
           bubbleVisible.current = true
           bubbleTimer.current = BUBBLE_DURATION
-          setBubble({ visible: true, text: BUBBLE_LINES[Math.floor(Math.random() * BUBBLE_LINES.length)] })
+          setBubble({ visible: true, text: bubbleLines[Math.floor(Math.random() * bubbleLines.length)] })
         }
       }
     }
@@ -276,7 +276,7 @@ function KeyLight({ animated }: { animated: boolean }) {
 }
 
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
-function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
+function SceneContent({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; bubbleLines: string[] }) {
   const reducedMotion = usePrefersReducedMotion()
 
   return (
@@ -291,7 +291,7 @@ function SceneContent({ bubblesEnabled }: { bubblesEnabled: boolean }) {
       <pointLight position={[0, 2.2, -5]} intensity={6} distance={16} color={FILL_LIGHT} />
 
       <Suspense fallback={null}>
-        <Character bubblesEnabled={bubblesEnabled} />
+        <Character bubblesEnabled={bubblesEnabled} bubbleLines={bubbleLines} />
       </Suspense>
 
       <AutoClearFix />
@@ -343,12 +343,15 @@ interface IHeroSceneProps {
 
 export function HeroScene({ bubblesEnabled = true }: IHeroSceneProps = {}) {
   const mounted = useIsMounted()
+  // Les répliques sont résolues ici, HORS du <Canvas> : le réconciliateur
+  // react-three-fiber ne propage pas les contextes React, on les passe donc en props.
+  const { t } = useLocale()
 
   return (
     <div className="fixed inset-0 -z-10" aria-hidden="true">
       {mounted && (
         <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true }}>
-          <SceneContent bubblesEnabled={bubblesEnabled} />
+          <SceneContent bubblesEnabled={bubblesEnabled} bubbleLines={t.scene.bubbleLines} />
         </Canvas>
       )}
       {/* Vignette : assombrit les bords pour renforcer l'atmosphère nostalgique. */}

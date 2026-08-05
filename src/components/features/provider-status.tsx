@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Tooltip } from "@/components/ui/tooltip"
+import { useLocale } from "@/lib/locale-context"
 import { cn } from "@/lib/utils"
-import { LLM_STATUS_REFRESH_EVENT, PROVIDER_LABELS } from "@/constants/llm"
+import { LLM_STATUS_REFRESH_EVENT } from "@/constants/llm"
 
 interface IProviderStatus {
   name: string
@@ -18,6 +19,7 @@ interface IProviderStatus {
  * chaque évènement `LLM_STATUS_REFRESH_EVENT` (émis après chaque réponse).
  */
 export function ProviderStatus() {
+  const { t } = useLocale()
   const [providers, setProviders] = useState<IProviderStatus[]>([])
 
   const refresh = useCallback(() => {
@@ -41,8 +43,8 @@ export function ProviderStatus() {
     <div data-testid="provider-status" className="flex items-center gap-1.5">
       {providers.map((provider) => {
         const operational = !provider.quotaExceeded
-        const label = PROVIDER_LABELS[provider.name] ?? provider.name
-        const stateText = operational ? "disponible" : "indisponible"
+        const label = t.chat.providerLabels[provider.name] ?? provider.name
+        const stateText = operational ? t.chat.providerAvailable : t.chat.providerUnavailable
 
         return (
           <Tooltip key={provider.name} content={`${label} : ${stateText}`}>

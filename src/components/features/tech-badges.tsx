@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { useState } from "react"
 import { TECHS, TECHS_VISIBLE_COUNT, type ITech } from "@/constants/landing"
+import { useLocale } from "@/lib/locale-context"
 import { cn } from "@/lib/utils"
 
 /**
@@ -30,6 +31,7 @@ function TechBadge({ tech }: { tech: ITech }) {
  * premières puis un bouton « voir X plus » qui révèle le reste.
  */
 export function TechBadges() {
+  const { t } = useLocale()
   const [expanded, setExpanded] = useState(false)
 
   const visibleTechs = expanded ? TECHS : TECHS.slice(0, TECHS_VISIBLE_COUNT)
@@ -43,7 +45,7 @@ export function TechBadges() {
 
       {hiddenCount > 0 && !expanded && (
         <button type="button" onClick={() => setExpanded(true)} className="pointer-events-auto cursor-pointer rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur-sm transition-colors hover:border-coral/40 hover:text-coral">
-          voir {hiddenCount} +
+          {t.landing.showMoreTechs(hiddenCount)}
         </button>
       )}
     </div>

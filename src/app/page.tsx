@@ -1,13 +1,15 @@
 "use client"
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react"
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { HeroScene } from "@/components/features/hero-scene"
 import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
 import { ProviderStatus } from "@/components/features/provider-status"
 import { TechBadges } from "@/components/features/tech-badges"
-import { WELCOME_MESSAGE, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
+import { useLocale } from "@/lib/locale-context"
+import { createWelcomeMessage, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
 type TPhase = "landing" | "opening" | "chat"
 
@@ -18,8 +20,11 @@ interface ICloneState {
 }
 
 export default function Home() {
+  const { t } = useLocale()
   const [phase, setPhase] = useState<TPhase>("landing")
   const [clone, setClone] = useState<ICloneState | null>(null)
+
+  const welcomeMessage = useMemo(() => createWelcomeMessage(t.chat.welcome), [t.chat.welcome])
 
   const heroRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -84,19 +89,24 @@ export default function Home() {
       {/* Accueil — pointer-events-none sur le conteneur pour laisser le clic-glissé
           atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}
       <div aria-hidden={chatOpen} className={`pointer-events-none flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+        {/* Sélecteur de langue : coin supérieur droit, hors du flux central.
+            Il s'estompe avec la landing — le header du chat prend le relais. */}
+        <LanguageSwitcher className="fixed right-4 top-4 z-40" />
+
         <main className="flex w-full flex-col items-center gap-8 text-center">
           {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
           <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Salut ! Moi c&apos;est <span className="text-gradient-animated">Damien.</span>
+            {t.landing.greeting}
+            <span className="text-gradient-animated">{t.landing.greetingHighlight}</span>
           </h1>
 
           {/* Bulle d'accueil = premier message de la conversation, cliquable */}
-          <button type="button" onClick={openChat} aria-label="Commencer la conversation" className="group pointer-events-auto flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
+          <button type="button" onClick={openChat} aria-label={t.landing.startConversationAria} className="group pointer-events-auto flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
             <div ref={heroRef} className={`animate-hero-float transition-transform duration-300 group-hover:-translate-y-1 ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
-              <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
+              <MessageBubble message={welcomeMessage} showActions={false} />
             </div>
             <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-coral">
-              Démarrer la conversation
+              {t.landing.startConversation}
               <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
             </p>
           </button>
@@ -106,7 +116,7 @@ export default function Home() {
 
           {/* Lien discret vers la page about */}
           <Link href="/about" className="pointer-events-auto font-mono text-xs text-zinc-600 transition-colors duration-300 hover:text-coral">
-            À propos
+            {t.landing.aboutLink}
             <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
           </Link>
         </main>
@@ -120,7 +130,10 @@ export default function Home() {
             <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
               Damien Pasulj
             </button>
-            <ProviderStatus />
+            <div className="flex items-center gap-3">
+              <ProviderStatus />
+              <LanguageSwitcher />
+            </div>
           </div>
         </header>
 
@@ -145,7 +158,7 @@ export default function Home() {
             transition: clone.morph ? `transform ${MORPH_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)` : "none",
           }}
         >
-          <MessageBubble message={WELCOME_MESSAGE} showActions={false} />
+          <MessageBubble message={welcomeMessage} showActions={false} />
         </div>
       )}
     </>

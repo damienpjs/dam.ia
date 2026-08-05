@@ -89,11 +89,8 @@ export const GLITCH_STRENGTH_MAX = 0.4
 export const GLITCH_CHROMATIC_OFFSET = 0.0015
 
 // ── Bulle de réplique (BD sobre) au-dessus du personnage ──────────────────
-/**
- * Répliques possibles : la bulle en pioche une au hasard à chaque apparition.
- * Pour en ajouter/modifier, il suffit d'éditer ce tableau.
- */
-export const BUBBLE_LINES: readonly string[] = ["Comment tu sais que je suis né dans les 90's ?", "Cette chemise ? Un choix tout à fait assumé.", "Où est-ce que je me suis encore perdu ?"]
+// Les répliques elles-mêmes sont traduites : elles vivent dans le dictionnaire
+// (`scene.bubbleLines`, cf. `src/constants/dictionary.ts`).
 /** Pause aléatoire (min/max, en secondes) entre deux apparitions de la bulle. */
 export const BUBBLE_DELAY_MIN = 5
 export const BUBBLE_DELAY_MAX = 15

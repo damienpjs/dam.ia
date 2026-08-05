@@ -78,10 +78,10 @@ function chunksToFullMessage(chunks: TParsedChunk[]): string {
 vi.mock("@/lib/llm", () => ({
   createLLMProvider: vi.fn(() => ({
     async *streamResponse(message: string) {
-      if (message === "error-test") {
+      if (message.includes("error-test")) {
         throw new Error("Provider error")
       }
-      if (message === "quota-test") {
+      if (message.includes("quota-test")) {
         throw new QuotaExceededError()
       }
       const response = "Réponse streamée."
@@ -496,6 +496,58 @@ describe("POST /api/chat", () => {
     expect(capturedMessage).toContain("déjà posé")
     // La question courante reste présente après la note.
     expect(capturedMessage).toContain("Quel est ton parcours professionnel ?")
+  })
+
+  describe("Langue de réponse (sélecteur « FR / EN »)", () => {
+    /** Capture le message effectivement transmis au provider LLM. */
+    async function captureProviderMessage(body: unknown): Promise<string> {
+      const { createLLMProvider } = await import("@/lib/llm")
+      let captured = ""
+      vi.mocked(createLLMProvider).mockReturnValueOnce({
+        async *streamResponse(message: string) {
+          captured = message
+          yield "ok"
+        },
+      } as ReturnType<typeof createLLMProvider>)
+
+      const response = await POST(createMockRequest(body))
+      await readStreamToChunks(response.body!)
+      return captured
+    }
+
+    it("demande au LLM de répondre en anglais quand le visiteur a choisi EN", async () => {
+      const captured = await captureProviderMessage({ message: "bonjour", locale: "en" })
+      expect(captured).toContain("Answer in English")
+      expect(captured).toContain("bonjour")
+    })
+
+    it("demande au LLM de répondre en français par défaut", async () => {
+      const captured = await captureProviderMessage({ message: "bonjour" })
+      expect(captured).toContain("Réponds en français")
+    })
+
+    it("ignore une langue non supportée et retombe sur le français", async () => {
+      const captured = await captureProviderMessage({ message: "bonjour", locale: "klingon" })
+      expect(captured).toContain("Réponds en français")
+    })
+
+    it("traduit le message de repli technique", async () => {
+      const response = await POST(createMockRequest({ message: "error-test", locale: "en" }))
+      const chunks = await readStreamToChunks(response.body!)
+      expect(chunksToFullMessage(chunks)).toContain("Something went wrong")
+    })
+
+    it("traduit l'avertissement de quota dépassé", async () => {
+      const response = await POST(createMockRequest({ message: "quota-test", locale: "en" }))
+      const chunks = await readStreamToChunks(response.body!)
+      expect(chunksToFullMessage(chunks)).toContain("temporarily unavailable")
+    })
+
+    it("ne persiste pas la consigne de langue avec le message utilisateur", async () => {
+      const { saveMessage } = await import("@/lib/db/chat-service")
+      await POST(createMockRequest({ message: "bonjour", locale: "en" }))
+      expect(saveMessage).toHaveBeenCalledWith("mock-session-id", "user", "bonjour")
+    })
   })
 
   it("n'injecte aucune note quand la question est nouvelle", async () => {

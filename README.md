@@ -2,7 +2,8 @@
 
 Personal site of Damien Pasulj, built around an AI chat interface: an LLM-backed
 assistant answering questions about his background and projects, grounded in a
-RAG pipeline over his own content.
+RAG pipeline over his own content. The whole interface is available in **French
+and English**, switchable from a `FR / EN` toggle.
 
 ## Tech stack
 
@@ -82,10 +83,12 @@ src/
     sitemap.ts        # sitemap.xml
   components/
     features/         # Domain components (HeroScene, ChatInterface, MessageBubble,
-                      # ProviderStatus, TechBadges, ThinkingPhrase, Timeline)
-    ui/               # Generic components (Button, Tooltip, ConfirmDialog)
-  constants/          # Shared configuration (chat, cors, landing, llm, rag,
-                      # rate-limit, scene, validation)
+                      # ProviderStatus, TechBadges, ThinkingPhrase, Timeline,
+                      # AboutContent)
+    ui/               # Generic components (Button, Tooltip, ConfirmDialog,
+                      # LanguageSwitcher)
+  constants/          # Shared configuration (chat, cors, dictionary, i18n,
+                      # landing, llm, rag, rate-limit, scene, validation)
   lib/
     db/               # Drizzle schema and chat service (Neon PostgreSQL)
     llm/              # Providers (Gemini, Groq, Mock), fallback chain, system
@@ -93,12 +96,47 @@ src/
     rag/              # RAG pipeline (chunker, embeddings, Qdrant, PDF loader,
                       # web scraper)
                       # plus shared helpers: cors, rate-limit, sanitize-message,
-                      # stream-chat, validation, content-loader, utils
+                      # stream-chat, validation, content-loader, locale-context,
+                      # utils
   proxy.ts            # Next 16 proxy (CORS + rate limiting) — replaces middleware.ts
   tests/              # Unit tests (mirrors src/)
 scripts/
   index-content.ts    # RAG indexing script (npm run rag:index)
 ```
+
+## Languages (FR / EN)
+
+The whole interface is bilingual. A `FR / EN` toggle sits in the top-right corner
+of the landing page, in the chat header and in the "À propos" navigation; the
+selected language is stored in `localStorage` (`dam_ia_locale`) and restored on
+the next visit.
+
+There is deliberately **no i18n routing** (`/fr`, `/en`): the language is client
+state only, so each page keeps a single URL to index — which suits a personal
+site whose SEO metadata stays in French.
+
+- [`src/constants/i18n.ts`](src/constants/i18n.ts) — supported locales, default
+  locale, storage key, `isLocale` guard.
+- [`src/constants/dictionary.ts`](src/constants/dictionary.ts) — every visible
+  string, in both languages. Adding a language means adding one entry to
+  `DICTIONARIES`; a test asserts both dictionaries expose exactly the same keys.
+- [`src/lib/locale-context.tsx`](src/lib/locale-context.tsx) — `LocaleProvider`
+  (mounted in the root layout) and the `useLocale()` hook returning
+  `{ locale, setLocale, t }`. The first render always uses French to match the
+  server HTML, then the stored language is applied before the first paint, and
+  `<html lang>` is kept in sync.
+- [`src/components/ui/language-switcher.tsx`](src/components/ui/language-switcher.tsx)
+  — the toggle itself.
+
+Proper nouns (technologies, companies, schools) are never translated. Suggested
+questions are persisted by **identifier** rather than by label, so switching
+language does not bring back a suggestion that was already used.
+
+The selected language is also sent to `POST /api/chat` and turned into a
+non-persisted internal instruction prepended to the prompt, so the assistant
+answers in the visitor's language even when the question itself is short or
+ambiguous. Fallback messages (technical error, exhausted quota) are translated
+too.
 
 ## Environment variables
 

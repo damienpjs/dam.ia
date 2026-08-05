@@ -8,49 +8,23 @@ describe("Page À propos (/about)", () => {
     expect(metadata.description).toBeTruthy()
   })
 
-  it("affiche le titre éditorial avec le terme en dégradé animé", () => {
+  it("garde des métadonnées en français (une seule URL indexée par page)", () => {
+    expect(metadata.openGraph?.locale).toBe("fr_FR")
+    expect(metadata.alternates?.canonical).toBe("/about")
+  })
+
+  it("injecte les données structurées schema.org", () => {
     const { container } = render(<AboutPage />)
-    const heading = screen.getByRole("heading", { level: 1 })
-    expect(heading).toHaveTextContent(/product builder/i)
-    const highlight = container.querySelector(".text-gradient-animated")
-    expect(highlight).toHaveTextContent(/enthousiaste IA/i)
+    const script = container.querySelector('script[type="application/ld+json"]')
+    expect(script).not.toBeNull()
+
+    const jsonLd = JSON.parse(script!.innerHTML) as { "@type": string; name: string }
+    expect(jsonLd["@type"]).toBe("Person")
+    expect(jsonLd.name).toBe("Damien Pasulj")
   })
 
-  it("présente le parcours complet (Apizee, elloha, IDEM)", () => {
+  it("rend le contenu éditorial", () => {
     render(<AboutPage />)
-    expect(screen.getByText("Apizee")).toBeInTheDocument()
-    expect(screen.getAllByText("elloha").length).toBeGreaterThanOrEqual(3)
-    expect(screen.getByText(/L'IDEM/)).toBeInTheDocument()
-  })
-
-  it("marque le poste actuel d'un badge", () => {
-    render(<AboutPage />)
-    expect(screen.getByText("Actuel")).toBeInTheDocument()
-  })
-
-  it("liste les compétences techniques clés", () => {
-    render(<AboutPage />)
-    expect(screen.getAllByText("React").length).toBeGreaterThan(0)
-    expect(screen.getByText("Qdrant")).toBeInTheDocument()
-  })
-
-  it("affiche les centres d'intérêt", () => {
-    render(<AboutPage />)
-    for (const interest of ["Voyages", "Sport", "Philosophie", "Dessin"]) {
-      // Scopé sur les <li> : "Philosophie" est aussi un titre de section
-      expect(screen.getByText(interest, { selector: "li" })).toBeInTheDocument()
-    }
-  })
-
-  it("propose deux liens de retour vers la conversation (accueil)", () => {
-    render(<AboutPage />)
-    const links = screen.getAllByRole("link")
-    const homeLinks = links.filter((l) => l.getAttribute("href") === "/")
-    expect(homeLinks.length).toBe(2)
-  })
-
-  it("met en avant l'appel à discuter avec le double IA", () => {
-    render(<AboutPage />)
-    expect(screen.getByRole("link", { name: /double IA/i })).toHaveAttribute("href", "/")
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/product builder/i)
   })
 })

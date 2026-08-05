@@ -1,14 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { THINKING_PHRASES } from "@/constants/chat"
+import { useLocale } from "@/lib/locale-context"
 
 // Vitesse de frappe (ms par caractère). Volontairement irrégulière à l'œil mais simple à tester.
 const TYPING_SPEED_MS = 45
-
-function pickRandomPhrase(): string {
-  return THINKING_PHRASES[Math.floor(Math.random() * THINKING_PHRASES.length)]
-}
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
@@ -20,8 +16,15 @@ function prefersReducedMotion(): boolean {
  * Remplace l'ancien skeleton pendant que l'IA prépare sa réponse.
  */
 export function ThinkingPhrase() {
-  // Phrase figée au montage : ne doit pas changer à chaque re-render du parent.
-  const [phrase] = useState(pickRandomPhrase)
+  const { t } = useLocale()
+  const phrases = t.chat.thinkingPhrases
+
+  // Le tirage est figé au montage — la phrase ne doit pas changer à chaque
+  // re-render du parent — mais mémorisé sous forme de position, pas de texte :
+  // si le visiteur bascule de langue pendant la réflexion, c'est la même phrase
+  // qui reste affichée, traduite.
+  const [pick] = useState(Math.random)
+  const phrase = phrases[Math.floor(pick * phrases.length)]
 
   const reduced = prefersReducedMotion()
   const [shown, setShown] = useState(() => (reduced ? phrase : ""))
@@ -40,7 +43,7 @@ export function ThinkingPhrase() {
   }, [phrase, reduced])
 
   return (
-    <div data-testid="thinking-phrase" className="flex items-baseline text-sm leading-relaxed text-muted-foreground" aria-label="Damien réfléchit">
+    <div data-testid="thinking-phrase" className="flex items-baseline text-sm leading-relaxed text-muted-foreground" aria-label={t.chat.thinkingAria}>
       <span aria-hidden="true">{shown}</span>
       {/* Délais de cascade gérés en CSS via :nth-child (cf. globals.css) */}
       <span aria-hidden="true" className="ml-0.5 inline-flex">

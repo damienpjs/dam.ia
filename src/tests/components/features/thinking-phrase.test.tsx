@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen, act } from "@testing-library/react"
 import { ThinkingPhrase } from "@/components/features/thinking-phrase"
-import { THINKING_PHRASES } from "@/constants/chat"
+import { DICTIONARIES } from "@/constants/dictionary"
+import { renderWithLocale } from "@/tests/helpers/locale"
+
+const THINKING_PHRASES = DICTIONARIES.fr.chat.thinkingPhrases
 
 describe("ThinkingPhrase", () => {
   beforeEach(() => {
@@ -13,6 +16,7 @@ describe("ThinkingPhrase", () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.useRealTimers()
+    localStorage.clear()
   })
 
   it("rend le conteneur avec son aria-label", () => {
@@ -64,6 +68,17 @@ describe("ThinkingPhrase", () => {
       vi.advanceTimersByTime(45 * 5)
     })
     expect(textSpan?.textContent).toBe(phrase)
+  })
+
+  it("pioche la phrase dans la langue sélectionnée", () => {
+    renderWithLocale(<ThinkingPhrase />, "en")
+    const phrase = DICTIONARIES.en.chat.thinkingPhrases[0]
+
+    act(() => {
+      vi.advanceTimersByTime(45 * phrase.length)
+    })
+
+    expect(screen.getByLabelText(DICTIONARIES.en.chat.thinkingAria)).toHaveTextContent(phrase)
   })
 
   it("affiche la phrase complète immédiatement si l'utilisateur préfère réduire les animations", () => {

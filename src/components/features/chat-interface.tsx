@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react"
 import { Send, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -8,9 +8,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { MessageBubble } from "@/components/features/message-bubble"
 import type { IMessage } from "@/components/features/message-bubble"
 import { streamChat, type IStreamResult, type ISourceInfo } from "@/lib/stream-chat"
+import { useLocale } from "@/lib/locale-context"
 import { cn } from "@/lib/utils"
 
-import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, SUGGESTIONS, WELCOME_MESSAGE } from "@/constants/chat"
+import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, WELCOME_MESSAGE_ID, createWelcomeMessage } from "@/constants/chat"
+import { SUGGESTION_IDS, type TSuggestionId } from "@/constants/dictionary"
 import { LLM_STATUS_REFRESH_EVENT } from "@/constants/llm"
 
 function loadUsedSuggestions(): Set<string> {
@@ -30,12 +32,12 @@ function generateId(): string {
   return crypto.randomUUID()
 }
 
-function SessionLoader() {
+function SessionLoader({ label }: { label: string }) {
   return (
     <div data-testid="session-loader" className="flex h-full items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-coral/20 border-t-coral" />
-        <p className="text-sm text-muted-foreground">Chargement de la conversation…</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
       </div>
     </div>
   )
@@ -47,7 +49,8 @@ interface IChatInterfaceProps {
 }
 
 export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
-  const [messages, setMessages] = useState<IMessage[]>([WELCOME_MESSAGE])
+  const { locale, t } = useLocale()
+  const [messages, setMessages] = useState<IMessage[]>(() => [createWelcomeMessage(t.chat.welcome)])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
@@ -92,7 +95,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           return
         }
         sessionIdRef.current = storedSessionId
-        setMessages([WELCOME_MESSAGE, ...data.messages.map((m) => ({ ...m, sources: m.sources ?? undefined, createdAt: new Date(m.createdAt) }))])
+        setMessages((prev) => [prev[0], ...data.messages.map((m) => ({ ...m, sources: m.sources ?? undefined, createdAt: new Date(m.createdAt) }))])
       })
       .catch(() => {
         localStorage.removeItem(SESSION_STORAGE_KEY)
@@ -170,6 +173,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
       await streamChat(content, {
         signal: abortControllerRef.current.signal,
         sessionId: sessionIdRef.current,
+        locale,
         onChunk: (char) => {
           setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: msg.content + char } : msg)))
         },
@@ -195,7 +199,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         },
         onError: (error) => {
           console.error("Erreur stream chat:", error)
-          setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: "Désolé, une erreur est survenue. Réessaie !" } : msg)))
+          setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: t.chat.streamError } : msg)))
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
@@ -206,7 +210,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         },
       })
     },
-    [input, isStreaming],
+    [input, isStreaming, locale, t],
   )
 
   const handleKeyDown = useCallback(
@@ -223,14 +227,16 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     setInput(e.target.value)
   }, [])
 
+  // On mémorise l'identifiant de la suggestion, pas son libellé : changer de
+  // langue ne doit pas faire réapparaître une suggestion déjà utilisée.
   const handleSuggestionClick = useCallback(
-    (suggestion: string) => {
+    (id: TSuggestionId, label: string) => {
       setUsedSuggestions((prev) => {
-        const next = new Set(prev).add(suggestion)
+        const next = new Set(prev).add(id)
         localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify([...next]))
         return next
       })
-      void sendMessage(suggestion)
+      void sendMessage(label)
     },
     [sendMessage],
   )
@@ -249,7 +255,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     setUsedSuggestions(new Set())
 
     // Repart d'une conversation vierge
-    setMessages([WELCOME_MESSAGE])
+    setMessages((prev) => [prev[0]])
     setInput("")
     setIsStreaming(false)
     setStreamingMessageId(null)
@@ -267,33 +273,37 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     [sendMessage],
   )
 
-  const remainingSuggestions = SUGGESTIONS.filter((s) => !usedSuggestions.has(s))
+  const remainingSuggestions = SUGGESTION_IDS.filter((id) => !usedSuggestions.has(id))
+
+  // La bulle d'accueil n'est pas persistée : on la re-rend toujours dans la
+  // langue courante, même si la conversation a démarré dans l'autre.
+  const displayedMessages = useMemo(() => messages.map((message) => (message.id === WELCOME_MESSAGE_ID ? { ...message, content: t.chat.welcome } : message)), [messages, t])
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden overflow-x-hidden font-mono">
       {/* Zone de messages */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-6">
         {isLoadingSession ? (
-          <SessionLoader />
+          <SessionLoader label={t.chat.loadingSession} />
         ) : (
           <div className={cn("mx-auto flex max-w-3xl flex-col gap-4 transition-opacity duration-300", messagesVisible ? "opacity-100" : "opacity-0")}>
-            {messages.map((message) => (
+            {displayedMessages.map((message) => (
               <MessageBubble key={message.id} message={message} isStreaming={message.id === streamingMessageId} onReuse={message.role === "user" ? handleReuseMessage : undefined} />
             ))}
 
             {/* Suggestions de questions */}
             {remainingSuggestions.length > 0 && !isStreaming && (
               <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
-                <p className="text-xs text-muted-foreground">Suggestions :</p>
+                <p className="text-xs text-muted-foreground">{t.chat.suggestionsLabel}</p>
                 <div className="flex flex-wrap gap-2">
-                  {remainingSuggestions.map((suggestion) => (
+                  {remainingSuggestions.map((id) => (
                     <button
-                      key={suggestion}
+                      key={id}
                       type="button"
-                      onClick={() => handleSuggestionClick(suggestion)}
+                      onClick={() => handleSuggestionClick(id, t.chat.suggestions[id])}
                       className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-coral/50 hover:bg-coral/10 hover:text-foreground"
                     >
-                      {suggestion}
+                      {t.chat.suggestions[id]}
                     </button>
                   ))}
                 </div>
@@ -315,14 +325,14 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           className="mx-auto flex max-w-3xl items-end gap-2"
         >
           {messages.length > 1 && (
-            <Tooltip content="Réinitialiser la conversation">
+            <Tooltip content={t.chat.reset}>
               <Button
                 type="button"
                 size="icon-lg"
                 variant="ghost"
                 onClick={() => setIsResetDialogOpen(true)}
                 disabled={isLoadingSession}
-                aria-label="Réinitialiser la conversation"
+                aria-label={t.chat.reset}
                 className="group/reset shrink-0 rounded-xl ring-1 ring-white/20 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-coral/10 hover:text-coral"
               >
                 <RotateCcw className="size-4 transition-transform duration-500 ease-out group-hover/reset:-rotate-180" />
@@ -337,10 +347,10 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
             onInput={handleResize}
             onKeyDown={handleKeyDown}
             enterKeyHint="send"
-            placeholder="Écris ton message…"
+            placeholder={t.chat.inputPlaceholder}
             rows={1}
             disabled={isLoadingSession}
-            aria-label="Message à envoyer"
+            aria-label={t.chat.inputAria}
             className={cn(
               "min-w-0 flex-1 resize-none rounded-xl ring-1 ring-white/20 bg-input/30 px-3 sm:px-4 py-2",
               "text-sm text-foreground placeholder:text-muted-foreground",
@@ -348,12 +358,12 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
               "focus:outline-none focus:ring-2 focus:ring-ring/50",
             )}
           />
-          <Tooltip content="Envoyer le message">
+          <Tooltip content={t.chat.send}>
             <Button
               type="submit"
               size="icon-lg"
               disabled={!input.trim() || isStreaming || isLoadingSession}
-              aria-label="Envoyer"
+              aria-label={t.chat.sendAria}
               className="shrink-0 bg-gradient-to-br from-coral-deep to-coral text-white shadow-md shadow-coral/20 hover:from-coral-deeper hover:to-coral-deep disabled:opacity-40"
             >
               <Send className="size-4" />
@@ -365,10 +375,10 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
       <ConfirmDialog
         open={isResetDialogOpen}
         onOpenChange={setIsResetDialogOpen}
-        title="Réinitialiser la conversation ?"
-        description="Tous les messages échangés seront définitivement effacés. Cette action est irréversible."
-        confirmLabel="Réinitialiser"
-        cancelLabel="Annuler"
+        title={t.chat.resetDialogTitle}
+        description={t.chat.resetDialogDescription}
+        confirmLabel={t.chat.resetConfirm}
+        cancelLabel={t.chat.resetCancel}
         onConfirm={handleReset}
         destructive
       />

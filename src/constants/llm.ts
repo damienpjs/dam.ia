@@ -51,12 +51,8 @@ export const QUOTA_STATUS_TTL_MS = 10 * 60 * 1000
 // Évènement client déclenchant un rafraîchissement des pastilles de statut.
 export const LLM_STATUS_REFRESH_EVENT = "llm:status-refresh"
 
-// Libellés d'affichage des providers dans l'UI.
-export const PROVIDER_LABELS: Record<string, string> = {
-  gemini: "Gemini",
-  groq: "Groq",
-  mock: "Démo",
-}
+// Les libellés d'affichage des providers sont traduits : cf. `chat.providerLabels`
+// dans `src/constants/dictionary.ts`.
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS_IN_REMOTE = CURRENT_YEAR - 2020

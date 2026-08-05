@@ -55,7 +55,7 @@ describe("streamChat", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Bonjour", sessionId: undefined }),
+      body: JSON.stringify({ message: "Bonjour", sessionId: undefined, locale: undefined }),
       signal: undefined,
     })
   })
@@ -139,7 +139,21 @@ describe("streamChat", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/chat",
       expect.objectContaining({
-        body: JSON.stringify({ message: "test", sessionId: "sess-abc" }),
+        body: JSON.stringify({ message: "test", sessionId: "sess-abc", locale: undefined }),
+      }),
+    )
+  })
+
+  it("envoie la langue sélectionnée dans la requête fetch", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(createMockResponse([{ content: "", done: true }]))
+    vi.stubGlobal("fetch", mockFetch)
+
+    await streamChat("test", { onChunk: vi.fn(), locale: "en" })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/chat",
+      expect.objectContaining({
+        body: JSON.stringify({ message: "test", sessionId: undefined, locale: "en" }),
       }),
     )
   })

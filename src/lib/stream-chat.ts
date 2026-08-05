@@ -1,3 +1,5 @@
+import type { TLocale } from "@/constants/i18n"
+
 /**
  * Source RAG reçue de l'API
  */
@@ -46,6 +48,8 @@ export interface IStreamChatOptions {
   signal?: AbortSignal
   /** ID de session existant (pour continuer une conversation) */
   sessionId?: string
+  /** Langue sélectionnée dans l'interface : l'assistant y répond dans la même. */
+  locale?: TLocale
 }
 
 /**
@@ -67,13 +71,13 @@ export interface IStreamChatOptions {
  * ```
  */
 export async function streamChat(message: string, options: IStreamChatOptions): Promise<void> {
-  const { onChunk, onComplete, onError, signal, sessionId } = options
+  const { onChunk, onComplete, onError, signal, sessionId, locale } = options
 
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, sessionId }),
+      body: JSON.stringify({ message, sessionId, locale }),
       signal,
     })
 

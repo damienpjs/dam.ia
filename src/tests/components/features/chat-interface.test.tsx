@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event"
 import { ChatInterface } from "@/components/features/chat-interface"
 import type { IStreamChatOptions } from "@/lib/stream-chat"
 import { streamChat } from "@/lib/stream-chat"
-import { SUGGESTIONS, SUGGESTIONS_STORAGE_KEY } from "@/constants/chat"
+import { SUGGESTIONS_STORAGE_KEY } from "@/constants/chat"
+import { DICTIONARIES, SUGGESTION_IDS } from "@/constants/dictionary"
+import { renderWithLocale } from "@/tests/helpers/locale"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
 
 // Mock streamChat pour simuler le streaming
 vi.mock("@/lib/stream-chat", () => ({
@@ -367,7 +370,7 @@ describe("ChatInterface", () => {
     render(<ChatInterface />)
 
     // Cliquer sur chaque suggestion une par une
-    const suggestions = SUGGESTIONS
+    const suggestions = Object.values(DICTIONARIES.fr.chat.suggestions)
     for (let i = 0; i < suggestions.length; i++) {
       const suggestion = suggestions[i]
       // Attendre que les suggestions réapparaissent (fin du streaming précédent)
@@ -684,14 +687,14 @@ describe("ChatInterface", () => {
       await waitFor(
         () => {
           const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
-          expect(stored).toContain("Quelles sont tes compétences ?")
+          expect(stored).toContain("skills")
         },
         { timeout: 2000 },
       )
     })
 
     it("ne ré-affiche pas une suggestion déjà cliquée au rechargement", () => {
-      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?"]))
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["skills"]))
 
       render(<ChatInterface />)
 
@@ -701,7 +704,7 @@ describe("ChatInterface", () => {
     })
 
     it("affiche toujours une nouvelle suggestion absente du localStorage", () => {
-      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["Quelles sont tes compétences ?", "Parle-moi de tes soft skills"]))
+      localStorage.setItem("dam_ia_used_suggestions", JSON.stringify(["skills", "softSkills"]))
 
       render(<ChatInterface />)
 
@@ -711,7 +714,7 @@ describe("ChatInterface", () => {
     })
 
     it("masque le bloc suggestions si toutes sont dans localStorage", () => {
-      localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify(SUGGESTIONS))
+      localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify(SUGGESTION_IDS))
 
       render(<ChatInterface />)
 
@@ -734,8 +737,8 @@ describe("ChatInterface", () => {
       await waitFor(
         () => {
           const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
-          expect(stored).toContain("Quelles sont tes compétences ?")
-          expect(stored).toContain("Parle-moi de tes soft skills")
+          expect(stored).toContain("skills")
+          expect(stored).toContain("softSkills")
         },
         { timeout: 3000 },
       )
@@ -845,7 +848,7 @@ describe("ChatInterface", () => {
       await waitFor(
         () => {
           const stored = JSON.parse(localStorage.getItem("dam_ia_used_suggestions") ?? "[]") as string[]
-          expect(stored).toContain("Quelles sont tes compétences ?")
+          expect(stored).toContain("skills")
         },
         { timeout: 2000 },
       )
@@ -908,5 +911,77 @@ describe("ChatInterface", () => {
     focusSpy.mockRestore()
     consoleErrorSpy.mockRestore()
     window.matchMedia = originalMatchMedia
+  })
+
+  describe("Langue de l'interface", () => {
+    it("traduit la bulle d'accueil, les suggestions et la barre de saisie", () => {
+      renderWithLocale(<ChatInterface />, "en")
+      const { chat } = DICTIONARIES.en
+
+      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/AI enthusiast/i)
+      expect(screen.getByText(chat.suggestionsLabel)).toBeInTheDocument()
+      expect(screen.getByText(chat.suggestions.skills)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(chat.inputPlaceholder)).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: chat.sendAria })).toBeInTheDocument()
+    })
+
+    it("transmet la langue sélectionnée à l'API", async () => {
+      const user = setup()
+      renderWithLocale(<ChatInterface />, "en")
+
+      await user.type(screen.getByLabelText(DICTIONARIES.en.chat.inputAria), "Hello")
+      await user.click(screen.getByRole("button", { name: DICTIONARIES.en.chat.sendAria }))
+
+      await waitFor(() => {
+        expect(mockStreamChat).toHaveBeenCalledWith("Hello", expect.objectContaining({ locale: "en" }))
+      })
+    })
+
+    it("traduit le message d'erreur de streaming", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+      mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+        options.onError?.(new Error("Erreur réseau"))
+      })
+
+      const user = setup()
+      renderWithLocale(<ChatInterface />, "en")
+
+      await user.type(screen.getByLabelText(DICTIONARIES.en.chat.inputAria), "Hello")
+      await user.click(screen.getByRole("button", { name: DICTIONARIES.en.chat.sendAria }))
+
+      await waitFor(
+        () => {
+          expect(screen.getByText(DICTIONARIES.en.chat.streamError)).toBeInTheDocument()
+        },
+        { timeout: 2000 },
+      )
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it("retraduit la bulle d'accueil déjà affichée quand la langue change", async () => {
+      const user = setup()
+      renderWithLocale(
+        <>
+          <LanguageSwitcher />
+          <ChatInterface />
+        </>,
+        "fr",
+      )
+
+      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/enthousiaste IA/i)
+
+      await user.click(screen.getByText("EN"))
+
+      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/AI enthusiast/i)
+    })
+
+    it("ne réaffiche pas une suggestion déjà utilisée après un changement de langue", () => {
+      localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify(["skills"]))
+      renderWithLocale(<ChatInterface />, "en")
+
+      expect(screen.queryByText(DICTIONARIES.en.chat.suggestions.skills)).not.toBeInTheDocument()
+      expect(screen.getByText(DICTIONARIES.en.chat.suggestions.softSkills)).toBeInTheDocument()
+    })
   })
 })

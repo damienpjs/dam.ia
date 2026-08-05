@@ -110,15 +110,18 @@ Le rapport HTML de couverture est aussi généré dans `./coverage/index.html` a
 
 ### Intégration continue & déploiement
 
-L'intégration continue et les déploiements Vercel sont répartis par événement sur trois workflows GitHub Actions (un workflow par déclencheur, pour éviter les checks « skipped » sur les PR) :
+L'intégration continue et les déploiements Vercel sont répartis par événement sur quatre workflows GitHub Actions (un workflow par déclencheur, pour éviter les checks « skipped » sur les PR) :
 
 | Workflow | Déclencheur | Rôle |
 |---|---|---|
 | [`ci.yml`](.github/workflows/ci.yml) | **pull request** vers `main` ou `develop` | Lint + tests, puis déploiement **preview** Vercel |
 | [`deploy-develop.yml`](.github/workflows/deploy-develop.yml) | **push** sur `develop` | Lint + tests, puis déploiement **preview** aliasé au domaine de branche `damienpasulj-dev.vercel.app` |
 | [`deploy-production.yml`](.github/workflows/deploy-production.yml) | **push** sur `main` | Lint + tests, puis déploiement **production** (`vercel deploy --prod`) |
+| [`tests-branch.yml`](.github/workflows/tests-branch.yml) | **push** sur toute branche sauf `main` et `develop` | Lint + tests uniquement, pour avoir un retour sur une branche de travail avant l'ouverture d'une PR |
 
 Dans chaque workflow, le déploiement (`needs: test`) n'est exécuté **que si le lint et les tests passent** ; le job échoue si la couverture descend sous le seuil de **95%**. Le build est réalisé côté Vercel. Pour bloquer le merge sur `main`, activer la protection de branche (_Settings → Branches_) avec le check **« Lint & tests »** requis.
+
+Le check requis est identifié par le nom du **job**, pas par celui du workflow. C'est pourquoi `tests-branch.yml` nomme son job « Lint & tests (branche) » : un nom distinct évite que deux check runs se disputent le même statut requis. Renommer un job impose de mettre à jour la règle de protection en conséquence.
 
 Secrets requis (_Settings → Secrets and variables → Actions_) : `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 

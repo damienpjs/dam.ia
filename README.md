@@ -226,7 +226,7 @@ The HTML coverage report is also generated in `./coverage/index.html` after
 
 ### Continuous integration & deployment
 
-Continuous integration and Vercel deployments are split by event across three
+Continuous integration and Vercel deployments are split by event across four
 GitHub Actions workflows (one workflow per trigger, to avoid "skipped" checks on
 PRs), plus one scheduled maintenance workflow:
 
@@ -235,12 +235,18 @@ PRs), plus one scheduled maintenance workflow:
 | [`ci.yml`](.github/workflows/ci.yml) | **pull request** to `main` or `develop` | Lint + tests, then Vercel **preview** deployment |
 | [`deploy-develop.yml`](.github/workflows/deploy-develop.yml) | **push** to `develop` | Lint + tests, then **preview** deployment aliased to the branch domain `damienpasulj-dev.vercel.app` |
 | [`deploy-production.yml`](.github/workflows/deploy-production.yml) | **push** to `main` | Lint + tests, then **production** deployment (`vercel deploy --prod`) |
+| [`tests-branch.yml`](.github/workflows/tests-branch.yml) | **push** to any branch except `main` and `develop` | Lint + tests only, to get feedback on a work branch before opening a PR |
 | [`qdrant-keepalive.yml`](.github/workflows/qdrant-keepalive.yml) | **schedule** (every 3 days) + manual | Pings the Qdrant free-tier cluster to prevent idle suspension, and checks that the RAG collection responds and isn't empty |
 
 In every deployment workflow, the deploy job (`needs: test`) runs **only if lint
 and tests pass**; the job fails if coverage drops below the **95%** threshold. The
 build is performed on Vercel's side. To block merges on `main`, enable branch
 protection (_Settings → Branches_) with the **"Lint & tests"** check required.
+
+The required check is matched on the **job** name, not the workflow name. This is
+why `tests-branch.yml` names its job `Lint & tests (branche)`: a distinct name
+avoids two check runs competing for the same required status. Renaming a job means
+updating the branch protection rule accordingly.
 
 Required secrets (_Settings → Secrets and variables → Actions_): `VERCEL_TOKEN`,
 `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` for deployments, plus `QDRANT_URL` and

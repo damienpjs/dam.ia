@@ -10,6 +10,7 @@ vi.mock("@/lib/rag/qdrant", () => ({
   createQdrantClient: vi.fn(() => ({})),
   searchSimilarChunks: vi.fn().mockResolvedValue([{ text: "chunk1", source: "cv", score: 0.9 }]),
   DEFAULT_TOP_K: 5,
+  MIN_RELEVANCE_SCORE: 0.55,
 }))
 
 describe("retrieveRelevantChunks", () => {
@@ -34,6 +35,27 @@ describe("retrieveRelevantChunks", () => {
 
     expect(results).toHaveLength(1)
     expect(results[0].source).toBe("cv")
+  })
+
+  it("doit transmettre le seuil de pertinence à la recherche vectorielle", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "fake-key")
+
+    const { retrieveRelevantChunks } = await import("@/lib/rag/pipeline")
+    const { searchSimilarChunks } = await import("@/lib/rag/qdrant")
+
+    await retrieveRelevantChunks("question", 3, 0.8)
+
+    expect(searchSimilarChunks).toHaveBeenCalledWith(expect.anything(), expect.any(Array), 3, 0.8)
+  })
+
+  it("doit retourner une liste vide si aucun chunk ne franchit le seuil", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "fake-key")
+
+    const { retrieveRelevantChunks } = await import("@/lib/rag/pipeline")
+    const { searchSimilarChunks } = await import("@/lib/rag/qdrant")
+    vi.mocked(searchSimilarChunks).mockResolvedValueOnce([])
+
+    expect(await retrieveRelevantChunks("question hors sujet")).toEqual([])
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { COLLECTION_NAME, DEFAULT_TOP_K } from "@/lib/rag/qdrant"
+import { COLLECTION_NAME, DEFAULT_TOP_K, MIN_RELEVANCE_SCORE } from "@/lib/rag/qdrant"
 
 describe("Qdrant constants", () => {
   it("doit avoir le bon nom de collection", () => {
@@ -8,6 +8,11 @@ describe("Qdrant constants", () => {
 
   it("doit retourner 7 résultats par défaut", () => {
     expect(DEFAULT_TOP_K).toBe(7)
+  })
+
+  it("doit exposer un seuil de pertinence strictement compris entre 0 et 1", () => {
+    expect(MIN_RELEVANCE_SCORE).toBeGreaterThan(0)
+    expect(MIN_RELEVANCE_SCORE).toBeLessThan(1)
   })
 })
 
@@ -219,6 +224,7 @@ describe("searchSimilarChunks", () => {
     expect(mockClient.search).toHaveBeenCalledWith(COLLECTION_NAME, {
       vector: [0.1],
       limit: 5,
+      score_threshold: MIN_RELEVANCE_SCORE,
       with_payload: true,
     })
   })
@@ -233,5 +239,25 @@ describe("searchSimilarChunks", () => {
     const results = await searchSimilarChunks(mockClient as any, [0.1], 3)
 
     expect(results).toEqual([{ text: "", source: "", score: 0.5, metadata: undefined }])
+  })
+
+  it("doit transmettre le seuil de pertinence surchargé à Qdrant", async () => {
+    const mockClient = { search: vi.fn().mockResolvedValue([]) }
+
+    const { searchSimilarChunks } = await import("@/lib/rag/qdrant")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await searchSimilarChunks(mockClient as any, [0.1], 5, 0.8)
+
+    expect(mockClient.search).toHaveBeenCalledWith(COLLECTION_NAME, expect.objectContaining({ score_threshold: 0.8 }))
+  })
+
+  it("doit retourner une liste vide quand aucun chunk ne franchit le seuil", async () => {
+    const mockClient = { search: vi.fn().mockResolvedValue([]) }
+
+    const { searchSimilarChunks } = await import("@/lib/rag/qdrant")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const results = await searchSimilarChunks(mockClient as any, [0.1])
+
+    expect(results).toEqual([])
   })
 })

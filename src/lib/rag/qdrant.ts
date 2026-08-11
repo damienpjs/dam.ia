@@ -1,9 +1,9 @@
 import { QdrantClient } from "@qdrant/js-client-rest"
 import { createHash } from "crypto"
 import type { IContentChunk, ISearchResult } from "./types"
-import { EMBEDDING_DIMENSION, COLLECTION_NAME, DEFAULT_TOP_K } from "@/constants/rag"
+import { EMBEDDING_DIMENSION, COLLECTION_NAME, DEFAULT_TOP_K, MIN_RELEVANCE_SCORE } from "@/constants/rag"
 
-export { COLLECTION_NAME, DEFAULT_TOP_K }
+export { COLLECTION_NAME, DEFAULT_TOP_K, MIN_RELEVANCE_SCORE }
 
 /**
  * Crée un client Qdrant configuré via les variables d'environnement.
@@ -111,15 +111,22 @@ export async function indexChunks(client: QdrantClient, chunks: IContentChunk[],
 /**
  * Recherche les chunks les plus similaires à un vecteur de requête.
  *
+ * Le seuil de score est essentiel : sans lui, `limit` seul garantit qu'une question
+ * hors-sujet remonte quand même ses `topK` « meilleurs » chunks, aussi mauvais
+ * soient-ils. Ce contexte de remplissage est ensuite présenté au LLM comme faisant
+ * autorité, et le pousse à répondre à côté. Mieux vaut zéro chunk que du bruit.
+ *
  * @param client - Client Qdrant
  * @param queryVector - Vecteur d'embedding de la requête
- * @param topK - Nombre de résultats (défaut: 5)
- * @returns Liste des résultats triés par score de similarité
+ * @param topK - Nombre maximum de résultats
+ * @param minScore - Score de similarité minimal ; en-dessous, le chunk est écarté
+ * @returns Liste des résultats triés par score de similarité, éventuellement vide
  */
-export async function searchSimilarChunks(client: QdrantClient, queryVector: number[], topK: number = DEFAULT_TOP_K): Promise<ISearchResult[]> {
+export async function searchSimilarChunks(client: QdrantClient, queryVector: number[], topK: number = DEFAULT_TOP_K, minScore: number = MIN_RELEVANCE_SCORE): Promise<ISearchResult[]> {
   const results = await client.search(COLLECTION_NAME, {
     vector: queryVector,
     limit: topK,
+    score_threshold: minScore,
     with_payload: true,
   })
 

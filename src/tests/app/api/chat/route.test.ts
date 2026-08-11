@@ -16,6 +16,11 @@ vi.mock("@/lib/rag/pipeline", () => ({
   formatRAGContext: vi.fn().mockReturnValue(""),
 }))
 
+// Mock de la condensation : par défaut, question déjà autonome → message inchangé.
+vi.mock("@/lib/rag/condense-query", () => ({
+  condenseQuery: vi.fn((message: string) => Promise.resolve(message)),
+}))
+
 import { POST } from "@/app/api/chat/route"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
 
@@ -469,6 +474,66 @@ describe("POST /api/chat", () => {
       { role: "user", content: "Tu connais React ?" },
       { role: "assistant", content: "Évidemment 👀" },
     ])
+  })
+
+  describe("Condensation de la question avant recherche vectorielle", () => {
+    /** Historique d'un tour, pour que la question de suivi ait un sujet où se raccrocher. */
+    const projectHistory = [
+      { id: "1", role: "user" as const, content: "Parle-moi du projet hodl-on-a-minute", status: "ok" as const, sources: null, createdAt: new Date() },
+      { id: "2", role: "assistant" as const, content: "Une architecture pensée pour la fiabilité.", status: "ok" as const, sources: null, createdAt: new Date() },
+    ]
+
+    it("recherche sur la question condensée et non sur le message brut", async () => {
+      const { getSessionMessages } = await import("@/lib/db/chat-service")
+      const { condenseQuery } = await import("@/lib/rag/condense-query")
+
+      vi.mocked(getSessionMessages).mockResolvedValueOnce(projectHistory)
+      vi.mocked(condenseQuery).mockResolvedValueOnce("Quel est le backend du projet hodl-on-a-minute ?")
+
+      const request = createMockRequest({ message: "C'est quoi le backend ?", sessionId: "session-suivi" })
+      await readStreamToChunks((await POST(request)).body!)
+
+      expect(condenseQuery).toHaveBeenCalledWith("C'est quoi le backend ?", [
+        { role: "user", content: "Parle-moi du projet hodl-on-a-minute" },
+        { role: "assistant", content: "Une architecture pensée pour la fiabilité." },
+      ])
+      expect(retrieveRelevantChunks).toHaveBeenCalledWith("Quel est le backend du projet hodl-on-a-minute ?")
+    })
+
+    it("transmet au LLM le message original du visiteur, pas la version condensée", async () => {
+      const { getSessionMessages } = await import("@/lib/db/chat-service")
+      const { createLLMProvider } = await import("@/lib/llm")
+      const { condenseQuery } = await import("@/lib/rag/condense-query")
+
+      vi.mocked(getSessionMessages).mockResolvedValueOnce(projectHistory)
+      vi.mocked(condenseQuery).mockResolvedValueOnce("Quel est le backend du projet hodl-on-a-minute ?")
+
+      let capturedMessage = ""
+      vi.mocked(createLLMProvider).mockReturnValueOnce({
+        async *streamResponse(message: string) {
+          capturedMessage = message
+          yield "ok"
+        },
+      } as ReturnType<typeof createLLMProvider>)
+
+      const request = createMockRequest({ message: "C'est quoi le backend ?", sessionId: "session-suivi" })
+      await readStreamToChunks((await POST(request)).body!)
+
+      expect(capturedMessage).toContain("C'est quoi le backend ?")
+      expect(capturedMessage).not.toContain("Quel est le backend du projet hodl-on-a-minute ?")
+    })
+
+    it("répond sans contexte quand aucun chunk ne franchit le seuil de pertinence", async () => {
+      vi.mocked(retrieveRelevantChunks).mockResolvedValueOnce([])
+
+      const request = createMockRequest({ message: "Une question totalement hors sujet ?" })
+      const response = await POST(request)
+      const chunks = await readStreamToChunks(response.body!)
+
+      expect(response.status).toBe(200)
+      expect(chunks[chunks.length - 1].sources).toBeUndefined()
+      expect(chunksToFullMessage(chunks)).toBe("Réponse streamée.")
+    })
   })
 
   it("injecte une note interne quand la question a déjà été posée", async () => {

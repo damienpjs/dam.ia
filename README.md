@@ -120,7 +120,7 @@ optional — a missing file is simply skipped:
 | Markdown | `content/*.md` | Career documents, chunked with a frontmatter context header |
 | PDF | `content/*.pdf` | Text extracted via `pdf-parse` |
 | Web | `content/sources.json` | Scraped pages (`jsRendering: true` for SPAs) |
-| GitHub | `content/github.json` | Profile, repositories, topics, languages and READMEs |
+| GitHub | `content/github.json` | Profile, repositories, topics, languages, READMEs and a French projects summary |
 
 GitHub is read through the REST API rather than the profile page: the HTML only
 yields navigation and repository names, while the API exposes descriptions,
@@ -129,6 +129,15 @@ chat bubbles link straight to the relevant project instead of the profile.
 
 READMEs are truncated to `GITHUB_MAX_README_CHARS` (`src/constants/rag.ts`) so a
 heavily documented project cannot crowd out the rest of the index.
+
+Repository chunks are dominated by English README content, which made generic
+French questions ("sur quels projets perso tu bosses ?") retrieve nothing from
+GitHub. An extra short, French-only summary chunk lists every project so those
+questions match; it deliberately avoids employment vocabulary, which would
+otherwise outrank career chunks on "pour quelle entreprise tu travailles ?".
+
+Indexing rebuilds the collection from scratch (`resetCollection`), so a source
+removed from the configuration leaves no orphan points behind.
 
 ## Languages (FR / EN)
 

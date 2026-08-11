@@ -67,6 +67,60 @@ describe("ensureCollection", () => {
   })
 })
 
+describe("resetCollection", () => {
+  it("doit supprimer puis recréer la collection quand elle existe", async () => {
+    const mockClient = {
+      getCollections: vi.fn().mockResolvedValue({ collections: [{ name: COLLECTION_NAME }] }),
+      deleteCollection: vi.fn().mockResolvedValue(undefined),
+      createCollection: vi.fn().mockResolvedValue(undefined),
+    }
+
+    const { resetCollection } = await import("@/lib/rag/qdrant")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await resetCollection(mockClient as any)
+
+    expect(mockClient.deleteCollection).toHaveBeenCalledWith(COLLECTION_NAME)
+    expect(mockClient.createCollection).toHaveBeenCalledWith(COLLECTION_NAME, {
+      vectors: { size: 3072, distance: "Cosine" },
+    })
+  })
+
+  it("doit créer la collection sans tenter de la supprimer si elle n'existe pas", async () => {
+    const mockClient = {
+      getCollections: vi.fn().mockResolvedValue({ collections: [] }),
+      deleteCollection: vi.fn(),
+      createCollection: vi.fn().mockResolvedValue(undefined),
+    }
+
+    const { resetCollection } = await import("@/lib/rag/qdrant")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await resetCollection(mockClient as any)
+
+    expect(mockClient.deleteCollection).not.toHaveBeenCalled()
+    expect(mockClient.createCollection).toHaveBeenCalled()
+  })
+})
+
+describe("chunkIdToPointId", () => {
+  it("produit un UUID au format attendu par Qdrant", async () => {
+    const { chunkIdToPointId } = await import("@/lib/rag/qdrant")
+
+    expect(chunkIdToPointId("github-komfy-a1b2c3d4")).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  })
+
+  it("est déterministe pour un même identifiant de chunk", async () => {
+    const { chunkIdToPointId } = await import("@/lib/rag/qdrant")
+
+    expect(chunkIdToPointId("cv-12345678")).toBe(chunkIdToPointId("cv-12345678"))
+  })
+
+  it("distingue deux identifiants de chunk différents", async () => {
+    const { chunkIdToPointId } = await import("@/lib/rag/qdrant")
+
+    expect(chunkIdToPointId("cv-12345678")).not.toBe(chunkIdToPointId("cv-87654321"))
+  })
+})
+
 describe("indexChunks", () => {
   it("doit upserter les chunks avec leurs embeddings", async () => {
     const mockClient = {
@@ -85,16 +139,39 @@ describe("indexChunks", () => {
       [0.3, 0.4],
     ]
 
-    const { indexChunks } = await import("@/lib/rag/qdrant")
+    const { indexChunks, chunkIdToPointId } = await import("@/lib/rag/qdrant")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await indexChunks(mockClient as any, chunks, embeddings)
 
     expect(mockClient.upsert).toHaveBeenCalledWith(COLLECTION_NAME, {
       points: expect.arrayContaining([
-        expect.objectContaining({ id: 0, vector: [0.1, 0.2], payload: expect.objectContaining({ text: "Mon parcours" }) }),
-        expect.objectContaining({ id: 1, vector: [0.3, 0.4], payload: expect.objectContaining({ text: "Mon profil" }) }),
+        expect.objectContaining({ id: chunkIdToPointId("chunk-1"), vector: [0.1, 0.2], payload: expect.objectContaining({ text: "Mon parcours" }) }),
+        expect.objectContaining({ id: chunkIdToPointId("chunk-2"), vector: [0.3, 0.4], payload: expect.objectContaining({ text: "Mon profil" }) }),
       ]),
     })
+  })
+
+  it("dérive l'identifiant du point du chunk et non de sa position", async () => {
+    const mockClient = {
+      getCollections: vi.fn().mockResolvedValue({ collections: [{ name: COLLECTION_NAME }] }),
+      createCollection: vi.fn(),
+      upsert: vi.fn().mockResolvedValue(undefined),
+    }
+    const chunk = { id: "cv-deadbeef", source: "cv", text: "Mon parcours", metadata: {} }
+
+    const { indexChunks, chunkIdToPointId } = await import("@/lib/rag/qdrant")
+
+    // Le même chunk en première puis en seconde position doit garder le même point.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await indexChunks(mockClient as any, [chunk], [[0.1]])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await indexChunks(mockClient as any, [{ ...chunk, id: "autre-00000000" }, chunk], [[0.2], [0.1]])
+
+    const firstRun = mockClient.upsert.mock.calls[0][1].points
+    const secondRun = mockClient.upsert.mock.calls[1][1].points
+
+    expect(firstRun[0].id).toBe(chunkIdToPointId("cv-deadbeef"))
+    expect(secondRun[1].id).toBe(firstRun[0].id)
   })
 
   it("doit upserter par batches de 100", async () => {

@@ -8,6 +8,7 @@ import {
   formatLanguages,
   cleanReadme,
   buildProfileDocument,
+  buildProjectsSummaryDocument,
   buildRepoContextHeader,
   buildRepoDocument,
   chunkGitHubProfile,
@@ -246,10 +247,34 @@ describe("buildProfileDocument", () => {
   })
 })
 
+describe("buildProjectsSummaryDocument", () => {
+  it("liste les projets avec leur description et leur langage", () => {
+    const summary = buildProjectsSummaryDocument(profile, [repo])
+    expect(summary).toContain("projets personnels")
+    expect(summary).toContain("side projects")
+    expect(summary).toContain("- Komfy — Mobile remote for ComfyUI")
+    expect(summary).toContain("TypeScript")
+    expect(summary).toContain("https://github.com/damienpjs")
+  })
+
+  it("annonce le nombre de projets", () => {
+    expect(buildProjectsSummaryDocument(profile, [repo, { ...repo, name: "Autre" }])).toContain("2 projet(s)")
+  })
+
+  it("gère un dépôt sans description", () => {
+    const summary = buildProjectsSummaryDocument(profile, [{ ...repo, description: null }])
+    expect(summary).toContain("- Komfy (")
+  })
+
+  it("retourne une chaîne vide sans dépôt", () => {
+    expect(buildProjectsSummaryDocument(profile, [])).toBe("")
+  })
+})
+
 describe("buildRepoContextHeader", () => {
   it("contient le nom du projet, le langage et la date de mise à jour", () => {
     const header = buildRepoContextHeader(repo)
-    expect(header).toContain("Projet GitHub: Komfy")
+    expect(header).toContain("Projet personnel GitHub: Komfy")
     expect(header).toContain("Langage: TypeScript")
     expect(header).toContain("2026")
     expect(header.startsWith("[")).toBe(true)
@@ -264,7 +289,7 @@ describe("buildRepoContextHeader", () => {
 describe("buildRepoDocument", () => {
   it("assemble les métadonnées du dépôt et son README", () => {
     const document = buildRepoDocument(repo, "# Komfy\n\nUne télécommande mobile.", { TypeScript: 9000, CSS: 1000 })
-    expect(document).toContain("Projet GitHub : Komfy")
+    expect(document).toContain("Projet personnel GitHub : Komfy")
     expect(document).toContain("Description : Mobile remote for ComfyUI")
     expect(document).toContain("Langages : TypeScript 90 %, CSS 10 %")
     expect(document).toContain("Thèmes : expo, comfyui")
@@ -364,7 +389,7 @@ describe("chunkGitHubProfile", () => {
     const chunks = await chunkGitHubProfile(source)
 
     for (const chunk of chunks.filter((c) => c.source === "github-komfy")) {
-      expect(chunk.text.startsWith("[Projet GitHub: Komfy")).toBe(true)
+      expect(chunk.text.startsWith("[Projet personnel GitHub: Komfy")).toBe(true)
     }
   })
 
@@ -416,5 +441,51 @@ describe("chunkGitHubProfile", () => {
     const chunks = await chunkGitHubProfile(source)
     expect(chunks.every((c) => c.source === "github")).toBe(true)
     expect(chunks.length).toBeGreaterThan(0)
+  })
+})
+
+describe("chunkGitHubProfile — synthèse des projets", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    delete process.env.GITHUB_TOKEN
+  })
+
+  it("produit un chunk de synthèse rattaché à l'URL du profil", async () => {
+    mockGitHubRoutes([
+      ["/readme", () => new Response("# Komfy", { status: 200 })],
+      ["/languages", () => jsonResponse({ TypeScript: 10_000 })],
+      ["/repos", () => jsonResponse([repo])],
+      ["/users/damienpjs", () => jsonResponse(profile)],
+    ])
+
+    const chunks = await chunkGitHubProfile({ id: "github", username: "damienpjs", label: "GitHub" })
+    const summary = chunks.find((c) => c.source === "github-projets")
+
+    expect(summary).toBeDefined()
+    expect(summary!.text).toContain("Komfy")
+    expect(summary!.metadata).toEqual({ sourceUrl: "https://github.com/damienpjs", sourceLabel: "GitHub" })
+  })
+
+  it("n'émet pas de synthèse quand il n'y a aucun dépôt", async () => {
+    mockGitHubRoutes([
+      ["/repos", () => jsonResponse([])],
+      ["/users/damienpjs", () => jsonResponse(profile)],
+    ])
+
+    const chunks = await chunkGitHubProfile({ id: "github", username: "damienpjs", label: "GitHub" })
+    expect(chunks.some((c) => c.source === "github-projets")).toBe(false)
+  })
+})
+
+describe("buildProjectsSummaryDocument — étanchéité avec les questions de carrière", () => {
+  it("n'emploie pas le vocabulaire salarial qui capterait les questions sur l'employeur", () => {
+    const summary = buildProjectsSummaryDocument(profile, [repo]).toLowerCase()
+
+    // Régression constatée en conditions réelles : « actuellement » / « travail »
+    // faisaient remonter cette synthèse au-dessus des chunks de carrière sur la
+    // question « pour quelle entreprise tu travailles actuellement ? ».
+    expect(summary).not.toContain("actuellement")
+    expect(summary).not.toContain("travail")
+    expect(summary).not.toContain("entreprise")
   })
 })

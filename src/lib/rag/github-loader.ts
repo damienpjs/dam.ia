@@ -229,6 +229,39 @@ export function buildProfileDocument(profile: IGitHubProfile): string {
 }
 
 /**
+ * Construit un document de synthèse listant tous les projets personnels.
+ *
+ * Indispensable au recall : les chunks de dépôt sont dominés par du README
+ * anglais, si bien qu'une question générique comme « sur quels projets perso tu
+ * bosses ? » ne les fait jamais remonter — l'en-tête français y pèse trop peu
+ * face à 500 caractères de contenu technique. Ce document-ci est court, dense et
+ * intégralement en français : son vecteur est donc proche de ce type de question.
+ *
+ * Retourne "" si l'utilisateur n'a aucun dépôt public.
+ */
+export function buildProjectsSummaryDocument(profile: IGitHubProfile, repos: IGitHubRepo[]): string {
+  if (repos.length === 0) {
+    return ""
+  }
+
+  const projectLines = repos.map((repo) => {
+    const details = [repo.language, `mis à jour en ${formatMonthYear(repo.updated_at)}`].filter(Boolean).join(", ")
+    return `- ${repo.name}${repo.description ? ` — ${repo.description}` : ""} (${details})`
+  })
+
+  // Le vocabulaire salarial est proscrit ici (« actuellement », « travail »,
+  // « entreprise ») : il ferait remonter cette synthèse sur les questions du type
+  // « pour quelle entreprise tu travailles ? », au détriment des chunks de carrière.
+  return [
+    "Mes projets personnels et side projects du moment",
+    `Je publie ${repos.length} projet(s) perso open source sur mon GitHub (${profile.html_url}).`,
+    "Voici les projets persos sur lesquels je code en ce moment :",
+    ...projectLines,
+    "Ce sont mes side projects : ce que je construis, ce sur quoi je bricole et j'expérimente pour le plaisir.",
+  ].join("\n")
+}
+
+/**
  * Construit un en-tête de contexte réinjecté en tête de chaque chunk d'un dépôt.
  *
  * Même logique que `buildChunkContextHeader` pour les expériences : une fois
@@ -237,7 +270,7 @@ export function buildProfileDocument(profile: IGitHubProfile): string {
  * dans le vecteur) et la précision (le LLM ne mélange pas deux projets).
  */
 export function buildRepoContextHeader(repo: IGitHubRepo): string {
-  const parts = [`Projet GitHub: ${repo.name}`]
+  const parts = [`Projet personnel GitHub: ${repo.name}`]
 
   if (repo.language) {
     parts.push(`Langage: ${repo.language}`)
@@ -252,7 +285,10 @@ export function buildRepoContextHeader(repo: IGitHubRepo): string {
  * Assemble un dépôt, son README et ses langages en un document texte indexable.
  */
 export function buildRepoDocument(repo: IGitHubRepo, readme: string, languages: TGitHubLanguages): string {
-  const lines = [`Projet GitHub : ${repo.name}`]
+  // Le vocabulaire français est explicite dès les premières lignes : les README
+  // étant majoritairement en anglais, sans cette amorce une question du type
+  // « sur quels projets perso tu bosses ? » ne matche aucun chunk GitHub.
+  const lines = [`Projet personnel GitHub : ${repo.name}`, "Type : projet perso open source, développé et publié sur mon GitHub (side project)"]
 
   if (repo.description) {
     lines.push(`Description : ${repo.description}`)
@@ -318,6 +354,21 @@ export async function chunkGitHubProfile(source: IGitHubSource): Promise<IConten
       text,
       metadata: profileMetadata,
     })
+  }
+
+  // Synthèse des projets, rattachée au profil : c'est elle qui répond aux
+  // questions génériques sur les projets persos.
+  const summary = buildProjectsSummaryDocument(profile, repos)
+  if (summary) {
+    const summarySource = `${source.id}-projets`
+    for (const text of splitTextIntoChunks(summary)) {
+      chunks.push({
+        id: generateChunkId(summarySource, text),
+        source: summarySource,
+        text,
+        metadata: profileMetadata,
+      })
+    }
   }
 
   for (const repo of repos) {

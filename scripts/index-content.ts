@@ -1,7 +1,7 @@
 import { chunkAllContent } from "../src/lib/rag/chunker"
 import { chunkAllPdfs } from "../src/lib/rag/pdf-loader"
 import { embedTexts } from "../src/lib/rag/embeddings"
-import { createQdrantClient, ensureCollection, indexChunks } from "../src/lib/rag/qdrant"
+import { createQdrantClient, resetCollection, indexChunks } from "../src/lib/rag/qdrant"
 import { scrapeWebSource, type IWebSource } from "../src/lib/rag/web-scraper"
 import { chunkGitHubProfile, type IGitHubSource } from "../src/lib/rag/github-loader"
 import type { IContentChunk } from "../src/lib/rag/types"
@@ -113,9 +113,11 @@ async function main() {
   console.log(`   → ${embeddings.length} embeddings générés (${embeddings[0].length} dimensions)\n`)
 
   // 6. Indexation Qdrant
+  // Reconstruction complète : on repart d'une collection vide pour qu'aucun point
+  // d'une source retirée depuis la dernière exécution ne survive à l'indexation.
   console.log("📦 Indexation dans Qdrant...")
   const client = createQdrantClient()
-  await ensureCollection(client)
+  await resetCollection(client)
   await indexChunks(client, allChunks, embeddings)
   console.log(
     `   → ${allChunks.length} chunks indexés dans Qdrant (${mdChunks.length} md + ${pdfChunks.length} pdf + ${webChunks.length} web + ${githubChunks.length} github)\n`,

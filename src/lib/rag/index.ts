@@ -1,5 +1,6 @@
 export { chunkAllContent, chunkDocument, splitTextIntoChunks, extractFrontmatter } from "./chunker"
 export { embedText, embedTexts, EMBEDDING_MODEL, EMBEDDING_DIMENSION } from "./embeddings"
-export { createQdrantClient, ensureCollection, indexChunks, searchSimilarChunks, COLLECTION_NAME } from "./qdrant"
+export { createQdrantClient, ensureCollection, resetCollection, chunkIdToPointId, indexChunks, searchSimilarChunks, COLLECTION_NAME, MIN_RELEVANCE_SCORE } from "./qdrant"
 export { retrieveRelevantChunks, formatRAGContext } from "./pipeline"
+export { condenseQuery, isFollowUp, heuristicCondense } from "./condense-query"
 export type { IContentChunk, ISearchResult } from "./types"

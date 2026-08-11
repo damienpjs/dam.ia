@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { GroqProvider } from "@/lib/llm/groq-provider"
 import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
-import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS } from "@/constants/llm"
+import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS, LLM_MAX_OUTPUT_TOKENS, LLM_TEMPERATURE } from "@/constants/llm"
 
 /**
  * Construit une ligne SSE `data:` à partir d'un delta de contenu.
@@ -111,6 +111,19 @@ describe("GroqProvider", () => {
     expect(body.stream).toBe(true)
     expect(body.messages[0].role).toBe("system")
     expect(body.messages[1]).toEqual({ role: "user", content: "Quelles sont tes compétences ?" })
+  })
+
+  it("transmet les paramètres de génération partagés", async () => {
+    mockFetch.mockResolvedValue(makeStreamResponse([sseChunk("ok")]))
+
+    const provider = new GroqProvider("ma-cle")
+    for await (const _text of provider.streamResponse("test")) {
+      // consume stream
+    }
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body.temperature).toBe(LLM_TEMPERATURE)
+    expect(body.max_tokens).toBe(LLM_MAX_OUTPUT_TOKENS)
   })
 
   it("insère l'historique conversationnel entre le system prompt et le message courant", async () => {

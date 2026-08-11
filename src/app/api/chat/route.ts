@@ -3,6 +3,7 @@ import { createLLMProvider, MockProvider } from "@/lib/llm"
 import { sanitizeMessage, MAX_MESSAGE_LENGTH } from "@/lib/sanitize-message"
 import { QuotaExceededError } from "@/lib/llm/errors"
 import { retrieveRelevantChunks, formatRAGContext } from "@/lib/rag/pipeline"
+import { condenseQuery } from "@/lib/rag/condense-query"
 import { createSession, saveMessage, getSessionMessages } from "@/lib/db/chat-service"
 import type { ISessionMessage } from "@/lib/db/chat-service"
 import { buildConversationHistory } from "@/lib/llm/conversation-history"
@@ -132,26 +133,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { sanitized } = sanitizeMessage(message)
     const provider = createLLMProvider()
 
-    // Pipeline RAG : enrichir le message avec les chunks pertinents
-    let enrichedMessage = sanitized
-    let sources: ISourceInfo[] = []
-    try {
-      const ragResults = await retrieveRelevantChunks(sanitized)
-      if (ragResults.length > 0) {
-        console.log(`[RAG] ✅ ${ragResults.length} chunks trouvés (scores: ${ragResults.map((r) => `${(r.score * 100).toFixed(0)}%`).join(", ")})`)
-        const ragContext = formatRAGContext(ragResults)
-        enrichedMessage = `${ragContext}\n\nQuestion de l'utilisateur : ${sanitized}`
-        sources = formatSources(ragResults)
-      } else {
-        console.log("[RAG] ⚠️ Aucun chunk pertinent trouvé")
-      }
-    } catch (ragError) {
-      console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
-    }
-
     // Mémoire conversationnelle : on reconstruit l'historique borné depuis la DB
     // (et non depuis le client) pour garder le fil sans gonfler le payload réseau.
-    // On le récupère AVANT de persister le message courant pour ne pas le dupliquer.
+    // On le récupère AVANT de persister le message courant pour ne pas le dupliquer,
+    // et AVANT le RAG car la recherche vectorielle en a besoin (cf. condenseQuery).
     // Graceful : sans historique on retombe sur un échange one-shot.
     let history: IConversationMessage[] = []
     let previousMessages: ISessionMessage[] = []
@@ -162,6 +147,32 @@ export async function POST(request: NextRequest): Promise<Response> {
       } catch (dbError) {
         console.warn("[DB] ❌ Impossible de récupérer l'historique:", dbError instanceof Error ? dbError.message : dbError)
       }
+    }
+
+    // Pipeline RAG : enrichir le message avec les chunks pertinents.
+    // La recherche porte sur une version CONDENSÉE de la question — autonome, donc
+    // porteuse du sujet en cours même sur un « et le backend ? ». Le message envoyé
+    // au LLM reste le message original du visiteur.
+    let enrichedMessage = sanitized
+    let sources: ISourceInfo[] = []
+    try {
+      const searchQuery = await condenseQuery(sanitized, history)
+      if (searchQuery !== sanitized) {
+        console.log(`[RAG] 🔎 Question condensée : « ${searchQuery} »`)
+      }
+      const ragResults = await retrieveRelevantChunks(searchQuery)
+      if (ragResults.length > 0) {
+        console.log(`[RAG] ✅ ${ragResults.length} chunks trouvés (scores: ${ragResults.map((r) => `${(r.score * 100).toFixed(0)}%`).join(", ")})`)
+        const ragContext = formatRAGContext(ragResults)
+        enrichedMessage = `${ragContext}\n\nQuestion de l'utilisateur : ${sanitized}`
+        sources = formatSources(ragResults)
+      } else {
+        // Sous le seuil de pertinence : on répond sans contexte plutôt qu'avec du
+        // bruit. C'est un cas nominal, pas une anomalie.
+        console.log("[RAG] ⚠️ Aucun chunk au-dessus du seuil de pertinence")
+      }
+    } catch (ragError) {
+      console.warn("[RAG] ❌ Fallback sans RAG:", ragError instanceof Error ? ragError.message : ragError)
     }
 
     // Détection de répétition : sur TOUT l'historique (pas seulement la fenêtre

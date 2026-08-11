@@ -1,25 +1,28 @@
 import { chunkAllContent } from "../src/lib/rag/chunker"
 import { chunkAllPdfs } from "../src/lib/rag/pdf-loader"
 import { embedTexts } from "../src/lib/rag/embeddings"
-import { createQdrantClient, ensureCollection, indexChunks } from "../src/lib/rag/qdrant"
+import { createQdrantClient, resetCollection, indexChunks } from "../src/lib/rag/qdrant"
 import { scrapeWebSource, type IWebSource } from "../src/lib/rag/web-scraper"
+import { chunkGitHubProfile, type IGitHubSource } from "../src/lib/rag/github-loader"
 import type { IContentChunk } from "../src/lib/rag/types"
 import fs from "fs"
 import path from "path"
 
 /**
- * Charge les sources web depuis content/sources.json (si le fichier existe).
+ * Charge un fichier de configuration JSON depuis /content.
+ * Retourne un tableau vide si le fichier n'existe pas : chaque type de source
+ * est optionnel, l'indexation doit fonctionner sans.
  */
-function loadWebSources(): IWebSource[] {
-  const sourcesPath = path.join(process.cwd(), "content", "sources.json")
+function loadSourceConfig<T>(filename: string): T[] {
+  const sourcesPath = path.join(process.cwd(), "content", filename)
   if (!fs.existsSync(sourcesPath)) {
     return []
   }
-  return JSON.parse(fs.readFileSync(sourcesPath, "utf-8")) as IWebSource[]
+  return JSON.parse(fs.readFileSync(sourcesPath, "utf-8")) as T[]
 }
 
 /**
- * Script d'indexation du contenu markdown, PDF et sources web dans Qdrant.
+ * Script d'indexation du contenu markdown, PDF, web et GitHub dans Qdrant.
  *
  * Usage: npx tsx scripts/index-content.ts
  *
@@ -27,8 +30,9 @@ function loadWebSources(): IWebSource[] {
  * 1. Charge et chunke tous les fichiers markdown de /content
  * 2. Charge et chunke tous les fichiers PDF de /content
  * 3. Scrape et chunke les sources web de content/sources.json
- * 4. Génère les embeddings via Gemini text-embedding-004
- * 5. Indexe les chunks + vecteurs dans Qdrant
+ * 4. Charge et chunke les profils GitHub de content/github.json
+ * 5. Génère les embeddings via Gemini
+ * 6. Indexe les chunks + vecteurs dans Qdrant
  */
 async function main() {
   console.log("🔄 Indexation du contenu dans Qdrant...\n")
@@ -52,7 +56,7 @@ async function main() {
   }
 
   // 3. Scraping des sources web
-  const webSources = loadWebSources()
+  const webSources = loadSourceConfig<IWebSource>("sources.json")
   const webChunks: IContentChunk[] = []
 
   if (webSources.length > 0) {
@@ -70,14 +74,33 @@ async function main() {
     console.log(`   → ${webChunks.length} chunks web au total\n`)
   }
 
-  const allChunks = [...mdChunks, ...pdfChunks, ...webChunks]
+  // 4. Profils GitHub (API REST : profil + dépôts + README)
+  const githubSources = loadSourceConfig<IGitHubSource>("github.json")
+  const githubChunks: IContentChunk[] = []
+
+  if (githubSources.length > 0) {
+    console.log(`🐙 Indexation de ${githubSources.length} profil(s) GitHub...`)
+    for (const source of githubSources) {
+      try {
+        console.log(`   → ${source.label} (@${source.username})...`)
+        const chunks = await chunkGitHubProfile(source)
+        githubChunks.push(...chunks)
+        console.log(`     ✅ ${chunks.length} chunks extraits`)
+      } catch (error) {
+        console.warn(`     ⚠️  Échec de l'indexation GitHub: ${error instanceof Error ? error.message : error}`)
+      }
+    }
+    console.log(`   → ${githubChunks.length} chunks GitHub au total\n`)
+  }
+
+  const allChunks = [...mdChunks, ...pdfChunks, ...webChunks, ...githubChunks]
 
   if (allChunks.length === 0) {
     console.log("⚠️  Aucun contenu trouvé. Abandon.")
     process.exit(0)
   }
 
-  // 3. Embeddings
+  // 5. Embeddings
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     console.error("❌ GEMINI_API_KEY est requis pour générer les embeddings.")
@@ -89,12 +112,16 @@ async function main() {
   const embeddings = await embedTexts(texts, apiKey)
   console.log(`   → ${embeddings.length} embeddings générés (${embeddings[0].length} dimensions)\n`)
 
-  // 4. Indexation Qdrant
+  // 6. Indexation Qdrant
+  // Reconstruction complète : on repart d'une collection vide pour qu'aucun point
+  // d'une source retirée depuis la dernière exécution ne survive à l'indexation.
   console.log("📦 Indexation dans Qdrant...")
   const client = createQdrantClient()
-  await ensureCollection(client)
+  await resetCollection(client)
   await indexChunks(client, allChunks, embeddings)
-  console.log(`   → ${allChunks.length} chunks indexés dans Qdrant (${mdChunks.length} md + ${pdfChunks.length} pdf + ${webChunks.length} web)\n`)
+  console.log(
+    `   → ${allChunks.length} chunks indexés dans Qdrant (${mdChunks.length} md + ${pdfChunks.length} pdf + ${webChunks.length} web + ${githubChunks.length} github)\n`,
+  )
 
   console.log("✅ Indexation terminée avec succès !")
 }

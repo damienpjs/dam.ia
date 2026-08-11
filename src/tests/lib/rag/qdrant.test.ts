@@ -6,8 +6,8 @@ describe("Qdrant constants", () => {
     expect(COLLECTION_NAME).toBe("damia_content")
   })
 
-  it("doit retourner 5 résultats par défaut", () => {
-    expect(DEFAULT_TOP_K).toBe(5)
+  it("doit retourner 7 résultats par défaut", () => {
+    expect(DEFAULT_TOP_K).toBe(7)
   })
 })
 

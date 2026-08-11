@@ -94,7 +94,7 @@ src/
     llm/              # Providers (Gemini, Groq, Mock), fallback chain, system
                       # prompt, conversation history, repeated-question detection
     rag/              # RAG pipeline (chunker, embeddings, Qdrant, PDF loader,
-                      # web scraper)
+                      # web scraper, GitHub loader)
                       # plus shared helpers: cors, rate-limit, sanitize-message,
                       # stream-chat, validation, content-loader, locale-context,
                       # utils
@@ -102,7 +102,42 @@ src/
   tests/              # Unit tests (mirrors src/)
 scripts/
   index-content.ts    # RAG indexing script (npm run rag:index)
+content/
+  *.md                # Career documents (frontmatter + markdown)
+  *.pdf               # PDF documents (LinkedIn export)
+  pdf-meta.json       # Per-PDF source label / URL overrides
+  sources.json        # Web pages to scrape
+  github.json         # GitHub profiles to index
 ```
+
+### RAG content sources
+
+`npm run rag:index` builds the vector index from four kinds of source, each one
+optional — a missing file is simply skipped:
+
+| Source | Configuration | Indexed content |
+| --- | --- | --- |
+| Markdown | `content/*.md` | Career documents, chunked with a frontmatter context header |
+| PDF | `content/*.pdf` | Text extracted via `pdf-parse` |
+| Web | `content/sources.json` | Scraped pages (`jsRendering: true` for SPAs) |
+| GitHub | `content/github.json` | Profile, repositories, topics, languages, READMEs and a French projects summary |
+
+GitHub is read through the REST API rather than the profile page: the HTML only
+yields navigation and repository names, while the API exposes descriptions,
+topics and READMEs. Each repository becomes an independently citable source, so
+chat bubbles link straight to the relevant project instead of the profile.
+
+READMEs are truncated to `GITHUB_MAX_README_CHARS` (`src/constants/rag.ts`) so a
+heavily documented project cannot crowd out the rest of the index.
+
+Repository chunks are dominated by English README content, which made generic
+French questions ("sur quels projets perso tu bosses ?") retrieve nothing from
+GitHub. An extra short, French-only summary chunk lists every project so those
+questions match; it deliberately avoids employment vocabulary, which would
+otherwise outrank career chunks on "pour quelle entreprise tu travailles ?".
+
+Indexing rebuilds the collection from scratch (`resetCollection`), so a source
+removed from the configuration leaves no orphan points behind.
 
 ## Languages (FR / EN)
 
@@ -150,6 +185,7 @@ Copy `.env.example` to `.env`, then fill in the keys.
 | `DATABASE_URL` | no | Neon PostgreSQL connection string (chat persistence) |
 | `QDRANT_URL` | no | Qdrant instance URL (RAG vector store) |
 | `QDRANT_API_KEY` | no | Qdrant key (required for Qdrant Cloud) |
+| `GITHUB_TOKEN` | no | GitHub personal access token used by `npm run rag:index`. Only lifts the anonymous rate limit (60 → 5000 req/h); public data is readable without it. |
 | `UPSTASH_REDIS_REST_URL` | no | Upstash Redis REST URL — enables rate limiting ([console.upstash.com](https://console.upstash.com)) |
 | `UPSTASH_REDIS_REST_TOKEN` | no | Upstash Redis REST token |
 | `ALLOWED_ORIGINS` | no | Additional allowed cross-origin origins (CSV) on top of same-origin. Default: production domain. |

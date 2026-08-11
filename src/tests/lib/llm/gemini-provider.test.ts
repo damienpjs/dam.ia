@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { GeminiProvider, buildSystemPrompt } from "@/lib/llm/gemini-provider"
 import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
-import { PERSONA, GEMINI_TIMEOUT_MS } from "@/constants/llm"
+import { PERSONA, GEMINI_TIMEOUT_MS, GEMINI_THINKING_BUDGET, LLM_MAX_OUTPUT_TOKENS, LLM_TEMPERATURE } from "@/constants/llm"
 
 // Mock du pipeline RAG pour éviter les appels réseau dans les tests
 vi.mock("@/lib/rag/pipeline", () => ({
@@ -12,14 +12,12 @@ vi.mock("@/lib/rag/pipeline", () => ({
 // Mock du SDK Google Generative AI
 const mockGenerateContentStream = vi.fn()
 
+const mockGetGenerativeModel = vi.fn(() => ({ generateContentStream: mockGenerateContentStream }))
+
 vi.mock("@google/generative-ai", () => {
   return {
     GoogleGenerativeAI: class {
-      getGenerativeModel() {
-        return {
-          generateContentStream: mockGenerateContentStream,
-        }
-      }
+      getGenerativeModel = mockGetGenerativeModel
     },
   }
 })
@@ -172,6 +170,28 @@ describe("GeminiProvider", () => {
 
   it("exporte GEMINI_TIMEOUT_MS", () => {
     expect(GEMINI_TIMEOUT_MS).toBe(30_000)
+  })
+
+  it("configure la génération : température, plafond de sortie et thinking désactivé", () => {
+    new GeminiProvider("fake-api-key")
+
+    expect(mockGetGenerativeModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "gemini-2.5-flash",
+        generationConfig: {
+          temperature: LLM_TEMPERATURE,
+          maxOutputTokens: LLM_MAX_OUTPUT_TOKENS,
+          thinkingConfig: { thinkingBudget: GEMINI_THINKING_BUDGET },
+        },
+      }),
+    )
+  })
+
+  it("laisse la place à la réponse malgré le plafond de sortie", () => {
+    // Les tokens de raisonnement sont décomptés de maxOutputTokens : un budget de
+    // thinking non nul avec un plafond serré tronquerait la réponse.
+    expect(GEMINI_THINKING_BUDGET).toBe(0)
+    expect(LLM_MAX_OUTPUT_TOKENS).toBeGreaterThan(0)
   })
 
   describe("buildSystemPrompt", () => {

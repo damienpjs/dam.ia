@@ -1,5 +1,5 @@
 import type { ILLMProvider, IConversationMessage } from "./types"
-import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS } from "@/constants/llm"
+import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS, LLM_MAX_OUTPUT_TOKENS, LLM_TEMPERATURE } from "@/constants/llm"
 import { isQuotaExceededError, isServiceUnavailableError, QuotaExceededError, ServiceUnavailableError } from "./errors"
 import { buildSystemPrompt } from "./system-prompt"
 import { markOperational, markQuotaExceeded } from "./quota-status"
@@ -34,6 +34,8 @@ export class GroqProvider implements ILLMProvider {
         body: JSON.stringify({
           model: this.model,
           stream: true,
+          temperature: LLM_TEMPERATURE,
+          max_tokens: LLM_MAX_OUTPUT_TOKENS,
           messages: [
             { role: "system", content: buildSystemPrompt() },
             ...history.map((m) => ({ role: m.role, content: m.content })),

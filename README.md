@@ -94,7 +94,7 @@ src/
     llm/              # Providers (Gemini, Groq, Mock), fallback chain, system
                       # prompt, conversation history, repeated-question detection
     rag/              # RAG pipeline (chunker, embeddings, Qdrant, PDF loader,
-                      # web scraper, GitHub loader)
+                      # web scraper, GitHub loader, follow-up query condensing)
                       # plus shared helpers: cors, rate-limit, sanitize-message,
                       # stream-chat, validation, content-loader, locale-context,
                       # utils
@@ -139,6 +139,32 @@ otherwise outrank career chunks on "pour quelle entreprise tu travailles ?".
 Indexing rebuilds the collection from scratch (`resetCollection`), so a source
 removed from the configuration leaves no orphan points behind.
 
+### Retrieval on follow-up questions
+
+A follow-up such as "c'est quoi le backend ?" carries no trace of the topic being
+discussed. Embedded as-is, its vector points at generic content rather than at the
+project the visitor is actually asking about — and since retrieved chunks are
+presented to the model as authoritative, the assistant would build its answer on
+unrelated material and drift off topic mid-conversation.
+
+Two safeguards address this:
+
+- **Query condensing** ([`src/lib/rag/condense-query.ts`](src/lib/rag/condense-query.ts))
+  — before the vector search, a follow-up is rewritten into a **standalone**
+  question ("quel est le backend du projet hodl-on-a-minute ?"). A cheap heuristic
+  gates the work (short message, or an anaphora marker), then a small Groq model
+  (`llama-3.1-8b-instant`, temperature 0) does the rewrite. Degradation is
+  layered: no history or an already-standalone question costs nothing, and a
+  missing key, an error, a timeout or a suspicious output falls back to plain
+  concatenation with the previous question. The rewrite feeds the **search only** —
+  the LLM still receives the visitor's original message.
+- **Relevance threshold** — the vector search passes `MIN_RELEVANCE_SCORE`
+  (`src/constants/rag.ts`) to Qdrant as `score_threshold`. Without it, `limit`
+  alone guaranteed that even an off-topic question got its `DEFAULT_TOP_K` "best"
+  chunks, however bad. Returning **no** context is a nominal outcome: the persona
+  is instructed to ignore excerpts that do not match the question at hand rather
+  than force them in.
+
 ## Languages (FR / EN)
 
 The whole interface is bilingual. A `FR / EN` toggle sits in the top-right corner
@@ -181,7 +207,7 @@ Copy `.env.example` to `.env`, then fill in the keys.
 | --- | --- | --- |
 | `LLM_PROVIDER` | no | Force a provider: `gemini`, `groq` or `mock`. Empty = auto-detection. |
 | `GEMINI_API_KEY` | no\* | Google Gemini key (primary provider) — [aistudio.google.com](https://aistudio.google.com/apikey) |
-| `GROQ_API_KEY` | no\* | Groq key (fallback provider) — [console.groq.com](https://console.groq.com/keys) |
+| `GROQ_API_KEY` | no\* | Groq key — [console.groq.com](https://console.groq.com/keys). Used both as the fallback provider and to condense follow-up questions before retrieval. |
 | `DATABASE_URL` | no | Neon PostgreSQL connection string (chat persistence) |
 | `QDRANT_URL` | no | Qdrant instance URL (RAG vector store) |
 | `QDRANT_API_KEY` | no | Qdrant key (required for Qdrant Cloud) |
@@ -209,6 +235,21 @@ red = unavailable), depending on the configuration: a single dot if a provider i
 forced, both if the fallback chain is active, none in mock mode. The status is
 exposed by `GET /api/llm/status` and refreshed after each answer.
 
+### Generation parameters
+
+Both providers share the same settings (`src/constants/llm.ts`), so an answer
+reads the same whichever one served it:
+
+- `LLM_TEMPERATURE` (0.6) — left unset, Gemini 2.5 Flash generates at 1.0, which
+  produces long, digressive answers and quietly overrides the persona's "2–4
+  sentences" rule.
+- `LLM_MAX_OUTPUT_TOKENS` (800) — far above the target length, so it never cuts a
+  normal answer, but it bounds runaway ones.
+- `GEMINI_THINKING_BUDGET` (0) — reasoning tokens count against
+  `maxOutputTokens`. A portfolio conversation gains nothing from extended
+  reasoning, so it is disabled: the output cap becomes safe and the first token
+  arrives sooner.
+
 ### Conversation memory
 
 The bot keeps track of the conversation: on every message, the history of
@@ -225,14 +266,24 @@ applied ([`src/lib/llm/conversation-history.ts`](src/lib/llm/conversation-histor
   forget the beginning of the conversation and break meta questions such as
   "what was my first question?" (especially after a reload, where more messages
   accumulate);
-- at most `MAX_HISTORY_CHARS` characters (~1000 tokens) on the tail, the oldest
-  ones being truncated beyond that;
+- at most `MAX_HISTORY_CHARS` characters (~3000 tokens) on the tail, the oldest
+  ones being truncated beyond that. This budget is a guard-rail against unusually
+  long messages, not the effective cap: at 4000 characters, real-world answers of
+  600–900 characters let only 4–5 messages through — two turns instead of the five
+  `MAX_HISTORY_MESSAGES` aims for — and the thread was lost before the message
+  count ever mattered;
 - fallback answers (status `error`) are excluded, and the RAG context is **not**
   re-injected into the history so those tokens aren't paid for again every turn.
 
 The caps and the anchor are configurable in
 [`src/constants/llm.ts`](src/constants/llm.ts). Without a `sessionId` (first
 message), the exchange stays "one-shot".
+
+Memory alone does not keep a conversation on track, so the persona carries
+explicit **continuity rules**: a follow-up is about the topic of the previous
+turn, a technical term is never answered with a generic definition when a project
+is being discussed, and a one-sentence clarifying question beats guessing. The
+assistant only switches topic when the visitor introduces one.
 
 #### Repeated-question detection
 

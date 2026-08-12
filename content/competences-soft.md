@@ -2,7 +2,7 @@
 title: "Soft Skills"
 category: competences
 type: soft-skills
-tags: [organisation, communication, creativite, equipe]
+tags: [organisation, communication, creativite, equipe, lead]
 sourceUrl: "/cv-damien-pasulj.pdf"
 sourceLabel: "CV (PDF)"
 ---
@@ -12,7 +12,8 @@ sourceLabel: "CV (PDF)"
 ## Compétences transversales
 
 - **Organisation** — Gestion de projets, priorisation, architecture de code
-- **Travail d'équipe** — Collaboration, code review, mentorat
+- **Lead technique** — Définition des bonnes pratiques, revues de code, standards documentés
+- **Transmission** — Pairing, sessions internes, montée en compétences des équipes (une dizaine de développeurs formés à la stack React/TypeScript/Next.js chez elloha)
 - **Communication** — Vulgarisation technique, documentation, présentation
 - **Créativité** — Background UI/UX, approche design thinking
 

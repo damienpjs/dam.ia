@@ -1,8 +1,8 @@
 ---
-title: "Lead React/TypeScript/Next.js — Apizee"
+title: "Lead Tech React/TypeScript/Next.js — Apizee"
 category: experience
 company: "Apizee"
-role: "Lead React/TypeScript/Next.js"
+role: "Lead Tech React/TypeScript/Next.js"
 period: "2024 - présent"
 startYear: 2024
 endYear: null
@@ -12,16 +12,15 @@ sourceUrl: "/cv-damien-pasulj.pdf"
 sourceLabel: "CV (PDF)"
 ---
 
-# Lead React/TypeScript/Next.js chez Apizee
+# Lead Tech React/TypeScript/Next.js chez Apizee
 
 **Période** : Depuis 2024 (poste actuel)
 
 ## Missions principales
 
-- Lead technique sur le cœur de produit en React, TypeScript et Next.js
-- Mise en place et maintenance de pipelines GitLab CI/CD
-- Définition de l'architecture front-end et des bonnes pratiques
-- Encadrement technique de l'équipe de développement
+- Lead technique du cœur de produit : architecture front-end, définition des bonnes pratiques et revues de code pour une équipe de 3 développeurs
+- Mise en place de pipelines GitLab CI/CD : lint, tests, déploiements automatisés
+- Accompagnement et montée en compétences de l'équipe (pairing, standards documentés)
 
 ## Stack technique
 

@@ -18,10 +18,9 @@ sourceLabel: "CV (PDF)"
 
 ## Missions principales
 
-- Intégration de l'équipe de développement de la web application principale
-- Développement front-end en ASP.NET/C#
-- Développement de nouvelles fonctionnalités (features)
-- Maintenance et amélioration des fonctionnalités existantes
+- Développement et maintenance de la web app principale (ASP.NET/C#)
+- Développement de nouvelles fonctionnalités et amélioration de l'existant
+- Expertise des problématiques métier de la réservation touristique
 
 ## Stack technique
 

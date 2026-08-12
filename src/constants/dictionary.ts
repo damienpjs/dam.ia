@@ -169,7 +169,7 @@ const FR: IDictionary = {
     titleLead: "Product Builder & ",
     titleHighlight: "enthousiaste IA",
     intro:
-      "Je m'appelle Damien Pasulj. Je conçois et construis des produits web, avec plus de onze ans d'expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript — avec en filigrane une sensibilité esthète forgée à l'école de design.",
+      "Je m'appelle Damien Pasulj. Je conçois et construis des produits web, avec douze ans d'expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript — avec en filigrane une sensibilité esthète forgée à l'école de design.",
     storyLabel: "Le fil rouge",
     story: [
       "Tout a commencé à l'IDEM, une école de design où j'étudiais l'ergonomie, l'apparence et l'identité visuelle des sites. Ce qui fait qu'un site fonctionne — ou pas — d'un point de vue marketing. Passionné d'interfaces et de technologies depuis toujours, j'ai aussi un côté esthète : j'aime concevoir des choses, initialement inertes, et leur donner vie sur le web.",
@@ -298,7 +298,7 @@ const EN: IDictionary = {
     titleLead: "Product Builder & ",
     titleHighlight: "AI enthusiast",
     intro:
-      "My name is Damien Pasulj. I design and build web products, with more than eleven years of front-end and full-stack experience, grounded in a solid JavaScript Tech Lead foundation — with, running underneath it all, an eye for aesthetics shaped at design school.",
+      "My name is Damien Pasulj. I design and build web products, with twelve years of front-end and full-stack experience, grounded in a solid JavaScript Tech Lead foundation — with, running underneath it all, an eye for aesthetics shaped at design school.",
     storyLabel: "The through line",
     story: [
       "It all started at IDEM, a design school where I studied usability, visual design and the brand identity of websites. What makes a site work — or not — from a marketing standpoint. Always passionate about interfaces and technology, I also have an aesthete's streak: I love designing things that start out inert, and bringing them to life on the web.",

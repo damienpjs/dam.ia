@@ -11,15 +11,17 @@ sourceLabel: "CV (PDF)"
 ## Informations générales
 
 - **Nom** : Damien Pasulj
-- **Poste** : Lead Tech JavaScript
+- **Poste** : Lead Tech JavaScript (React · TypeScript · Next.js)
 - **Date de naissance** : 27 janvier 1992
 - **Nationalité** : Français
-- **Localisation** : Amélie-les-Bains, Pyrénées Orientales (66)
+- **Localisation** : Amélie-les-Bains, Pyrénées-Orientales (66) — full remote
+- **Site** : damienpasulj.com
+- **GitHub** : github.com/damienpjs
 
 ## Langues
 
 - **Français** : Langue maternelle
-- **Anglais** : Courant (il m'arrive de chercher mes mots de temps en temps)
+- **Anglais** : Courant — documentation et projets rédigés en anglais (il m'arrive de chercher mes mots de temps en temps)
 
 ## Mobilité
 

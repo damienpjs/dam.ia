@@ -48,7 +48,7 @@ const jsonLd = {
   url: "https://damienpasulj.com",
   sameAs: ["https://www.linkedin.com/in/damien-pasulj-700928ba/"],
   jobTitle: "Product Builder & Lead React / TypeScript / Next.js",
-  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Plus de onze ans d'expérience en front-end et en full-stack.",
+  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Douze ans d'expérience en front-end et en full-stack.",
   image: "https://damienpasulj.com/photo-damien.jpg",
   worksFor: {
     "@type": "Organization",

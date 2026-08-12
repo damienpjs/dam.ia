@@ -37,4 +37,4 @@ L'IDEM (École Supérieure des Métiers Créatifs et Numériques) est une école
 
 Cette formation professionnelle m'a permis d'acquérir une double compétence rare : une sensibilité UI/UX combinée à des compétences techniques en développement. Cette combinaison est un atout majeur pour concevoir des interfaces à la fois belles et techniquement solides.
 
-> "J'ai sauté les bancs de l'université pour me plonger directement dans le code. Mes 11+ ans d'expérience professionnelle sont ma meilleure formation."
+> "J'ai sauté les bancs de l'université pour me plonger directement dans le code. Mes 12 ans d'expérience professionnelle sont ma meilleure formation."

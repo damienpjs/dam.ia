@@ -2,34 +2,56 @@
 title: "Compétences Techniques"
 category: competences
 type: hard-skills
-tags: [react, typescript, nextjs, nodejs, ci-cd, csharp]
+tags: [react, typescript, nextjs, nodejs, ci-cd, tests, ia, csharp]
 sourceUrl: "/cv-damien-pasulj.pdf"
 sourceLabel: "CV (PDF)"
 ---
 
 # Compétences Techniques
 
-## Stack principale (expertise)
+## Front-end
 
-### Front-end
-
-- **React** — Framework principal, expertise avancée
+- **React 19** — Framework principal, expertise avancée
 - **TypeScript** — Typage strict, architecture scalable
-- **Next.js** — SSR, SSG, App Router, API Routes
+- **Next.js** — App Router, SSR, SSG, API Routes
+- **React Native (Expo)** — Applications mobiles
+- **Zustand** — Gestion d'état
+- **TanStack Query** — Données serveur, cache et synchronisation
 
-### Back-end
+## Design system
 
-- **Node.js** — APIs, services back-end
-- **C#** — Expérience significative (ASP.NET)
+- **Storybook** — Composants documentés et isolés
+- Bibliothèques de composants réutilisables, cohérence visuelle et accessibilité
 
-### DevOps & Outils
+## Qualité
 
-- **CI/CD** — GitLab CI/CD, pipelines automatisés
-- **Git** — Gestion de version, workflows collaboratifs
+- **Vitest** et **Jest** — Tests unitaires
+- **Testing Library** — Tests orientés usage
+- **Couverture de 95 % vérifiée en CI**
+- **ESLint** — Conventions et qualité de code
+
+## CI/CD
+
+- **GitLab CI** — Pipelines lint, tests et déploiements automatisés
+- **GitHub Actions**
+- **Vercel** — Déploiement des applications Next.js
+
+## Back-end & data
+
+- **Node.js** — APIs et services back-end
+- **PostgreSQL (Drizzle)** — Modélisation et accès aux données
+- **Redis** — Cache et rate limiting
+- **WebSocket** — Temps réel
+
+## IA
+
+- **RAG (Retrieval-Augmented Generation)** avec **Qdrant** (base vectorielle) et embeddings
+- **LLM** — Claude, Gemini (également OpenAI et Groq sur des projets persos)
+- **Agents & MCP** — Outillage et automatisations autour des modèles
 
 ## Compétences historiques
 
-- **ASP.NET / C#** — 5+ ans d'expérience (2014-2022)
+- **ASP.NET / C#** — 5 ans d'expérience (2014-2022)
 - **DotNetNuke** — CMS, développement de sites
 
 ## Outils de design (background UI/UX)
@@ -41,11 +63,3 @@ Grâce à ma formation initiale en UI/UX :
 - Adobe InDesign
 - Adobe After Effects
 - Adobe Premiere Pro
-
-## Technologies IA
-
-- Claude / OpenAi / Gemini
-- Modèles de langage (LLM)
-- RAG (Retrieval-Augmented Generation)
-- Qdrant (vector database)
-- Embeddings

@@ -7,7 +7,7 @@ import { ChatInterface } from "@/components/features/chat-interface"
 import { MessageBubble } from "@/components/features/message-bubble"
 import { ProviderStatus } from "@/components/features/provider-status"
 import { TechBadges } from "@/components/features/tech-badges"
-import { LanguageSwitcher } from "@/components/ui/language-switcher"
+import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { createWelcomeMessage, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
@@ -89,9 +89,10 @@ export default function Home() {
       {/* Accueil — pointer-events-none sur le conteneur pour laisser le clic-glissé
           atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}
       <div aria-hidden={chatOpen} className={`pointer-events-none flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
-        {/* Sélecteur de langue : coin supérieur droit, hors du flux central.
-            Il s'estompe avec la landing — le header du chat prend le relais. */}
-        <LanguageSwitcher className="fixed right-4 top-4 z-40" />
+        {/* Navigation : coin supérieur droit, hors du flux central. Elle
+            s'estompe avec la landing — le header du chat prend le relais avec
+            les mêmes entrées, d'où un simple fondu croisé à l'ouverture. */}
+        <SiteNav current="home" className="fixed right-4 top-4 z-40" />
 
         <main className="flex w-full flex-col items-center gap-8 text-center">
           {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
@@ -126,15 +127,17 @@ export default function Home() {
       <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         {/* Header */}
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
-          <div className="mx-auto flex max-w-3xl items-center justify-between">
-            <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
-              Damien Pasulj
-            </button>
-            <div className="flex items-center gap-3">
-              <ProviderStatus />
-              <LanguageSwitcher />
-            </div>
-          </div>
+          <SiteNav
+            current="home"
+            className="mx-auto max-w-3xl"
+            brand={
+              <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
+                Damien Pasulj
+              </button>
+            }
+          >
+            <ProviderStatus />
+          </SiteNav>
         </header>
 
         {/* Zone de chat */}

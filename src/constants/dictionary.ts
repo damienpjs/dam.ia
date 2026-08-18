@@ -42,6 +42,10 @@ export interface IDictionary {
     languageLabel: string
     /** Nom de chaque langue, pour l'accessibilité des boutons. */
     localeNames: Record<TLocale, string>
+    /** Libellé accessible de la barre de navigation partagée. */
+    navLabel: string
+    /** Lien de navigation vers la page « à propos ». */
+    navAbout: string
   }
   landing: {
     greeting: string
@@ -111,6 +115,8 @@ const FR: IDictionary = {
   common: {
     languageLabel: "Langue",
     localeNames: { fr: "Français", en: "Anglais" },
+    navLabel: "Navigation",
+    navAbout: "À propos",
   },
   landing: {
     greeting: "Salut ! Moi c'est ",
@@ -240,6 +246,8 @@ const EN: IDictionary = {
   common: {
     languageLabel: "Language",
     localeNames: { fr: "French", en: "English" },
+    navLabel: "Navigation",
+    navAbout: "About",
   },
   landing: {
     greeting: "Hi there! I'm ",

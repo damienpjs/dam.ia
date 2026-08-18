@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
 import { renderWithLocale } from "@/tests/helpers/locale"
@@ -123,7 +123,24 @@ describe("Page d'accueil (/)", () => {
 
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(landing.greeting.trim())
       expect(screen.getByRole("button", { name: landing.startConversationAria })).toBeInTheDocument()
-      expect(screen.getByRole("link", { name: new RegExp(landing.aboutLink, "i") })).toHaveAttribute("href", "/about")
+      // Plusieurs liens « à propos » coexistent (coin de la landing, header du
+      // chat) : on cible celui du flux central, sous les badges.
+      const inlineAbout = within(screen.getByRole("main")).getByRole("link", { name: new RegExp(landing.aboutLink, "i") })
+      expect(inlineAbout).toHaveAttribute("href", "/about")
+    })
+
+    it("expose « à propos » dans le coin de la landing et dans le header du chat", () => {
+      render(<Home />)
+      const { common } = DICTIONARIES.fr
+      // `hidden: true` est nécessaire : tant que le chat est fermé, son header
+      // est `aria-hidden` et sort donc de l'arbre d'accessibilité.
+      const navs = screen.getAllByRole("navigation", { name: common.navLabel, hidden: true })
+      expect(navs).toHaveLength(2)
+      // Seule la nav de la landing est réellement exposée au départ.
+      expect(screen.getByRole("navigation", { name: common.navLabel })).toBe(navs[0])
+      navs.forEach((nav) => {
+        expect(within(nav).getByRole("link", { name: common.navAbout, hidden: true })).toHaveAttribute("href", "/about")
+      })
     })
 
     it("traduit la bulle d'accueil en anglais", () => {

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Damien Pasulj — Product Builder &amp; AI Engineer</title>
+<style>
+  @font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/plus-jakarta-sans-latin-400-normal.woff2"); font-weight: 400; }
+  @font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/plus-jakarta-sans-latin-500-normal.woff2"); font-weight: 500; }
+  @font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/plus-jakarta-sans-latin-600-normal.woff2"); font-weight: 600; }
+  @font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/plus-jakarta-sans-latin-700-normal.woff2"); font-weight: 700; }
+  @font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/plus-jakarta-sans-latin-800-normal.woff2"); font-weight: 800; }
+  @font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin-400-normal.woff2"); font-weight: 400; }
+  @font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin-500-normal.woff2"); font-weight: 500; }
+  @font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin-700-normal.woff2"); font-weight: 700; }
+
+  @page { size: A4; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 8.5pt; line-height: 1.42;
+    color: #dfe6e3;
+    width: 210mm; height: 297mm;
+    background: #0d1211;
+  }
+  .page { width: 210mm; height: 297mm; padding: 10mm 9mm 7mm; position: relative; overflow: hidden;
+    background: linear-gradient(160deg, #101716 0%, #0d1211 40%, #0e1413 100%); }
+
+  /* scanlines discrètes, clin d'œil CRT du site */
+  .scan { position: absolute; inset: 0; pointer-events: none; opacity: 0.05;
+    background: repeating-linear-gradient(0deg, transparent 0, transparent 2.2mm, #84c7c1 2.2mm, #84c7c1 2.35mm); }
+
+  .grad { background: linear-gradient(90deg, #84c7c1, #efa07a, #e9c46a, #8fe388); }
+
+  /* ───────── header ───────── */
+  header { display: flex; align-items: center; gap: 7mm; margin-bottom: 4.5mm; position: relative; }
+  .photo-wrap { width: 42mm; height: 42mm; border-radius: 50%; padding: 1mm; flex: none;
+    background: linear-gradient(135deg, #84c7c1, #efa07a, #e9c46a); }
+  .photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+  .name { font-size: 22pt; font-weight: 800; letter-spacing: -0.02em; color: #f4f7f5; }
+  .title { font-size: 11.5pt; font-weight: 700; margin-top: 0.6mm; color: #84c7c1; }
+  .title .amp { color: #6f817c; font-weight: 400; }
+  .title .alt { color: #efa07a; }
+  .prompt { font-family: "JetBrains Mono", monospace; font-size: 7.3pt; color: #6f817c; margin-top: 1.4mm; }
+  .prompt b { color: #8fe388; font-weight: 500; }
+
+  .contacts { display: flex; flex-wrap: wrap; gap: 1.2mm 4.5mm; margin: 3mm 0 4mm;
+    font-family: "JetBrains Mono", monospace; font-size: 7.2pt; color: #a9b8b3; position: relative; }
+  .contacts a { color: #a9b8b3; text-decoration: none; }
+  .contacts .k { color: #84c7c1; }
+
+  .accent-bar { height: 0.9mm; border-radius: 1mm; margin-bottom: 4mm; }
+
+  .pitch { font-size: 9.3pt; line-height: 1.5; color: #c6d1cd; margin-bottom: 4.5mm; position: relative; }
+  .pitch b { color: #f4f7f5; }
+
+  /* ───────── grid ───────── */
+  .cols { display: flex; gap: 7mm; position: relative; }
+  .colL { flex: 1.62; }
+  .colR { flex: 1; }
+
+  h2 { font-family: "JetBrains Mono", monospace; font-size: 7.8pt; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #f4f7f5;
+    margin: 0 0 2.4mm; display: flex; align-items: center; gap: 2mm; }
+  h2 .dollar { color: #8fe388; }
+  h2::after { content: ""; flex: 1; height: 0.28mm; background: #24312e; }
+  section + section h2, .job + .job { margin-top: 3.6mm; }
+
+  .proj { margin-bottom: 3.6mm; }
+  .proj-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .proj-head b { font-size: 10pt; font-weight: 700; color: #f4f7f5; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 6.9pt; color: #84c7c1; }
+  .proj ul { margin: 1mm 0 0 3.6mm; }
+  .proj li { margin-bottom: 0.7mm; color: #c6d1cd; }
+  .proj li::marker { color: #efa07a; }
+  .proj li b { color: #eef2f0; font-weight: 600; }
+
+  .job { }
+  .job-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .job-head b { font-size: 9pt; font-weight: 700; color: #f4f7f5; }
+  .job-head b em { font-style: normal; color: #84c7c1; }
+  .dates { font-family: "JetBrains Mono", monospace; font-size: 6.8pt; color: #6f817c; white-space: nowrap; }
+  .job p { color: #b7c3bf; margin-top: 0.4mm; }
+
+  .skillgroup { margin-bottom: 2.6mm; }
+  .skillgroup b { display: block; font-size: 8.2pt; font-weight: 700; color: #e9c46a; margin-bottom: 0.4mm; }
+  .skillgroup span { color: #b7c3bf; font-size: 8pt; }
+
+  .box { border: 0.3mm solid #24312e; border-radius: 2mm; padding: 3mm 3.4mm; margin-bottom: 3.6mm; background: #121a18; }
+  .box h2 { margin-bottom: 2mm; }
+  .small { font-size: 7.9pt; color: #a9b8b3; }
+  .small b { color: #dfe6e3; }
+
+  .ph { background: #e9c46a; border-radius: 0.8mm; padding: 0 0.8mm; font-weight: 700; color: #3a2f08; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="scan"></div>
+
+  <header>
+    <div class="photo-wrap"><img class="photo" src="photo.png" alt="Damien Pasulj"></div>
+    <div>
+      <div class="name">Damien Pasulj</div>
+      <div class="title">Product Builder <span class="amp">&amp;</span> <span class="alt">AI Engineer</span></div>
+      <div class="prompt"><b>$ whoami</b> — LLM orchestration · RAG · AI pipelines — on a JavaScript Tech Lead foundation</div>
+    </div>
+  </header>
+
+  <div class="contacts">
+    <span><span class="k">web:</span> <a href="https://damienpasulj.com">damienpasulj.com</a></span>
+    <span><span class="k">github:</span> <a href="https://github.com/damienpjs">github.com/damienpjs</a></span>
+    <span><span class="k">email:</span> <a href="mailto:dagobert1992@gmail.com">dagobert1992@gmail.com</a></span>
+    <span><span class="k">phone:</span> +33 6 13 47 94 46</span>
+    <span><span class="k">based in:</span> South of France — fully remote</span>
+  </div>
+  <div class="accent-bar grad"></div>
+
+  <p class="pitch"><b>I build AI products end to end</b> — RAG, multi-LLM orchestration, generation
+  pipelines — on <b>twelve years of product development, four of them as a JavaScript Tech Lead</b>.
+  Easiest way to see it: on <b>damienpasulj.com</b>, an AI double answers in my place — RAG, automatic
+  provider failover, <b>95 % test coverage</b>. I started out in interface design, and it never left me.</p>
+
+  <div class="cols">
+    <div class="colL">
+
+      <section>
+        <h2><span class="dollar">$</span> Projects</h2>
+
+        <div class="proj">
+          <div class="proj-head"><b>dam.ia — conversational “AI double”</b><span class="mono">damienpasulj.com</span></div>
+          <ul>
+            <li><b>Full RAG pipeline</b>: PDF and web ingestion, chunking, embeddings, Qdrant vector store.</li>
+            <li><b>Multi-LLM orchestration</b> with Gemini → Groq failover mid-stream on transient errors (429 quota, 503 overload), and live per-provider status.</li>
+            <li>Bounded “head + tail” conversation memory, deterministic repeated-question detection, <b>prompt injection detection</b>, Redis rate limiting.</li>
+            <li><b>95 % test coverage</b> enforced in CI — 3 GitHub Actions workflows, Vercel previews and production.</li>
+          </ul>
+        </div>
+
+        <div class="proj">
+          <div class="proj-head"><b>hodl-on-a-minute — BTC prediction game</b><span class="mono">hodl-on-a-minute.vercel.app</span></div>
+          <ul>
+            <li>Complete live product (Next.js, React 19, DynamoDB): <b>the client sends a direction and nothing else</b> — every other value is produced server-side.</li>
+            <li>Concurrency enforced by <b>conditional writes</b> (one guess at a time, idempotent resolution), tested against a real database; HMAC-signed cookie identity, least-privilege IAM.</li>
+          </ul>
+        </div>
+
+        <div class="proj">
+          <div class="proj-head"><b>Komfy — mobile remote for ComfyUI</b><span class="mono">github.com/damienpjs/Komfy</span></div>
+          <ul>
+            <li>React Native/Expo app (<b>~20,000 lines of TypeScript</b>) driving a local ComfyUI instance: real-time queue over WebSocket, gallery, LoRAs, EN/FR i18n.</li>
+            <li><b>Runtime workflow import</b>: infers the form from an arbitrary API-format JSON graph, patches the graph, validates it against the connected server.</li>
+            <li>“Remix” an image from its PNG metadata; custom Python extension on the server side (recursive listing, soft trash).</li>
+            <li><b>Security by design</b>: Tailscale-only network access, no public exposure.</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <section>
+        <h2><span class="dollar">$</span> Experience</h2>
+
+        <div class="job">
+          <div class="job-head"><b>React / TypeScript / Next.js Tech Lead — <em>Apizee</em></b><span class="dates">2024 — present</span></div>
+          <p>Core SaaS product: front-end architecture, engineering standards, GitLab CI/CD pipelines, leading 3 developers.</p>
+        </div>
+
+        <div class="job">
+          <div class="job-head"><b>Lead — core product rewrite — <em>elloha</em></b><span class="dates">2022 — 2024</span></div>
+          <p>Complete rewrite of a travel booking SaaS (10,000+ tourism professionals) from ASP.NET/C# to React/TypeScript/Next.js — incremental migration with zero downtime, team of 3 (around ten onboarded over the period).</p>
+        </div>
+
+        <div class="job">
+          <div class="job-head"><b>Web then front-end developer — <em>elloha</em></b><span class="dates">2014 — 2022</span></div>
+          <p>Main web application in ASP.NET/C#; before that, websites for French tourism destinations (collioure.com, morbihan.com and others).</p>
+        </div>
+      </section>
+
+    </div>
+    <div class="colR">
+
+      <div class="box">
+        <h2><span class="dollar">$</span> Skills</h2>
+        <div class="skillgroup"><b>AI</b><span>RAG (Qdrant, embeddings) · LLMs (Claude, Gemini, Groq, Ollama) · agents &amp; MCP · prompt engineering · ComfyUI</span></div>
+        <div class="skillgroup"><b>Stack</b><span>TypeScript · React 19 · Next.js · React Native (Expo) · Node.js · Python</span></div>
+        <div class="skillgroup"><b>Data</b><span>PostgreSQL (Drizzle) · Redis · WebSocket &amp; streaming</span></div>
+        <div class="skillgroup"><b>Quality &amp; infra</b><span>Vitest (95 % coverage) · Jest · Storybook · GitHub Actions · GitLab CI · Vercel</span></div>
+        <div class="skillgroup"><b>Design</b><span>UI/UX (original training) · design systems · Adobe Suite · Blender</span></div>
+      </div>
+
+      <div class="box">
+        <h2><span class="dollar">$</span> Track record</h2>
+        <p class="small"><b>Twelve years</b> of product development:<br>
+        CMS → C#/ASP.NET web app → lead of the React/TS/Next.js rewrite → tech lead.
+        The same trajectory I am now replaying on AI products.</p>
+      </div>
+
+      <div class="box">
+        <h2><span class="dollar">$</span> Education</h2>
+        <p class="small"><b>L'IDEM</b> — School of Creative &amp; Digital Professions, France<br>
+        2012–2014 · UI/UX design then web development</p>
+      </div>
+
+      <div class="box">
+        <h2><span class="dollar">$</span> Languages &amp; the rest</h2>
+        <p class="small">French native · fluent English<br>
+        Travel · sport · philosophy · drawing</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

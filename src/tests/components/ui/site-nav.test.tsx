@@ -44,6 +44,25 @@ describe("SiteNav", () => {
     expect(screen.getByTestId("encart")).toBeInTheDocument()
   })
 
+  it("groupe les encarts de statut avec la marque, à gauche des liens", () => {
+    const { container } = render(
+      <SiteNav current="home" brand={<span data-testid="marque" />}>
+        <span data-testid="encart" />
+      </SiteNav>,
+    )
+    const groups = container.querySelectorAll("nav > div")
+    expect(groups).toHaveLength(2)
+    expect(groups[0]).toContainElement(screen.getByTestId("marque"))
+    expect(groups[0]).toContainElement(screen.getByTestId("encart"))
+    expect(groups[1]).toContainElement(screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout }))
+  })
+
+  it("n'insère pas de groupe vide quand il n'y a ni marque ni encart", () => {
+    const { container } = render(<SiteNav current="home" />)
+    // Un conteneur à zéro largeur décalerait le groupe de droite du `gap`.
+    expect(container.querySelectorAll("nav > div")).toHaveLength(1)
+  })
+
   it("sépare le lien du sélecteur de langue par un point médian décoratif", () => {
     const { container } = render(<SiteNav current="home" />)
     const dot = container.querySelector("span[aria-hidden='true']")

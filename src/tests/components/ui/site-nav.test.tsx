@@ -44,10 +44,26 @@ describe("SiteNav", () => {
     expect(screen.getByTestId("encart")).toBeInTheDocument()
   })
 
-  it("garde le groupe de droite aligné même sans marque", () => {
+  it("sépare le lien du sélecteur de langue par un point médian décoratif", () => {
+    const { container } = render(<SiteNav current="home" />)
+    const dot = container.querySelector("span[aria-hidden='true']")
+    expect(dot).toHaveTextContent("·")
+  })
+
+  it("n'affiche pas de séparateur orphelin sur la page « à propos »", () => {
     const { container } = render(<SiteNav current="about" />)
-    // Un placeholder occupe la gauche pour que `justify-between` reste opérant.
-    expect(container.querySelector("nav")?.firstElementChild?.tagName).toBe("SPAN")
+    // Seul le « / » interne au sélecteur de langue subsiste.
+    const decorations = [...container.querySelectorAll("span[aria-hidden='true']")].map((node) => node.textContent)
+    expect(decorations).toEqual(["/"])
+  })
+
+  it("aligne à droite sans marque, et écarte les deux groupes avec", () => {
+    const { container, unmount } = render(<SiteNav current="home" />)
+    expect(container.querySelector("nav")).toHaveClass("justify-end")
+    unmount()
+
+    const withBrand = render(<SiteNav current="home" brand={<span>Damien Pasulj</span>} />)
+    expect(withBrand.container.querySelector("nav")).toHaveClass("justify-between")
   })
 
   it("reporte la className sur le repère de navigation", () => {

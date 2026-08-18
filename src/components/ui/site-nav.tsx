@@ -33,16 +33,25 @@ export function SiteNav({ current, brand, children, className }: ISiteNavProps) 
   const { t } = useLocale()
 
   return (
-    <nav aria-label={t.common.navLabel} className={cn("flex items-center justify-between gap-4", className)}>
-      {/* Emplacement conservé même sans marque : le groupe de droite reste aligné à droite. */}
-      {brand ?? <span />}
+    <nav aria-label={t.common.navLabel} className={cn("flex items-center gap-4", brand ? "justify-between" : "justify-end", className)}>
+      {brand}
 
       <div className="flex items-center gap-3">
         {children}
         {current !== "about" && (
-          <Link href="/about" className="pointer-events-auto font-mono text-xs text-zinc-500 transition-colors duration-300 hover:text-coral">
-            {t.common.navAbout}
-          </Link>
+          <>
+            <Link href="/about" className="pointer-events-auto font-mono text-xs text-zinc-500 transition-colors duration-300 hover:text-coral">
+              {t.common.navAbout}
+            </Link>
+            {/* Point médian : sépare la navigation du choix de langue. Il reprend
+                le gris du « / » interne au sélecteur, un cran plus effacé que les
+                libellés — la barre oblique départage deux langues, le point
+                départage deux groupes. Purement décoratif, donc hors du DOM
+                accessible. */}
+            <span aria-hidden="true" className="text-zinc-700">
+              ·
+            </span>
+          </>
         )}
         <LanguageSwitcher />
       </div>

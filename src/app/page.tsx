@@ -8,6 +8,7 @@ import { MessageBubble } from "@/components/features/message-bubble"
 import { ProviderStatus } from "@/components/features/provider-status"
 import { TechBadges } from "@/components/features/tech-badges"
 import { LanguageSwitcher } from "@/components/ui/language-switcher"
+import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { createWelcomeMessage, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
@@ -126,15 +127,17 @@ export default function Home() {
       <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         {/* Header */}
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
-          <div className="mx-auto flex max-w-3xl items-center justify-between">
-            <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
-              Damien Pasulj
-            </button>
-            <div className="flex items-center gap-3">
-              <ProviderStatus />
-              <LanguageSwitcher />
-            </div>
-          </div>
+          <SiteNav
+            current="home"
+            className="mx-auto max-w-3xl"
+            brand={
+              <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
+                Damien Pasulj
+              </button>
+            }
+          >
+            <ProviderStatus />
+          </SiteNav>
         </header>
 
         {/* Zone de chat */}

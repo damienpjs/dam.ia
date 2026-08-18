@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Timeline } from "@/components/features/timeline"
-import { LanguageSwitcher } from "@/components/ui/language-switcher"
+import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 
 /** Libellé de section : mono, capitales, discret — rythme l'éditorial. */
@@ -23,13 +23,16 @@ export function AboutContent() {
   return (
     <article className="mx-auto flex w-full max-w-2xl flex-col">
       {/* Retour vers l'accueil / le chat, et sélecteur de langue */}
-      <nav className="mb-16 flex items-center justify-between gap-4">
-        <Link href="/" className="group inline-flex items-center gap-2 font-mono text-sm text-muted-foreground transition-colors hover:text-coral">
-          <span className="inline-block transition-transform duration-300 group-hover:-translate-x-1">←</span>
-          Damien Pasulj
-        </Link>
-        <LanguageSwitcher />
-      </nav>
+      <SiteNav
+        current="about"
+        className="mb-16"
+        brand={
+          <Link href="/" className="group inline-flex items-center gap-2 font-mono text-sm text-muted-foreground transition-colors hover:text-coral">
+            <span className="inline-block transition-transform duration-300 group-hover:-translate-x-1">←</span>
+            Damien Pasulj
+          </Link>
+        }
+      />
 
       {/* En-tête éditorial */}
       <header className="mb-20">

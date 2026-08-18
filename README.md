@@ -188,6 +188,10 @@ site whose SEO metadata stays in French.
   `<html lang>` is kept in sync.
 - [`src/components/ui/language-switcher.tsx`](src/components/ui/language-switcher.tsx)
   — the toggle itself.
+- [`src/components/ui/site-nav.tsx`](src/components/ui/site-nav.tsx) — the
+  navigation bar shared by the chat header and the about page. It carries the
+  language toggle, any context-specific slot (LLM status) and the link to
+  `/about`, hidden when that page is already the current one.
 
 Proper nouns (technologies, companies, schools) are never translated. Suggested
 questions are persisted by **identifier** rather than by label, so switching

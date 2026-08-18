@@ -34,6 +34,7 @@ que je les construis.
 
 ## Projets personnels
 
+- **hodl-on-a-minute** (hodl-on-a-minute.vercel.app) — jeu de prédiction BTC à 60 secondes, Next.js, React 19, DynamoDB, autorité serveur et écritures conditionnelles
 - **dam.ia** (damienpasulj.com) — site perso conversationnel, Next.js 16, RAG Qdrant, fallback multi-LLM en streaming
 - **Komfy** (github.com/damienpjs/Komfy) — app mobile React Native/Expo pilotant une instance ComfyUI
 

@@ -1,8 +1,13 @@
 import type { Metadata, Viewport } from "next"
+import { GoogleAnalytics } from "@next/third-parties/google"
 import { Plus_Jakarta_Sans, Geist, Geist_Mono } from "next/font/google"
 import { DEFAULT_LOCALE } from "@/constants/i18n"
 import { LocaleProvider } from "@/lib/locale-context"
 import "./globals.css"
+
+// Sans identifiant de mesure, aucun script d'analytics n'est chargé : le
+// développement local, les tests et les prévisualisations Vercel restent muets.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -80,6 +85,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col overflow-x-hidden bg-background text-foreground">
         <LocaleProvider>{children}</LocaleProvider>
       </body>
+      {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>
   )
 }

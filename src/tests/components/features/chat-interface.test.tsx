@@ -20,6 +20,12 @@ vi.mock("@/lib/stream-chat", () => ({
   }),
 }))
 
+const trackEvent = vi.fn()
+
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+}))
+
 const mockStreamChat = vi.mocked(streamChat)
 
 beforeEach(() => {
@@ -983,5 +989,90 @@ describe("ChatInterface", () => {
       expect(screen.queryByText(DICTIONARIES.en.chat.suggestions.skills)).not.toBeInTheDocument()
       expect(screen.getByText(DICTIONARIES.en.chat.suggestions.softSkills)).toBeInTheDocument()
     })
+  })
+})
+
+describe("ChatInterface — mesure d'audience", () => {
+  beforeEach(() => {
+    trackEvent.mockClear()
+  })
+
+  it("consigne l'envoi depuis la saisie, avec le rang du message", async () => {
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.type(screen.getByRole("textbox"), "Bonjour")
+    await user.keyboard("{Enter}")
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_message_sent", { origin: "input", turn_index: 0 })
+  })
+
+  it("distingue l'envoi issu d'une suggestion et identifie laquelle", async () => {
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.click(screen.getByText(DICTIONARIES.fr.chat.suggestions[SUGGESTION_IDS[0]]))
+
+    expect(trackEvent).toHaveBeenCalledWith("suggestion_clicked", { suggestion_id: SUGGESTION_IDS[0] })
+    expect(trackEvent).toHaveBeenCalledWith("chat_message_sent", { origin: "suggestion", turn_index: 0 })
+  })
+
+  it("consigne la fin de réponse avec son statut et ses sources", async () => {
+    mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+      options.onChunk("O")
+      options.onComplete?.({ sources: [{ source: "cv", label: "CV" }] })
+    })
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.type(screen.getByRole("textbox"), "Bonjour")
+    await user.keyboard("{Enter}")
+
+    await waitFor(() => {
+      expect(trackEvent).toHaveBeenCalledWith("chat_response_completed", { status: "ok", has_sources: true, source_count: 1 })
+    })
+  })
+
+  it("consigne un échec de réponse vécu côté visiteur", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+      options.onError?.(new Error("boom"))
+    })
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.type(screen.getByRole("textbox"), "Bonjour")
+    await user.keyboard("{Enter}")
+
+    await waitFor(() => {
+      expect(trackEvent).toHaveBeenCalledWith("chat_response_error")
+    })
+  })
+
+  it("consigne la réinitialisation avec le nombre de messages échangés", async () => {
+    const user = setup()
+    render(<ChatInterface />)
+
+    await user.type(screen.getByRole("textbox"), "Bonjour")
+    await user.keyboard("{Enter}")
+    await waitFor(() => expect(screen.getByLabelText(DICTIONARIES.fr.chat.reset)).toBeInTheDocument())
+
+    await user.click(screen.getByLabelText(DICTIONARIES.fr.chat.reset))
+    await user.click(screen.getByRole("button", { name: DICTIONARIES.fr.chat.resetConfirm }))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_reset", { turns: 2 })
+  })
+
+  it("remonte le nombre de messages échangés à la page parente", async () => {
+    const onTurnsChange = vi.fn()
+    const user = setup()
+    render(<ChatInterface onTurnsChange={onTurnsChange} />)
+
+    expect(onTurnsChange).toHaveBeenCalledWith(0)
+
+    await user.type(screen.getByRole("textbox"), "Bonjour")
+    await user.keyboard("{Enter}")
+
+    await waitFor(() => expect(onTurnsChange).toHaveBeenCalledWith(2))
   })
 })

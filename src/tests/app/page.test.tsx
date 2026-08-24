@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest"
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
 import { render, screen, fireEvent, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
@@ -10,7 +10,19 @@ vi.mock("@/components/features/hero-scene", () => ({
 }))
 
 vi.mock("@/components/features/chat-interface", () => ({
-  ChatInterface: ({ messagesVisible }: { messagesVisible?: boolean }) => <div data-testid="chat-interface" data-messages-visible={String(messagesVisible)} />,
+  ChatInterface: ({ messagesVisible, onTurnsChange }: { messagesVisible?: boolean; onTurnsChange?: (turns: number) => void }) => (
+    <div data-testid="chat-interface" data-messages-visible={String(messagesVisible)}>
+      <button type="button" data-testid="simuler-echange" onClick={() => onTurnsChange?.(4)}>
+        échange
+      </button>
+    </div>
+  ),
+}))
+
+const trackEvent = vi.fn()
+
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
 }))
 
 // Force des dimensions non nulles pour exercer le morph (jsdom renvoie 0 par défaut)
@@ -159,5 +171,36 @@ describe("Page d'accueil (/)", () => {
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(DICTIONARIES.en.landing.greeting.trim())
       expect(localStorage.getItem("dam_ia_locale")).toBe("en")
     })
+  })
+})
+
+describe("Page d'accueil — mesure d'audience", () => {
+  beforeEach(() => {
+    trackEvent.mockClear()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
+  it("consigne l'ouverture de la conversation", async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+
+    await user.click(screen.getByRole("button", { name: DICTIONARIES.fr.landing.startConversationAria }))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_opened")
+  })
+
+  it("consigne la fermeture avec le nombre de messages échangés", async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+
+    await user.click(screen.getByRole("button", { name: DICTIONARIES.fr.landing.startConversationAria }))
+    await user.click(screen.getByTestId("simuler-echange"))
+    await user.click(screen.getByRole("button", { name: "Damien Pasulj" }))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_closed", { turns: 4 })
   })
 })

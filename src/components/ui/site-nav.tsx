@@ -3,10 +3,14 @@
 import Link from "next/link"
 import { LanguageSwitcher } from "@/components/ui/language-switcher"
 import { useLocale } from "@/lib/locale-context"
+import { trackEvent } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
 /** Route affichée — sert à ne pas proposer un lien vers la page courante. */
 export type TNavRoute = "home" | "about"
+
+/** Contexte d'affichage de la barre, pour la mesure d'audience. */
+export type TNavOrigin = "landing" | "chat"
 
 interface ISiteNavProps {
   current: TNavRoute
@@ -15,6 +19,10 @@ interface ISiteNavProps {
   brand?: React.ReactNode
   /** Encarts propres à un contexte, groupés avec la marque (statut LLM). */
   children?: React.ReactNode
+  /** Contexte d'où part le clic vers « à propos », remonté à GA4 sous le
+   *  paramètre `from`. Les deux instances de l'accueil partagent
+   *  `current="home"` : sans cette prop, elles seraient indiscernables. */
+  analyticsFrom?: TNavOrigin
   className?: string
 }
 
@@ -34,7 +42,7 @@ interface ISiteNavProps {
  * Le style reste celui des éléments discrets du site : mono, `text-xs`, gris au
  * repos, corail au survol.
  */
-export function SiteNav({ current, brand, children, className }: ISiteNavProps) {
+export function SiteNav({ current, brand, children, className, analyticsFrom = "landing" }: ISiteNavProps) {
   const { t } = useLocale()
 
   // Groupe de gauche omis quand il serait vide (coin de la landing) : un
@@ -54,7 +62,7 @@ export function SiteNav({ current, brand, children, className }: ISiteNavProps) 
       <div className="flex items-center gap-3">
         {current !== "about" && (
           <>
-            <Link href="/about" className="pointer-events-auto font-mono text-xs text-zinc-500 transition-colors duration-300 hover:text-coral">
+            <Link href="/about" onClick={() => trackEvent("about_link_clicked", { from: analyticsFrom })} className="pointer-events-auto font-mono text-xs text-zinc-500 transition-colors duration-300 hover:text-coral">
               {t.common.navAbout}
             </Link>
             {/* Point médian : sépare la navigation du choix de langue. Il

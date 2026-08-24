@@ -9,6 +9,7 @@ import { MessageBubble } from "@/components/features/message-bubble"
 import type { IMessage } from "@/components/features/message-bubble"
 import { streamChat, type IStreamResult, type ISourceInfo } from "@/lib/stream-chat"
 import { useLocale } from "@/lib/locale-context"
+import { trackEvent } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
 import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, WELCOME_MESSAGE_ID, createWelcomeMessage } from "@/constants/chat"
@@ -43,12 +44,18 @@ function SessionLoader({ label }: { label: string }) {
   )
 }
 
+/** Chemin d'appel d'un envoi de message — sert de dimension GA4 `origin`. */
+export type TMessageOrigin = "input" | "suggestion" | "reuse"
+
 interface IChatInterfaceProps {
   /** Masque la liste des messages pendant la transition d'ouverture (morph de la bulle d'accueil). */
   messagesVisible?: boolean
+  /** Remonte le nombre de messages échangés (hors bulle d'accueil) : la page
+   *  parente en a besoin pour qualifier la fermeture du chat. */
+  onTurnsChange?: (turns: number) => void
 }
 
-export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
+export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatInterfaceProps) {
   const { locale, t } = useLocale()
   const [messages, setMessages] = useState<IMessage[]>(() => [createWelcomeMessage(t.chat.welcome)])
   const [input, setInput] = useState("")
@@ -120,6 +127,12 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     }
   }, [])
 
+  // Le nombre de tours vit ici (avec les messages) mais se mesure au moment où
+  // le visiteur referme le chat, côté page : on le remonte à chaque échange.
+  useEffect(() => {
+    onTurnsChange?.(messages.length - 1)
+  }, [messages.length, onTurnsChange])
+
   const handleResize = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget
     el.style.height = "auto"
@@ -131,9 +144,14 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
   }, [])
 
   const sendMessage = useCallback(
-    async (overrideContent?: string) => {
+    async (overrideContent?: string, origin: TMessageOrigin = "input") => {
       const content = overrideContent ?? input.trim()
       if (!content || isStreaming) return
+
+      // `origin` est passé explicitement par l'appelant : le déduire à
+      // l'exécution serait deviner. `turn_index` compte les messages déjà
+      // échangés, bulle d'accueil exclue.
+      trackEvent("chat_message_sent", { origin, turn_index: messages.length - 1 })
 
       const userMessage: IMessage = {
         id: generateId(),
@@ -188,6 +206,11 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
           if (result.status === "error") {
             setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, status: "error" } : msg)))
           }
+          trackEvent("chat_response_completed", {
+            status: result.status ?? "ok",
+            has_sources: Boolean(result.sources?.length),
+            source_count: result.sources?.length ?? 0,
+          })
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
@@ -199,6 +222,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         },
         onError: (error) => {
           console.error("Erreur stream chat:", error)
+          trackEvent("chat_response_error")
           setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: t.chat.streamError } : msg)))
           setIsStreaming(false)
           setStreamingMessageId(null)
@@ -210,7 +234,7 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         },
       })
     },
-    [input, isStreaming, locale, t],
+    [input, isStreaming, locale, messages.length, t],
   )
 
   const handleKeyDown = useCallback(
@@ -236,12 +260,15 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
         localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify([...next]))
         return next
       })
-      void sendMessage(label)
+      trackEvent("suggestion_clicked", { suggestion_id: id })
+      void sendMessage(label, "suggestion")
     },
     [sendMessage],
   )
 
   const handleReset = useCallback(() => {
+    trackEvent("chat_reset", { turns: messages.length - 1 })
+
     // Annule un éventuel stream en cours
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
@@ -263,12 +290,12 @@ export function ChatInterface({ messagesVisible = true }: IChatInterfaceProps) {
     if (!window.matchMedia("(pointer: coarse)").matches) {
       textareaRef.current?.focus()
     }
-  }, [])
+  }, [messages.length])
 
   // Renvoie directement le message sélectionné, sans repasser par le champ de saisie.
   const handleReuseMessage = useCallback(
     (content: string) => {
-      void sendMessage(content)
+      void sendMessage(content, "reuse")
     },
     [sendMessage],
   )

@@ -1,6 +1,13 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
+
+const trackEvent = vi.fn()
+
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+}))
+
 
 const userMessage: IMessage = {
   id: "1",
@@ -435,5 +442,36 @@ describe("MessageBubble", () => {
       render(<MessageBubble message={{ ...userMessage, status: "error" }} />)
       expect(screen.queryByTestId("message-bubble-error")).not.toBeInTheDocument()
     })
+  })
+})
+
+describe("MessageBubble — mesure d'audience", () => {
+  beforeEach(() => {
+    trackEvent.mockClear()
+  })
+
+  it("consigne la copie d'un message avec son rôle", () => {
+    Object.assign(navigator, { clipboard: { writeText: vi.fn() } })
+    render(<MessageBubble message={assistantMessage} />)
+
+    fireEvent.click(screen.getByTestId("copy-button"))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_message_copied", { role: "assistant" })
+  })
+
+  it("consigne le renvoi d'un message utilisateur", () => {
+    render(<MessageBubble message={userMessage} onReuse={() => {}} />)
+
+    fireEvent.click(screen.getByTestId("reuse-button"))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_message_reused")
+  })
+
+  it("consigne le clic sur une source, par son libellé", () => {
+    render(<MessageBubble message={{ ...assistantMessage, sources: [{ source: "github", label: "GitHub", url: "https://github.com/damienpjs" }] }} />)
+
+    fireEvent.click(screen.getByRole("link", { name: "GitHub" }))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_source_clicked", { source_label: "GitHub" })
   })
 })

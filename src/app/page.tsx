@@ -9,6 +9,7 @@ import { ProviderStatus } from "@/components/features/provider-status"
 import { TechBadges } from "@/components/features/tech-badges"
 import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
+import { trackEvent } from "@/lib/analytics"
 import { createWelcomeMessage, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 
 type TPhase = "landing" | "opening" | "chat"
@@ -29,6 +30,9 @@ export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Nombre de messages échangés, remonté par le chat : il qualifie la fermeture
+  // (repli immédiat ou sortie après conversation).
+  const turnsRef = useRef(0)
 
   const chatOpen = phase !== "landing"
 
@@ -47,12 +51,14 @@ export default function Home() {
   // Clic sur la bulle d'accueil : on capture sa position avant de monter le chat
   const openChat = useCallback(() => {
     if (phase !== "landing") return
+    trackEvent("chat_opened")
     const rect = heroRef.current?.getBoundingClientRect()
     setClone(rect && rect.width > 0 ? { rect, offsetY: 0, morph: false } : null)
     setPhase("opening")
   }, [phase])
 
   const closeChat = useCallback(() => {
+    trackEvent("chat_closed", { turns: turnsRef.current })
     clearFallback()
     setClone(null)
     setPhase("landing")
@@ -79,6 +85,10 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, finishMorph])
 
+  const handleTurnsChange = useCallback((turns: number) => {
+    turnsRef.current = turns
+  }, [])
+
   const showClone = phase === "opening" && clone !== null
 
   return (
@@ -92,7 +102,7 @@ export default function Home() {
         {/* Navigation : coin supérieur droit, hors du flux central. Elle
             s'estompe avec la landing — le header du chat prend le relais avec
             les mêmes entrées, d'où un simple fondu croisé à l'ouverture. */}
-        <SiteNav current="home" className="fixed right-4 top-4 z-40" />
+        <SiteNav current="home" analyticsFrom="landing" className="fixed right-4 top-4 z-40" />
 
         <main className="flex w-full flex-col items-center gap-8 text-center">
           {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
@@ -129,6 +139,7 @@ export default function Home() {
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
           <SiteNav
             current="home"
+            analyticsFrom="chat"
             className="mx-auto max-w-3xl"
             brand={
               <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
@@ -141,7 +152,7 @@ export default function Home() {
         </header>
 
         {/* Zone de chat */}
-        {chatOpen && <ChatInterface messagesVisible={phase === "chat"} />}
+        {chatOpen && <ChatInterface messagesVisible={phase === "chat"} onTurnsChange={handleTurnsChange} />}
       </div>
 
       {/* Bulle clone qui glisse de la landing vers le haut du chat */}

@@ -1,9 +1,16 @@
-import { describe, it, expect, afterEach } from "vitest"
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { AboutContent } from "@/components/features/about-content"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
+
+const trackEvent = vi.fn()
+
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+}))
+
 
 afterEach(() => {
   localStorage.clear()
@@ -96,5 +103,20 @@ describe("AboutContent", () => {
 
     expect(screen.getByText(DICTIONARIES.en.about.philosophy)).toBeInTheDocument()
     expect(screen.queryByText(DICTIONARIES.fr.about.philosophy)).not.toBeInTheDocument()
+  })
+})
+
+describe("AboutContent — mesure d'audience", () => {
+  beforeEach(() => {
+    trackEvent.mockClear()
+  })
+
+  it("consigne le retour vers la conversation depuis l'appel à l'action", async () => {
+    const user = userEvent.setup()
+    render(<AboutContent />)
+
+    await user.click(screen.getByRole("link", { name: new RegExp(DICTIONARIES.fr.about.ctaLink, "i") }))
+
+    expect(trackEvent).toHaveBeenCalledWith("about_cta_clicked")
   })
 })

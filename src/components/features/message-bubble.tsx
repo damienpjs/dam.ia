@@ -6,6 +6,7 @@ import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
 import { useLocale } from "@/lib/locale-context"
+import { trackEvent } from "@/lib/analytics"
 import { ThinkingPhrase } from "@/components/features/thinking-phrase"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
@@ -90,6 +91,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
 
   function handleCopy(e: React.MouseEvent) {
     e.stopPropagation()
+    trackEvent("chat_message_copied", { role: message.role })
     navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -101,6 +103,7 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
 
   function handleReuse(e: React.MouseEvent) {
     e.stopPropagation()
+    trackEvent("chat_message_reused")
     onReuse?.(message.content)
   }
 
@@ -136,7 +139,14 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
                       "inline-flex items-center rounded-full border border-coral/20 bg-coral/5 px-2 py-0.5 text-[11px] font-medium text-coral/80 transition-colors hover:border-coral/40 hover:bg-coral/10 hover:text-coral"
 
                     return s.url ? (
-                      <a key={s.source} href={s.url} target="_blank" rel="noopener noreferrer" className={cn(baseClass, "cursor-pointer underline decoration-coral/30 underline-offset-2")}>
+                      <a
+                        key={s.source}
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackEvent("chat_source_clicked", { source_label: s.label })}
+                        className={cn(baseClass, "cursor-pointer underline decoration-coral/30 underline-offset-2")}
+                      >
                         {s.label}
                       </a>
                     ) : (

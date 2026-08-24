@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Timeline } from "@/components/features/timeline"
 import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
+import { trackEvent } from "@/lib/analytics"
 
 /** Libellé de section : mono, capitales, discret — rythme l'éditorial. */
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -108,7 +109,7 @@ export function AboutContent() {
       {/* Appel à l'action vers le chat */}
       <footer className="border-t border-border pt-10">
         <p className="text-base text-muted-foreground">{t.about.ctaQuestion}</p>
-        <Link href="/" className="group mt-3 inline-flex items-center gap-2 font-heading text-lg font-semibold text-coral transition-colors hover:text-coral-deep">
+        <Link href="/" onClick={() => trackEvent("about_cta_clicked")} className="group mt-3 inline-flex items-center gap-2 font-heading text-lg font-semibold text-coral transition-colors hover:text-coral-deep">
           {t.about.ctaLink}
           <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
         </Link>

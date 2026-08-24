@@ -1,8 +1,9 @@
 "use client"
 
 import { Fragment } from "react"
-import { LOCALES, LOCALE_LABELS } from "@/constants/i18n"
+import { LOCALES, LOCALE_LABELS, type TLocale } from "@/constants/i18n"
 import { useLocale } from "@/lib/locale-context"
+import { trackEvent } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
 interface ILanguageSwitcherProps {
@@ -19,6 +20,13 @@ interface ILanguageSwitcherProps {
 export function LanguageSwitcher({ className }: ILanguageSwitcherProps) {
   const { locale, setLocale, t } = useLocale()
 
+  // Cliquer la langue déjà active ne change rien : on ne le compte pas comme
+  // une bascule, sinon la mesure gonfle sans qu'aucun choix ait été fait.
+  function handleSelect(code: TLocale) {
+    if (code !== locale) trackEvent("locale_changed", { from: locale, to: code })
+    setLocale(code)
+  }
+
   return (
     <div data-testid="language-switcher" role="group" aria-label={t.common.languageLabel} className={cn("pointer-events-auto flex items-center gap-1 font-mono text-xs", className)}>
       {LOCALES.map((code, index) => (
@@ -30,7 +38,7 @@ export function LanguageSwitcher({ className }: ILanguageSwitcherProps) {
           )}
           <button
             type="button"
-            onClick={() => setLocale(code)}
+            onClick={() => handleSelect(code)}
             aria-pressed={locale === code}
             aria-label={t.common.localeNames[code]}
             className={cn("cursor-pointer rounded px-1 py-0.5 transition-colors duration-300", locale === code ? "text-coral" : "text-zinc-500 hover:text-zinc-300")}

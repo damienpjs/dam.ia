@@ -1,8 +1,16 @@
-import { describe, it, expect, afterEach } from "vitest"
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { SiteNav } from "@/components/ui/site-nav"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
+
+const trackEvent = vi.fn()
+
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+}))
+
 
 afterEach(() => {
   localStorage.clear()
@@ -94,5 +102,29 @@ describe("SiteNav", () => {
     renderWithLocale(<SiteNav current="home" />, "en")
     expect(screen.getByRole("navigation", { name: DICTIONARIES.en.common.navLabel })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: DICTIONARIES.en.common.navAbout })).toBeInTheDocument()
+  })
+})
+
+describe("SiteNav — mesure d'audience", () => {
+  beforeEach(() => {
+    trackEvent.mockClear()
+  })
+
+  it("rattache le clic « à propos » au contexte d'affichage", async () => {
+    const user = userEvent.setup()
+    render(<SiteNav current="home" analyticsFrom="chat" />)
+
+    await user.click(screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout }))
+
+    expect(trackEvent).toHaveBeenCalledWith("about_link_clicked", { from: "chat" })
+  })
+
+  it("considère la landing comme contexte par défaut", async () => {
+    const user = userEvent.setup()
+    render(<SiteNav current="home" />)
+
+    await user.click(screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout }))
+
+    expect(trackEvent).toHaveBeenCalledWith("about_link_clicked", { from: "landing" })
   })
 })

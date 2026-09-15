@@ -1,4 +1,4 @@
-# Suggestion de message de commit — dam.ia
+# Suggestion de message de commit (dam.ia)
 
 > Après chaque modification ou ajout de code, proposer un message de commit au format Conventional Commits.
 
@@ -25,7 +25,7 @@
 | `refactor` | Réécriture sans changement de comportement |
 | `test` | Ajout ou modification de tests uniquement |
 | `docs` | Modification de documentation (README, commentaires) |
-| `style` | Formatage, espaces, lint — pas de logique |
+| `style` | Formatage, espaces, lint, pas de logique |
 | `perf` | Amélioration de performance |
 | `chore` | Maintenance, mise à jour de dépendances, config |
 | `ci` | Modification des workflows CI/CD |

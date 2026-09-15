@@ -1,5 +1,5 @@
 ---
-title: "Développeur Front-end — elloha"
+title: "Développeur Front-end chez elloha"
 category: experience
 company: "elloha"
 role: "Développeur Front-end"

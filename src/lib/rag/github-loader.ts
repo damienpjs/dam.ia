@@ -7,7 +7,7 @@ import { GITHUB_API_URL, GITHUB_API_VERSION, GITHUB_TIMEOUT_MS, GITHUB_REPOS_PER
  *
  * On indexe l'API REST plutôt que la page HTML du profil : celle-ci ne contient
  * que de la navigation et des noms de dépôts, alors que l'API donne accès aux
- * descriptions, aux thèmes et surtout aux README — le seul endroit où se trouve
+ * descriptions, aux thèmes et surtout aux README, le seul endroit où se trouve
  * la vraie matière (architecture, stack, choix techniques).
  */
 export interface IGitHubSource {
@@ -23,7 +23,7 @@ export interface IGitHubSource {
    * on retombe sur la variable d'environnement `GITHUB_TOKEN`.
    */
   token?: string
-  /** Indexer aussi les dépôts forkés (défaut: false — un fork n'est pas une réalisation) */
+  /** Indexer aussi les dépôts forkés (défaut: false, un fork n'est pas une réalisation) */
   includeForks?: boolean
 }
 
@@ -93,7 +93,7 @@ async function requestGitHub(endpoint: string, token?: string, accept?: string):
   // Un 403 sans token est presque toujours un dépassement de quota anonyme :
   // on le dit explicitement plutôt que de laisser un « HTTP 403 » énigmatique.
   if (response.status === 403 && !token) {
-    throw new Error(`HTTP 403 pour ${endpoint} — quota anonyme de l'API GitHub atteint (60 req/h). Définir GITHUB_TOKEN pour le relever.`)
+    throw new Error(`HTTP 403 pour ${endpoint} : quota anonyme de l'API GitHub atteint (60 req/h). Définir GITHUB_TOKEN pour le relever.`)
   }
 
   if (!response.ok) {
@@ -124,7 +124,7 @@ export async function fetchUserRepos(username: string, token?: string, includeFo
 
 /**
  * Récupère le README d'un dépôt au format markdown brut.
- * Retourne une chaîne vide si le dépôt n'en a pas (404) — cas normal, pas une erreur.
+ * Retourne une chaîne vide si le dépôt n'en a pas (404), cas normal, pas une erreur.
  */
 export async function fetchRepoReadme(owner: string, repo: string, token?: string): Promise<string> {
   const endpoint = `/repos/${owner}/${repo}/readme`
@@ -233,7 +233,7 @@ export function buildProfileDocument(profile: IGitHubProfile): string {
  *
  * Indispensable au recall : les chunks de dépôt sont dominés par du README
  * anglais, si bien qu'une question générique comme « sur quels projets perso tu
- * bosses ? » ne les fait jamais remonter — l'en-tête français y pèse trop peu
+ * bosses ? » ne les fait jamais remonter : l'en-tête français y pèse trop peu
  * face à 500 caractères de contenu technique. Ce document-ci est court, dense et
  * intégralement en français : son vecteur est donc proche de ce type de question.
  *
@@ -246,7 +246,7 @@ export function buildProjectsSummaryDocument(profile: IGitHubProfile, repos: IGi
 
   const projectLines = repos.map((repo) => {
     const details = [repo.language, `mis à jour en ${formatMonthYear(repo.updated_at)}`].filter(Boolean).join(", ")
-    return `- ${repo.name}${repo.description ? ` — ${repo.description}` : ""} (${details})`
+    return `- ${repo.name}${repo.description ? ` : ${repo.description}` : ""} (${details})`
   })
 
   // Le vocabulaire salarial est proscrit ici (« actuellement », « travail »,
@@ -379,7 +379,7 @@ export async function chunkGitHubProfile(source: IGitHubSource): Promise<IConten
     const header = buildRepoContextHeader(repo)
     const metadata: Record<string, unknown> = {
       sourceUrl: repo.html_url,
-      sourceLabel: `${source.label} — ${repo.name}`,
+      sourceLabel: `${source.label} / ${repo.name}`,
     }
 
     for (const text of splitTextIntoChunks(buildRepoDocument(repo, readme, languages))) {

@@ -15,7 +15,7 @@ export interface ICondenseQueryOptions {
 /**
  * Marqueurs d'anaphore : le message renvoie explicitement à quelque chose déjà dit
  * plutôt que de nommer son sujet. Volontairement limité aux tournures franchement
- * déictiques — les pronoms courants (« il », « elle », « it ») apparaissent dans
+ * déictiques : les pronoms courants (« il », « elle », « it ») apparaissent dans
  * trop de questions autonomes pour servir de signal.
  */
 const ANAPHORA_PATTERN =
@@ -40,7 +40,7 @@ function normalize(message: string): string {
  * Détecte si un message a besoin du contexte conversationnel pour être compris.
  *
  * Rôle exact : c'est un FILTRE, pas un jugement. Il décide seulement s'il vaut la
- * peine de payer une réécriture — d'où un réglage volontairement large. Un faux
+ * peine de payer une réécriture, d'où un réglage volontairement large. Un faux
  * positif est peu coûteux (le condenseur renvoie la question inchangée si elle est
  * déjà autonome), là où un faux négatif laisse partir une recherche vectorielle
  * hors-sujet, qui est précisément le bug que l'on corrige.
@@ -62,7 +62,7 @@ export function isFollowUp(message: string, options: ICondenseQueryOptions = {})
 /**
  * Repli sans appel réseau : accole la dernière question du visiteur à la question
  * courante. Grossier, mais suffisant pour remettre les termes du sujet en cours
- * dans le vecteur de recherche — « C'est quoi le backend ? » seul ne pointe vers
+ * dans le vecteur de recherche : « C'est quoi le backend ? » seul ne pointe vers
  * aucun projet, précédé de « Parle-moi de hodl-on-a-minute » il y pointe.
  *
  * @returns Le message enrichi, ou le message inchangé si l'historique ne contient
@@ -118,13 +118,13 @@ function sanitizeCondensed(raw: string | undefined): string | null {
 
 /**
  * Réécrit une question de suivi en question autonome, pour la RECHERCHE VECTORIELLE
- * uniquement — le message envoyé au LLM de réponse reste le message original du
+ * uniquement. Le message envoyé au LLM de réponse reste le message original du
  * visiteur.
  *
  * Sans cette étape, « C'est quoi le backend ? » est embeddé isolément : son vecteur
  * ne porte aucune trace du projet dont on parlait, la recherche remonte des extraits
- * sans rapport, et le modèle — à qui l'on présente ces extraits comme faisant
- * autorité — change de sujet. C'est la cause première des ruptures de fil.
+ * sans rapport, et le modèle, à qui l'on présente ces extraits comme faisant
+ * autorité, change de sujet. C'est la cause première des ruptures de fil.
  *
  * Stratégie en trois niveaux, du plus précis au plus robuste :
  * 1. Pas d'historique ou question déjà autonome → message inchangé, aucun coût.

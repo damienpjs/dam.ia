@@ -13,8 +13,8 @@ PNG couleur (fond transparent, ~42px) affichés avant chaque techno dans les
 | gitlab.png               | GitLab CI/CD    | gilbarbara/logos (gitlab-icon)         |
 | comfyui.png              | ComfyUI         | Comfy-Org/desktop (Comfy_Logo)         |
 | blender.png              | Blender         | gilbarbara/logos (blender)             |
-| adobe-photoshop.png      | Suite Adobe — Ps | gilbarbara/logos (adobe-photoshop)    |
-| adobe-illustrator.png    | Suite Adobe — Ai | gilbarbara/logos (adobe-illustrator)  |
-| adobe-indesign.png       | Suite Adobe — Id | gilbarbara/logos (adobe-indesign)     |
-| adobe-premiere.png       | Suite Adobe — Pr | gilbarbara/logos (adobe-premiere)     |
-| adobe-aftereffects.png   | Suite Adobe — Ae | gilbarbara/logos (adobe-after-effects)|
+| adobe-photoshop.png      | Suite Adobe (Ps) | gilbarbara/logos (adobe-photoshop)    |
+| adobe-illustrator.png    | Suite Adobe (Ai) | gilbarbara/logos (adobe-illustrator)  |
+| adobe-indesign.png       | Suite Adobe (Id) | gilbarbara/logos (adobe-indesign)     |
+| adobe-premiere.png       | Suite Adobe (Pr) | gilbarbara/logos (adobe-premiere)     |
+| adobe-aftereffects.png   | Suite Adobe (Ae) | gilbarbara/logos (adobe-after-effects)|

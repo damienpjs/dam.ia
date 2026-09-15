@@ -14,14 +14,14 @@ sourceLabel: "CV (PDF)"
 - **Poste** : Lead Tech JavaScript (React · TypeScript · Next.js)
 - **Date de naissance** : 27 janvier 1992
 - **Nationalité** : Français
-- **Localisation** : Amélie-les-Bains, Pyrénées-Orientales (66) — full remote
+- **Localisation** : Amélie-les-Bains, Pyrénées-Orientales (66), full remote
 - **Site** : damienpasulj.com
 - **GitHub** : github.com/damienpjs
 
 ## Langues
 
 - **Français** : Langue maternelle
-- **Anglais** : Courant — documentation et projets rédigés en anglais (il m'arrive de chercher mes mots de temps en temps)
+- **Anglais** : Courant, documentation et projets rédigés en anglais (il m'arrive de chercher mes mots de temps en temps)
 
 ## Mobilité
 
@@ -31,10 +31,10 @@ sourceLabel: "CV (PDF)"
 
 ## Centres d'intérêt
 
-- **Voyages** — Découverte de nouvelles cultures
-- **Sport** — Activité physique régulière
-- **Philosophie** — Réflexion et développement personnel
-- **Dessin** — Expression créative (en lien avec le background UI/UX)
+- **Voyages** : Découverte de nouvelles cultures
+- **Sport** : Activité physique régulière
+- **Philosophie** : Réflexion et développement personnel
+- **Dessin** : Expression créative (en lien avec le background UI/UX)
 
 ## Disponibilité
 

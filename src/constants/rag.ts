@@ -12,7 +12,7 @@ export const DEFAULT_TOP_K = 7
 // Score de similarité cosinus minimal pour qu'un chunk soit injecté dans le prompt.
 // Sans seuil, la recherche remontait TOUJOURS ses 7 meilleurs résultats, même à 20 %
 // de pertinence : sur une question hors-sujet, le LLM recevait du bruit présenté
-// comme des faits avérés et construisait sa réponse dessus — d'où les changements
+// comme des faits avérés et construisait sa réponse dessus, d'où les changements
 // de sujet en cours de conversation. Valeur à recalibrer sur les scores loggués par
 // la route de chat si le contexte devient trop rare (trop haut) ou trop bruité (trop bas).
 export const MIN_RELEVANCE_SCORE = 0.55

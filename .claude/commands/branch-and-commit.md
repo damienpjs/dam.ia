@@ -1,6 +1,6 @@
-# Proposition de branche et de commit — dam.ia
+# Proposition de branche et de commit (dam.ia)
 
-> Après chaque modification ou ajout de code, proposer (1) la création d'une nouvelle branche basée sur `develop` et (2) un message de commit — les deux au format Conventional Commits, **en anglais**.
+> Après chaque modification ou ajout de code, proposer (1) la création d'une nouvelle branche basée sur `develop` et (2) un message de commit, les deux au format Conventional Commits, **en anglais**.
 
 ## Règles absolues
 
@@ -12,7 +12,7 @@
 
 Dès qu'une tâche de code est terminée (ajout, modification ou suppression de fichiers source), avant de conclure la réponse.
 
-## Étape 1 — Proposer une nouvelle branche (basée sur `develop`)
+## Étape 1 : proposer une nouvelle branche (basée sur `develop`)
 
 1. Vérifier la branche courante (`git branch --show-current`).
 2. Proposer un nom de branche au format Conventional Commits, **en anglais** :
@@ -40,7 +40,7 @@ Dès qu'une tâche de code est terminée (ajout, modification ou suppression de 
 
    Si la réponse est non (ou toute autre réponse), ne rien créer et poursuivre sur la branche courante.
 
-## Étape 2 — Proposer un message de commit (sans committer)
+## Étape 2 : proposer un message de commit (sans committer)
 
 Toujours présenter la suggestion, **en anglais**, sans jamais l'exécuter :
 

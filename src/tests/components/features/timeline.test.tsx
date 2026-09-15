@@ -29,7 +29,7 @@ function mockIntersectionObserver(intersecting: boolean) {
 
 const ENTRIES = [
   {
-    period: "2024 — présent",
+    period: "2024 - présent",
     role: "Lead React",
     org: "Acme",
     description: "Lead front-end.",
@@ -37,7 +37,7 @@ const ENTRIES = [
     current: true,
   },
   {
-    period: "2020 — 2024",
+    period: "2020 - 2024",
     role: "Développeur web",
     org: "Foo Corp",
     description: "Développement web.",

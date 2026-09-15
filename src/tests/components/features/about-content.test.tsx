@@ -106,7 +106,7 @@ describe("AboutContent", () => {
   })
 })
 
-describe("AboutContent — mesure d'audience", () => {
+describe("AboutContent : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
   })

@@ -63,7 +63,7 @@ export function levenshtein(a: string, b: string): number {
  *
  * Détection volontairement conservatrice (exacte / quasi-exacte) : on ne repère
  * qu'une reformulation triviale (casse, accents, ponctuation, faute de frappe),
- * jamais deux sujets simplement proches — pour garantir zéro faux positif.
+ * jamais deux sujets simplement proches, pour garantir zéro faux positif.
  *
  * @param current - Question courante (avant normalisation).
  * @param previousUserMessages - Questions utilisateur précédentes, de la plus

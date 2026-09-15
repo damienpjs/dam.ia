@@ -4,8 +4,8 @@ import { QuotaExceededError, ServiceUnavailableError } from "./errors"
 /**
  * Provider composite qui enchaîne plusieurs providers par ordre de priorité.
  *
- * Si un provider lève une erreur transitoire — `QuotaExceededError` (quota 429)
- * ou `ServiceUnavailableError` (surcharge 503) — **avant d'avoir streamé le
+ * Si un provider lève une erreur transitoire (`QuotaExceededError`, quota 429,
+ * ou `ServiceUnavailableError`, surcharge 503) **avant d'avoir streamé le
  * moindre token**, on bascule de façon transparente sur le suivant. Une fois
  * qu'un token a été émis, on ne peut plus basculer (sinon la réponse serait
  * tronquée puis dupliquée) : l'erreur est alors propagée.

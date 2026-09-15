@@ -1,5 +1,5 @@
 ---
-title: "Développeur Web — elloha"
+title: "Développeur Web chez elloha"
 category: experience
 company: "elloha"
 role: "Développeur Web"

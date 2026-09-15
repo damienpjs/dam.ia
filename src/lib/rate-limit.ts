@@ -65,7 +65,7 @@ export function resetRateLimiters(): void {
 
 /**
  * Extrait l'IP cliente depuis les en-têtes de proxy (Vercel, reverse proxy).
- * Retombe sur "anonymous" si aucune IP n'est disponible — tous les clients
+ * Retombe sur "anonymous" si aucune IP n'est disponible : tous les clients
  * anonymes partagent alors le même seau, ce qui reste protecteur.
  */
 export function getClientIp(request: NextRequest): string {

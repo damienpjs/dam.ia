@@ -105,7 +105,7 @@ describe("SiteNav", () => {
   })
 })
 
-describe("SiteNav — mesure d'audience", () => {
+describe("SiteNav : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
   })

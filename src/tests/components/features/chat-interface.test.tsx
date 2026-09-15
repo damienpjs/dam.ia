@@ -161,7 +161,7 @@ describe("ChatInterface", () => {
     const textarea = screen.getByLabelText(/message à envoyer/i)
     await user.type(textarea, "Ligne 1")
     await user.keyboard("{Shift>}{Enter}{/Shift}")
-    // Le message ne doit PAS être envoyé — seule la bulle de bienvenue existe
+    // Le message ne doit PAS être envoyé, seule la bulle de bienvenue existe
     expect(screen.getAllByTestId("message-bubble")).toHaveLength(1)
   })
 
@@ -992,7 +992,7 @@ describe("ChatInterface", () => {
   })
 })
 
-describe("ChatInterface — mesure d'audience", () => {
+describe("ChatInterface : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
   })

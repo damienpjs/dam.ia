@@ -1,8 +1,8 @@
 ---
-title: "Lead Refonte Produit — elloha"
+title: "Lead Refonte Produit chez elloha"
 category: experience
 company: "elloha"
-role: "Lead — refonte du cœur de produit"
+role: "Lead sur la refonte du cœur de produit"
 period: "2022 - 2024"
 startYear: 2022
 endYear: 2024
@@ -18,7 +18,7 @@ sourceLabel: "CV (PDF)"
 
 ## Missions principales
 
-- Pilotage de la refonte complète du SaaS de réservation touristique — plus de 10 000 professionnels utilisateurs — d'ASP.NET/C# vers React, TypeScript et Next.js
+- Pilotage de la refonte complète du SaaS de réservation touristique (plus de 10 000 professionnels utilisateurs) d'ASP.NET/C# vers React, TypeScript et Next.js
 - Migration progressive **sans interruption de service** ; architecture, conventions et outillage définis pour l'équipe
 - Formation et intégration des développeurs à la nouvelle stack : 3 en continu, une dizaine formés au total sur la période (sessions internes, pairing, revues)
 

@@ -7,21 +7,21 @@ and English**, switchable from a `FR / EN` toggle.
 
 ## Tech stack
 
-- **Next.js 16** — React framework (App Router)
-- **React 19** — UI
-- **TypeScript 5** — static typing
-- **Tailwind CSS 4** — styling
-- **shadcn/ui** on **Base UI** (`@base-ui/react`) primitives — UI components
-- **three.js** + **@react-three/fiber** / **drei** / **postprocessing** — WebGL hero scene
-- **react-markdown + remark-gfm** — markdown rendering of bot answers
-- **Google Gemini** (`@google/generative-ai`) + **Groq** — LLM providers
-- **Drizzle ORM** + **Neon PostgreSQL** (`@neondatabase/serverless`) — chat persistence
-- **Qdrant** (`@qdrant/js-client-rest`) + **pdf-parse** — vector store and RAG indexing
-- **@upstash/ratelimit + @upstash/redis** — per-IP rate limiting (anti-spam)
-- **Lucide React** — icons
-- **Vitest** — unit tests (coverage threshold: 95%)
-- **Istanbul** (`@vitest/coverage-istanbul`) — coverage reporting
-- **@testing-library/react** — React testing utilities
+- **Next.js 16**: React framework (App Router)
+- **React 19**: UI
+- **TypeScript 5**: static typing
+- **Tailwind CSS 4**: styling
+- **shadcn/ui** on **Base UI** (`@base-ui/react`) primitives: UI components
+- **three.js** + **@react-three/fiber** / **drei** / **postprocessing**: WebGL hero scene
+- **react-markdown + remark-gfm**: markdown rendering of bot answers
+- **Google Gemini** (`@google/generative-ai`) + **Groq**: LLM providers
+- **Drizzle ORM** + **Neon PostgreSQL** (`@neondatabase/serverless`): chat persistence
+- **Qdrant** (`@qdrant/js-client-rest`) + **pdf-parse**: vector store and RAG indexing
+- **@upstash/ratelimit + @upstash/redis**: per-IP rate limiting (anti-spam)
+- **Lucide React**: icons
+- **Vitest**: unit tests (coverage threshold: 95%)
+- **Istanbul** (`@vitest/coverage-istanbul`): coverage reporting
+- **@testing-library/react**: React testing utilities
 
 ### Typography
 
@@ -41,7 +41,7 @@ Three Google Fonts are loaded via `next/font` in
 npm install
 ```
 
-Then copy `.env.example` to `.env` and fill in the keys (all optional — see
+Then copy `.env.example` to `.env` and fill in the keys (all optional, see
 [Environment variables](#environment-variables)).
 
 Start the development server:
@@ -98,7 +98,7 @@ src/
                       # plus shared helpers: cors, rate-limit, sanitize-message,
                       # stream-chat, validation, content-loader, locale-context,
                       # utils
-  proxy.ts            # Next 16 proxy (CORS + rate limiting) — replaces middleware.ts
+  proxy.ts            # Next 16 proxy (CORS + rate limiting), replaces middleware.ts
   tests/              # Unit tests (mirrors src/)
 scripts/
   index-content.ts    # RAG indexing script (npm run rag:index)
@@ -113,7 +113,7 @@ content/
 ### RAG content sources
 
 `npm run rag:index` builds the vector index from four kinds of source, each one
-optional — a missing file is simply skipped:
+optional: a missing file is simply skipped:
 
 | Source | Configuration | Indexed content |
 | --- | --- | --- |
@@ -143,22 +143,22 @@ removed from the configuration leaves no orphan points behind.
 
 A follow-up such as "c'est quoi le backend ?" carries no trace of the topic being
 discussed. Embedded as-is, its vector points at generic content rather than at the
-project the visitor is actually asking about — and since retrieved chunks are
+project the visitor is actually asking about, and since retrieved chunks are
 presented to the model as authoritative, the assistant would build its answer on
 unrelated material and drift off topic mid-conversation.
 
 Two safeguards address this:
 
-- **Query condensing** ([`src/lib/rag/condense-query.ts`](src/lib/rag/condense-query.ts))
-  — before the vector search, a follow-up is rewritten into a **standalone**
+- **Query condensing** ([`src/lib/rag/condense-query.ts`](src/lib/rag/condense-query.ts)):
+  before the vector search, a follow-up is rewritten into a **standalone**
   question ("quel est le backend du projet hodl-on-a-minute ?"). A cheap heuristic
   gates the work (short message, or an anaphora marker), then a small Groq model
   (`llama-3.1-8b-instant`, temperature 0) does the rewrite. Degradation is
   layered: no history or an already-standalone question costs nothing, and a
   missing key, an error, a timeout or a suspicious output falls back to plain
-  concatenation with the previous question. The rewrite feeds the **search only** —
+  concatenation with the previous question. The rewrite feeds the **search only**;
   the LLM still receives the visitor's original message.
-- **Relevance threshold** — the vector search passes `MIN_RELEVANCE_SCORE`
+- **Relevance threshold**: the vector search passes `MIN_RELEVANCE_SCORE`
   (`src/constants/rag.ts`) to Qdrant as `score_threshold`. Without it, `limit`
   alone guaranteed that even an off-topic question got its `DEFAULT_TOP_K` "best"
   chunks, however bad. Returning **no** context is a nominal outcome: the persona
@@ -173,22 +173,22 @@ selected language is stored in `localStorage` (`dam_ia_locale`) and restored on
 the next visit.
 
 There is deliberately **no i18n routing** (`/fr`, `/en`): the language is client
-state only, so each page keeps a single URL to index — which suits a personal
+state only, so each page keeps a single URL to index, which suits a personal
 site whose SEO metadata stays in French.
 
-- [`src/constants/i18n.ts`](src/constants/i18n.ts) — supported locales, default
+- [`src/constants/i18n.ts`](src/constants/i18n.ts): supported locales, default
   locale, storage key, `isLocale` guard.
-- [`src/constants/dictionary.ts`](src/constants/dictionary.ts) — every visible
+- [`src/constants/dictionary.ts`](src/constants/dictionary.ts): every visible
   string, in both languages. Adding a language means adding one entry to
   `DICTIONARIES`; a test asserts both dictionaries expose exactly the same keys.
-- [`src/lib/locale-context.tsx`](src/lib/locale-context.tsx) — `LocaleProvider`
+- [`src/lib/locale-context.tsx`](src/lib/locale-context.tsx): `LocaleProvider`
   (mounted in the root layout) and the `useLocale()` hook returning
   `{ locale, setLocale, t }`. The first render always uses French to match the
   server HTML, then the stored language is applied before the first paint, and
   `<html lang>` is kept in sync.
-- [`src/components/ui/language-switcher.tsx`](src/components/ui/language-switcher.tsx)
-  — the toggle itself.
-- [`src/components/ui/site-nav.tsx`](src/components/ui/site-nav.tsx) — the
+- [`src/components/ui/language-switcher.tsx`](src/components/ui/language-switcher.tsx):
+  the toggle itself.
+- [`src/components/ui/site-nav.tsx`](src/components/ui/site-nav.tsx): the
   navigation bar shared by the chat header and the about page. It carries the
   language toggle, any context-specific slot (LLM status) and the link to
   `/about`, hidden when that page is already the current one.
@@ -210,13 +210,13 @@ Copy `.env.example` to `.env`, then fill in the keys.
 | Variable | Required | Description |
 | --- | --- | --- |
 | `LLM_PROVIDER` | no | Force a provider: `gemini`, `groq` or `mock`. Empty = auto-detection. |
-| `GEMINI_API_KEY` | no\* | Google Gemini key (primary provider) — [aistudio.google.com](https://aistudio.google.com/apikey) |
-| `GROQ_API_KEY` | no\* | Groq key — [console.groq.com](https://console.groq.com/keys). Used both as the fallback provider and to condense follow-up questions before retrieval. |
+| `GEMINI_API_KEY` | no\* | Google Gemini key (primary provider): [aistudio.google.com](https://aistudio.google.com/apikey) |
+| `GROQ_API_KEY` | no\* | Groq key: [console.groq.com](https://console.groq.com/keys). Used both as the fallback provider and to condense follow-up questions before retrieval. |
 | `DATABASE_URL` | no | Neon PostgreSQL connection string (chat persistence) |
 | `QDRANT_URL` | no | Qdrant instance URL (RAG vector store) |
 | `QDRANT_API_KEY` | no | Qdrant key (required for Qdrant Cloud) |
 | `GITHUB_TOKEN` | no | GitHub personal access token used by `npm run rag:index`. Only lifts the anonymous rate limit (60 → 5000 req/h); public data is readable without it. |
-| `UPSTASH_REDIS_REST_URL` | no | Upstash Redis REST URL — enables rate limiting ([console.upstash.com](https://console.upstash.com)) |
+| `UPSTASH_REDIS_REST_URL` | no | Upstash Redis REST URL, enables rate limiting ([console.upstash.com](https://console.upstash.com)) |
 | `UPSTASH_REDIS_REST_TOKEN` | no | Upstash Redis REST token |
 | `ALLOWED_ORIGINS` | no | Additional allowed cross-origin origins (CSV) on top of same-origin. Default: production domain. |
 
@@ -226,8 +226,8 @@ Copy `.env.example` to `.env`, then fill in the keys.
 ### Multi-provider fallback
 
 When both the Gemini **and** Groq keys are present, requests use a **Gemini →
-Groq** fallback chain: if Gemini returns a transient error — quota exceeded
-(HTTP 429) **or** model overloaded / temporarily unavailable (HTTP 503) — before
+Groq** fallback chain: if Gemini returns a transient error, quota exceeded
+(HTTP 429) **or** model overloaded / temporarily unavailable (HTTP 503), before
 a single token has been streamed, the system switches over to Groq in real time,
 which has an independent free quota. Every new request restarts the chain at
 Gemini, so returning to the primary provider is automatic as soon as it becomes
@@ -244,12 +244,12 @@ exposed by `GET /api/llm/status` and refreshed after each answer.
 Both providers share the same settings (`src/constants/llm.ts`), so an answer
 reads the same whichever one served it:
 
-- `LLM_TEMPERATURE` (0.6) — left unset, Gemini 2.5 Flash generates at 1.0, which
+- `LLM_TEMPERATURE` (0.6): left unset, Gemini 2.5 Flash generates at 1.0, which
   produces long, digressive answers and quietly overrides the persona's "2–4
   sentences" rule.
-- `LLM_MAX_OUTPUT_TOKENS` (800) — far above the target length, so it never cuts a
+- `LLM_MAX_OUTPUT_TOKENS` (800): far above the target length, so it never cuts a
   normal answer, but it bounds runaway ones.
-- `GEMINI_THINKING_BUDGET` (0) — reasoning tokens count against
+- `GEMINI_THINKING_BUDGET` (0): reasoning tokens count against
   `maxOutputTokens`. A portfolio conversation gains nothing from extended
   reasoning, so it is disabled: the output cap becomes safe and the first token
   arrives sooner.
@@ -273,8 +273,8 @@ applied ([`src/lib/llm/conversation-history.ts`](src/lib/llm/conversation-histor
 - at most `MAX_HISTORY_CHARS` characters (~3000 tokens) on the tail, the oldest
   ones being truncated beyond that. This budget is a guard-rail against unusually
   long messages, not the effective cap: at 4000 characters, real-world answers of
-  600–900 characters let only 4–5 messages through — two turns instead of the five
-  `MAX_HISTORY_MESSAGES` aims for — and the thread was lost before the message
+  600–900 characters let only 4–5 messages through (two turns instead of the five
+  `MAX_HISTORY_MESSAGES` aims for), and the thread was lost before the message
   count ever mattered;
 - fallback answers (status `error`) are excluded, and the RAG context is **not**
   re-injected into the history so those tokens aren't paid for again every turn.
@@ -309,28 +309,28 @@ Since the public API routes are exposed without authentication, several
 safeguards protect the backing services (Neon PostgreSQL, LLM quota) against
 automated spam:
 
-- **Origin control (CORS)** — the proxy ([`src/proxy.ts`](src/proxy.ts)) rejects
+- **Origin control (CORS)**: the proxy ([`src/proxy.ts`](src/proxy.ts)) rejects
   cross-site `POST` requests to `/api/chat` and `/api/feedback` with a `403` and
   handles the `OPTIONS` preflight ([`src/lib/cors.ts`](src/lib/cors.ts)).
   **Same-origin** is allowed automatically (dev/preview/prod, no config needed);
   extra origins are declared via `ALLOWED_ORIGINS`. This protects against
   cross-site browser abuse (scripted requests without an `Origin` header are
   still covered by rate limiting).
-- **Per-IP rate limiting** — the Next.js proxy ([`src/proxy.ts`](src/proxy.ts),
+- **Per-IP rate limiting**: the Next.js proxy ([`src/proxy.ts`](src/proxy.ts),
   the Next 16 convention that replaces `middleware.ts`) limits `POST` requests to
   `/api/chat` and `/api/feedback` through an Upstash Redis sliding window. The
   thresholds are configurable in
   [`src/constants/rate-limit.ts`](src/constants/rate-limit.ts) (15 req/min for
   chat, 30 req/min for feedback). Without the `UPSTASH_*` variables, rate
   limiting **degrades gracefully** and turns itself off (local dev, mock mode, CI).
-- **Identifier validation** — `messageId` (feedback) and `sessionId` (session
+- **Identifier validation**: `messageId` (feedback) and `sessionId` (session
   read) must be valid **UUIDs**, rejected with a `400` before any DB query
   ([`src/lib/validation.ts`](src/lib/validation.ts)).
-- **Input capping** — chat message limited to `MAX_MESSAGE_LENGTH` (500)
+- **Input capping**: chat message limited to `MAX_MESSAGE_LENGTH` (500)
   characters, feedback comment to `MAX_FEEDBACK_COMMENT_LENGTH` (2000), and the
   buffered body size capped via `experimental.proxyClientMaxBodySize` (64 kB) in
   `next.config.ts`.
-- **Prompt injection detection** — messages are analyzed
+- **Prompt injection detection**: messages are analyzed
   ([`src/lib/sanitize-message.ts`](src/lib/sanitize-message.ts)) and tagged
   `[INJECTION DETECTED]` before being sent to the LLM.
 
@@ -348,7 +348,7 @@ The HTML coverage report is also generated in `./coverage/index.html` after
 `npm run test` or `npm run coverage`.
 
 > **Note:** some files are excluded from coverage in
-> [`vitest.config.ts`](vitest.config.ts) — `hero-scene.tsx` (WebGL Canvas /
+> [`vitest.config.ts`](vitest.config.ts): `hero-scene.tsx` (WebGL Canvas /
 > three.js, not available in jsdom), `app/layout.tsx`, the types-only modules
 > (`lib/llm/types.ts`, `lib/rag/types.ts`) and the re-export barrel
 > `lib/rag/index.ts`.
@@ -371,7 +371,7 @@ and tests pass**; the job fails if coverage drops below the **95%** threshold. T
 build is performed on Vercel's side. To block merges on `main`, enable branch
 protection (_Settings → Branches_) with the **"Lint & tests"** check required.
 
-The required check is matched on the **job** name, not the workflow name — the
+The required check is matched on the **job** name, not the workflow name: the
 `CI /` prefix shown on a pull request is display only. Renaming a job therefore
 leaves the branch protection rule waiting forever on a check nobody reports, until
 the rule is updated to match.
@@ -379,7 +379,7 @@ the rule is updated to match.
 There is deliberately no workflow running on plain branch pushes: it would
 duplicate `ci.yml` on every push once a pull request is open, since GitHub fires
 `push` and `pull_request` for the same commit. To get lint and tests on a work
-branch, **open the pull request as a draft** from the first commit — `pull_request`
+branch, **open the pull request as a draft** from the first commit: `pull_request`
 re-fires on every push, so `ci.yml` covers the whole life of the branch.
 
 Required secrets (_Settings → Secrets and variables → Actions_): `VERCEL_TOKEN`,

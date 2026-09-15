@@ -7,7 +7,7 @@ import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
 
-/** Libellé de section : mono, capitales, discret — rythme l'éditorial. */
+/** Libellé de section : mono, capitales, discret, rythme l'éditorial. */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="mb-6 font-mono text-xs uppercase tracking-[0.2em] text-coral/70">{children}</p>
 }
@@ -62,7 +62,7 @@ export function AboutContent() {
         </div>
       </section>
 
-      {/* Parcours — timeline (de la plus ancienne à la plus récente) */}
+      {/* Parcours : timeline (de la plus ancienne à la plus récente) */}
       <section className="mb-20">
         <SectionLabel>{t.about.careerLabel}</SectionLabel>
         <Timeline entries={[...t.about.timeline].reverse()} />

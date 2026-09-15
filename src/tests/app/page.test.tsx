@@ -174,7 +174,7 @@ describe("Page d'accueil (/)", () => {
   })
 })
 
-describe("Page d'accueil — mesure d'audience", () => {
+describe("Page d'accueil : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
   })

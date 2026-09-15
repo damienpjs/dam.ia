@@ -6,7 +6,7 @@ import { AboutContent } from "@/components/features/about-content"
  *
  * Composant serveur réduit aux métadonnées et aux données structurées : le
  * contenu éditorial, traduisible, vit dans `AboutContent` (composant client).
- * Le SEO reste en français — le site n'expose qu'une URL par page, le sélecteur
+ * Le SEO reste en français : le site n'expose qu'une URL par page, le sélecteur
  * « FR / EN » ne changeant que l'affichage côté navigateur.
  */
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     url: "https://damienpasulj.com/about",
     siteName: "Damien Pasulj",
-    title: "À propos — Damien Pasulj",
+    title: "À propos | Damien Pasulj",
     description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
     images: [
       {
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "À propos — Damien Pasulj",
+    title: "À propos | Damien Pasulj",
     description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
     images: ["/photo-damien.jpg"],
   },
@@ -57,7 +57,7 @@ const jsonLd = {
   knowsAbout: ["React", "TypeScript", "Next.js", "Node.js", "Intelligence artificielle", "RAG", "Qdrant", "GitLab CI/CD"],
   alumniOf: {
     "@type": "EducationalOrganization",
-    name: "L'IDEM — École Supérieure des Métiers Créatifs et Numériques",
+    name: "L'IDEM, École Supérieure des Métiers Créatifs et Numériques",
   },
   address: {
     "@type": "PostalAddress",

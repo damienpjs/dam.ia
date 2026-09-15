@@ -10,7 +10,7 @@ export const MORPH_DURATION_MS = 600
 export const MESSAGES_TOP_PADDING = 24
 
 // Identifiant de la bulle d'accueil. Elle n'est jamais persistée en base : son
-// texte — comme les suggestions et les phrases de « réflexion » — vit dans le
+// texte (comme les suggestions et les phrases de « réflexion ») vit dans le
 // dictionnaire de traduction (cf. `src/constants/dictionary.ts`) et suit donc
 // toujours la langue courante.
 export const WELCOME_MESSAGE_ID = "welcome"

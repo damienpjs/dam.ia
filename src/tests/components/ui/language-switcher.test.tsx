@@ -89,7 +89,7 @@ describe("LanguageSwitcher", () => {
   })
 })
 
-describe("LanguageSwitcher — mesure d'audience", () => {
+describe("LanguageSwitcher : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
   })

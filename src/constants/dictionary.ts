@@ -3,7 +3,7 @@ import { DEFAULT_LOCALE, type TLocale } from "@/constants/i18n"
 /**
  * Dictionnaires de traduction du contenu affiché (FR / EN).
  *
- * Tout texte visible par le visiteur vit ici — jamais en dur dans un composant —
+ * Tout texte visible par le visiteur vit ici, jamais en dur dans un composant,
  * afin qu'ajouter une langue se résume à ajouter une entrée dans
  * {@link DICTIONARIES}. Les noms propres (technos, entreprises, écoles) ne sont
  * pas traduits.
@@ -58,7 +58,7 @@ export interface IDictionary {
     showMoreTechs: (count: number) => string
   }
   chat: {
-    /** Bulle d'accueil (markdown) — jamais persistée, elle suit la langue courante. */
+    /** Bulle d'accueil (markdown), jamais persistée, elle suit la langue courante. */
     welcome: string
     suggestionsLabel: string
     suggestions: Record<TSuggestionId, string>
@@ -175,18 +175,18 @@ const FR: IDictionary = {
     titleLead: "Product Builder & ",
     titleHighlight: "enthousiaste IA",
     intro:
-      "Je m'appelle Damien Pasulj. Je conçois et construis des produits web, avec douze ans d'expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript — avec en filigrane une sensibilité esthète forgée à l'école de design.",
+      "Je m'appelle Damien Pasulj. Je conçois et construis des produits web, avec douze ans d'expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript, avec en filigrane une sensibilité esthète forgée à l'école de design.",
     storyLabel: "Le fil rouge",
     story: [
-      "Tout a commencé à l'IDEM, une école de design où j'étudiais l'ergonomie, l'apparence et l'identité visuelle des sites. Ce qui fait qu'un site fonctionne — ou pas — d'un point de vue marketing. Passionné d'interfaces et de technologies depuis toujours, j'ai aussi un côté esthète : j'aime concevoir des choses, initialement inertes, et leur donner vie sur le web.",
-      "Mais la surface ne suffisait pas. Je voulais comprendre l'envers du décor — comment on passe d'une maquette à un site en ligne. Cette curiosité m'a conduit à mêler une année de design d'interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.",
-      "Pendant dix ans chez elloha, j'ai grandi avec le produit : des premiers sites touristiques sous CMS jusqu'à la refonte complète du cœur de l'application en React, TypeScript et Next.js, que j'ai eu la chance de mener en tant que lead. Aujourd'hui, chez Apizee, je continue sur cette voie — architecture front-end, CI/CD et accompagnement d'équipe.",
-      "En parallèle, l'IA générative est devenue un terrain de jeu et d'exploration : LLM, RAG, embeddings. Ce site en est d'ailleurs une démonstration — mon « double IA » répond à votre place pour parler de mon parcours.",
+      "Tout a commencé à l'IDEM, une école de design où j'étudiais l'ergonomie, l'apparence et l'identité visuelle des sites. Ce qui fait qu'un site fonctionne (ou pas) d'un point de vue marketing. Passionné d'interfaces et de technologies depuis toujours, j'ai aussi un côté esthète : j'aime concevoir des choses, initialement inertes, et leur donner vie sur le web.",
+      "Mais la surface ne suffisait pas. Je voulais comprendre l'envers du décor : comment on passe d'une maquette à un site en ligne. Cette curiosité m'a conduit à mêler une année de design d'interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.",
+      "Pendant dix ans chez elloha, j'ai grandi avec le produit : des premiers sites touristiques sous CMS jusqu'à la refonte complète du cœur de l'application en React, TypeScript et Next.js, que j'ai eu la chance de mener en tant que lead. Aujourd'hui, chez Apizee, je continue sur cette voie : architecture front-end, CI/CD et accompagnement d'équipe.",
+      "En parallèle, l'IA générative est devenue un terrain de jeu et d'exploration : LLM, RAG, embeddings. Ce site en est d'ailleurs une démonstration : mon « double IA » répond à votre place pour parler de mon parcours.",
     ],
     careerLabel: "Parcours",
     timeline: [
       {
-        period: "2024 — présent",
+        period: "2024 - présent",
         role: "Lead React / TypeScript / Next.js",
         org: "Apizee",
         description: "Lead technique sur le cœur de produit, définition de l'architecture front-end et des bonnes pratiques, mise en place de pipelines GitLab CI/CD et encadrement de l'équipe.",
@@ -194,30 +194,30 @@ const FR: IDictionary = {
         current: true,
       },
       {
-        period: "2022 — 2024",
+        period: "2022 - 2024",
         role: "Lead refonte du cœur de produit",
         org: "elloha",
         description: "Pilotage de la refonte complète du produit en React, TypeScript et Next.js. Migration progressive depuis l'ancienne stack ASP.NET/C# et montée en compétences de l'équipe.",
         stack: ["React", "TypeScript", "Next.js"],
       },
       {
-        period: "2017 — 2022",
+        period: "2017 - 2022",
         role: "Développeur front-end",
         org: "elloha",
         description: "Développement et maintenance de la web application principale en ASP.NET/C#. Acquisition d'une expertise solide sur les problématiques métier du secteur touristique.",
         stack: ["ASP.NET", "C#"],
       },
       {
-        period: "2014 — 2017",
+        period: "2014 - 2017",
         role: "Développeur web",
         org: "elloha",
-        description: "Création de sites web sous le CMS DotNetNuke pour des destinations touristiques majeures — collioure.com, tourismegard.com, morbihan.com, et bien d'autres.",
+        description: "Création de sites web sous le CMS DotNetNuke pour des destinations touristiques majeures : collioure.com, tourismegard.com, morbihan.com, et bien d'autres.",
         stack: ["DotNetNuke", "Front-end web"],
       },
       {
-        period: "2012 — 2014",
+        period: "2012 - 2014",
         role: "Formation UI/UX & développement web",
-        org: "L'IDEM — École Supérieure des Métiers Créatifs et Numériques",
+        org: "L'IDEM, École Supérieure des Métiers Créatifs et Numériques",
         description: "Une première année dédiée au design d'interface et à l'expérience utilisateur, une seconde au développement web. La double compétence qui irrigue encore tout mon travail.",
       },
     ],
@@ -236,7 +236,7 @@ const FR: IDictionary = {
     interests: ["Voyages", "Sport", "Philosophie", "Dessin"],
     philosophyLabel: "Philosophie",
     philosophy:
-      "Quelle que soit la mission, l'objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet — et livrer quelque chose dont on est fier.",
+      "Quelle que soit la mission, l'objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet, et livrer quelque chose dont on est fier.",
     ctaQuestion: "Envie d'en savoir plus sur mon parcours, mes projets ou mes passions ?",
     ctaLink: "Discute avec mon double IA",
   },
@@ -306,18 +306,18 @@ const EN: IDictionary = {
     titleLead: "Product Builder & ",
     titleHighlight: "AI enthusiast",
     intro:
-      "My name is Damien Pasulj. I design and build web products, with twelve years of front-end and full-stack experience, grounded in a solid JavaScript Tech Lead foundation — with, running underneath it all, an eye for aesthetics shaped at design school.",
+      "My name is Damien Pasulj. I design and build web products, with twelve years of front-end and full-stack experience, grounded in a solid JavaScript Tech Lead foundation, with an eye for aesthetics shaped at design school running underneath it all.",
     storyLabel: "The through line",
     story: [
-      "It all started at IDEM, a design school where I studied usability, visual design and the brand identity of websites. What makes a site work — or not — from a marketing standpoint. Always passionate about interfaces and technology, I also have an aesthete's streak: I love designing things that start out inert, and bringing them to life on the web.",
-      "But the surface wasn't enough. I wanted to understand the backstage — how you get from a mockup to a live site. That curiosity led me to combine a year of interface design with a year of development: a dual UI/UX and technical sensibility that still runs through everything I build.",
-      "Over ten years at elloha, I grew alongside the product: from the first CMS-based tourism websites to the complete rewrite of the application core in React, TypeScript and Next.js, which I had the chance to lead. Today, at Apizee, I keep going down that road — front-end architecture, CI/CD and team mentoring.",
-      "Alongside that, generative AI has become a playground and a field of exploration: LLMs, RAG, embeddings. This very site is a demonstration of it — my \"AI double\" answers on my behalf to talk about my background.",
+      "It all started at IDEM, a design school where I studied usability, visual design and the brand identity of websites. What makes a site work (or not) from a marketing standpoint. Always passionate about interfaces and technology, I also have an aesthete's streak: I love designing things that start out inert, and bringing them to life on the web.",
+      "But the surface wasn't enough. I wanted to understand the backstage: how you get from a mockup to a live site. That curiosity led me to combine a year of interface design with a year of development: a dual UI/UX and technical sensibility that still runs through everything I build.",
+      "Over ten years at elloha, I grew alongside the product: from the first CMS-based tourism websites to the complete rewrite of the application core in React, TypeScript and Next.js, which I had the chance to lead. Today, at Apizee, I keep going down that road: front-end architecture, CI/CD and team mentoring.",
+      "Alongside that, generative AI has become a playground and a field of exploration: LLMs, RAG, embeddings. This very site is a demonstration of it: my \"AI double\" answers on my behalf to talk about my background.",
     ],
     careerLabel: "Career",
     timeline: [
       {
-        period: "2024 — present",
+        period: "2024 - present",
         role: "React / TypeScript / Next.js Lead",
         org: "Apizee",
         description: "Tech lead on the product core, defining the front-end architecture and engineering standards, setting up GitLab CI/CD pipelines and mentoring the team.",
@@ -325,30 +325,30 @@ const EN: IDictionary = {
         current: true,
       },
       {
-        period: "2022 — 2024",
+        period: "2022 - 2024",
         role: "Lead on the product core rewrite",
         org: "elloha",
         description: "Drove the complete rewrite of the product in React, TypeScript and Next.js. Gradual migration away from the legacy ASP.NET/C# stack, and upskilling of the team.",
         stack: ["React", "TypeScript", "Next.js"],
       },
       {
-        period: "2017 — 2022",
+        period: "2017 - 2022",
         role: "Front-end developer",
         org: "elloha",
         description: "Built and maintained the main web application in ASP.NET/C#. Built up deep expertise in the business domain of the tourism industry.",
         stack: ["ASP.NET", "C#"],
       },
       {
-        period: "2014 — 2017",
+        period: "2014 - 2017",
         role: "Web developer",
         org: "elloha",
-        description: "Built websites on the DotNetNuke CMS for major tourism destinations — collioure.com, tourismegard.com, morbihan.com, and many more.",
+        description: "Built websites on the DotNetNuke CMS for major tourism destinations: collioure.com, tourismegard.com, morbihan.com, and many more.",
         stack: ["DotNetNuke", "Front-end web"],
       },
       {
-        period: "2012 — 2014",
+        period: "2012 - 2014",
         role: "UI/UX & web development training",
-        org: "L'IDEM — École Supérieure des Métiers Créatifs et Numériques",
+        org: "L'IDEM, École Supérieure des Métiers Créatifs et Numériques",
         description: "A first year devoted to interface design and user experience, a second one to web development. The dual skill set that still runs through all of my work.",
       },
     ],
@@ -367,7 +367,7 @@ const EN: IDictionary = {
     interests: ["Travel", "Sport", "Philosophy", "Drawing"],
     philosophyLabel: "Philosophy",
     philosophy:
-      "Whatever the assignment, the goal stays the same: find the best trade-off between elegance, speed and durability. Stay lightweight, avoid piling up technical debt, pick the practices that fit the project best — and ship something you're proud of.",
+      "Whatever the assignment, the goal stays the same: find the best trade-off between elegance, speed and durability. Stay lightweight, avoid piling up technical debt, pick the practices that fit the project best, and ship something you're proud of.",
     ctaQuestion: "Want to know more about my background, my projects or my passions?",
     ctaLink: "Chat with my AI double",
   },

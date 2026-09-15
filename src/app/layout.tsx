@@ -28,11 +28,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://damienpasulj.com"),
   title: {
-    default: "Damien Pasulj — Product Builder & enthousiaste IA",
-    template: "%s — Damien Pasulj",
+    default: "Damien Pasulj | Product Builder & enthousiaste IA",
+    template: "%s | Damien Pasulj",
   },
   description:
-    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
   authors: [{ name: "Damien Pasulj", url: "https://damienpasulj.com" }],
   creator: "Damien Pasulj",
   robots: {
@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     url: "https://damienpasulj.com",
     siteName: "Damien Pasulj",
-    title: "Damien Pasulj — Product Builder & enthousiaste IA",
+    title: "Damien Pasulj | Product Builder & enthousiaste IA",
     description:
-      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
     images: [
       {
         url: "/photo-damien.jpg",
@@ -59,9 +59,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Damien Pasulj — Product Builder & enthousiaste IA",
+    title: "Damien Pasulj | Product Builder & enthousiaste IA",
     description:
-      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS — Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
     images: ["/photo-damien.jpg"],
   },
 }

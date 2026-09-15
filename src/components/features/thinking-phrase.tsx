@@ -19,8 +19,8 @@ export function ThinkingPhrase() {
   const { t } = useLocale()
   const phrases = t.chat.thinkingPhrases
 
-  // Le tirage est figé au montage — la phrase ne doit pas changer à chaque
-  // re-render du parent — mais mémorisé sous forme de position, pas de texte :
+  // Le tirage est figé au montage (la phrase ne doit pas changer à chaque
+  // re-render du parent) mais mémorisé sous forme de position, pas de texte :
   // si le visiteur bascule de langue pendant la réflexion, c'est la même phrase
   // qui reste affichée, traduite.
   const [pick] = useState(Math.random)

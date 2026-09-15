@@ -1,4 +1,4 @@
-# Mise à jour du README — dam.ia
+# Mise à jour du README (dam.ia)
 
 > Appliqué automatiquement avant de terminer toute tâche de code.
 
@@ -33,7 +33,7 @@ Le README doit toujours contenir :
 
 1. Lire le README actuel (`README.md`)
 2. Identifier les sections impactées par la tâche réalisée
-3. Mettre à jour uniquement les sections concernées — ne rien supprimer sans raison
+3. Mettre à jour uniquement les sections concernées, ne rien supprimer sans raison
 4. Si une section nécessaire n'existe pas encore, la créer
 
 ## Important

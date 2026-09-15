@@ -6,7 +6,7 @@ import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
-/** Route affichée — sert à ne pas proposer un lien vers la page courante. */
+/** Route affichée, sert à ne pas proposer un lien vers la page courante. */
 export type TNavRoute = "home" | "about"
 
 /** Contexte d'affichage de la barre, pour la mesure d'audience. */
@@ -32,12 +32,12 @@ interface ISiteNavProps {
  *
  * Mutualiser ce bloc donne au site une navigation stable d'une route à
  * l'autre : le visiteur garde un accès à « à propos » une fois la conversation
- * ouverte — sans quoi la page n'est plus atteignable qu'en refermant le chat.
+ * ouverte, sans quoi la page n'est plus atteignable qu'en refermant le chat.
  *
  * La barre se lit en deux temps : à gauche l'identité et l'état du système, à
  * droite tout ce qui est cliquable. L'écartement vient du `justify-between`,
- * sans espacement inventé, et les pastilles de statut — les éléments les plus
- * lourds visuellement — ne terminent plus la lecture à la place des liens.
+ * sans espacement inventé, et les pastilles de statut (les éléments les plus
+ * lourds visuellement) ne terminent plus la lecture à la place des liens.
  *
  * Le style reste celui des éléments discrets du site : mono, `text-xs`, gris au
  * repos, corail au survol.
@@ -66,7 +66,7 @@ export function SiteNav({ current, brand, children, className, analyticsFrom = "
               {t.common.navAbout}
             </Link>
             {/* Point médian : sépare la navigation du choix de langue. Il
-                reprend le gris du « / » interne au sélecteur — la barre oblique
+                reprend le gris du « / » interne au sélecteur : la barre oblique
                 départage deux langues, le point départage deux groupes.
                 Purement décoratif, donc hors du DOM accessible. */}
             <span aria-hidden="true" className="text-zinc-700">

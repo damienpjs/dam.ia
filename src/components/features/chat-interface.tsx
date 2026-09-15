@@ -44,7 +44,7 @@ function SessionLoader({ label }: { label: string }) {
   )
 }
 
-/** Chemin d'appel d'un envoi de message — sert de dimension GA4 `origin`. */
+/** Chemin d'appel d'un envoi de message, sert de dimension GA4 `origin`. */
 export type TMessageOrigin = "input" | "suggestion" | "reuse"
 
 interface IChatInterfaceProps {
@@ -181,7 +181,7 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
       setIsStreaming(true)
       setStreamingMessageId(assistantMessageId)
 
-      // Petit délai avant de commencer le stream (effet naturel) — la phrase de
+      // Petit délai avant de commencer le stream (effet naturel). La phrase de
       // réflexion reste affichée pendant ce temps.
       await new Promise<void>((resolve) => setTimeout(resolve, 300))
 

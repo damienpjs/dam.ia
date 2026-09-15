@@ -52,7 +52,7 @@ a {
 /* Délais décalés gérés ici (et non via les utilitaires Tailwind) : la classe
    `.animate-thinking-dot` étant hors cascade-layer, le raccourci `animation:`
    l'emporterait sur un `[animation-delay:…]` utilitaire (layered) et remettrait
-   le délai à 0 — d'où les points qui sautaient tous en même temps. */
+   le délai à 0, d'où les points qui sautaient tous en même temps. */
 .animate-thinking-dot:nth-child(2) {
   animation-delay: 0.2s;
 }
@@ -279,7 +279,7 @@ a {
 }
 
 .dark {
-  /* Fond sombre nostalgique — base teal-charbon (chemise), accents pastel rétro */
+  /* Fond sombre nostalgique : base teal-charbon (chemise), accents pastel rétro */
   --background: oklch(0.18 0.014 195);
   --foreground: oklch(0.92 0.013 95);
   --card: oklch(0.225 0.016 195);

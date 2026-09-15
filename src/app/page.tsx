@@ -96,11 +96,11 @@ export default function Home() {
       {/* Les bulles de réplique du personnage sont masquées quand la conversation est ouverte */}
       <HeroScene bubblesEnabled={!chatOpen} />
 
-      {/* Accueil — pointer-events-none sur le conteneur pour laisser le clic-glissé
+      {/* Accueil : pointer-events-none sur le conteneur pour laisser le clic-glissé
           atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}
       <div aria-hidden={chatOpen} className={`pointer-events-none flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
         {/* Navigation : coin supérieur droit, hors du flux central. Elle
-            s'estompe avec la landing — le header du chat prend le relais avec
+            s'estompe avec la landing, le header du chat prend le relais avec
             les mêmes entrées, d'où un simple fondu croisé à l'ouverture. */}
         <SiteNav current="home" analyticsFrom="landing" className="fixed right-4 top-4 z-40" />
 
@@ -133,7 +133,7 @@ export default function Home() {
         </main>
       </div>
 
-      {/* Chat — fondu pur : la bulle d'accueil assure le mouvement via le morph */}
+      {/* Chat : fondu pur : la bulle d'accueil assure le mouvement via le morph */}
       <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         {/* Header */}
         <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">

@@ -2,7 +2,7 @@
 title: "Formation IDEM"
 category: formation
 school: "L'IDEM"
-fullName: "L'IDEM — École Supérieure des Métiers Créatifs et Numériques"
+fullName: "L'IDEM, École Supérieure des Métiers Créatifs et Numériques"
 period: "2012 - 2014"
 startYear: 2012
 endYear: 2014

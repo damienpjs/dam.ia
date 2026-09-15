@@ -445,7 +445,7 @@ describe("MessageBubble", () => {
   })
 })
 
-describe("MessageBubble — mesure d'audience", () => {
+describe("MessageBubble : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
   })

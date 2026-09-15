@@ -1,5 +1,5 @@
 ---
-title: "Lead Tech React/TypeScript/Next.js — Apizee"
+title: "Lead Tech React/TypeScript/Next.js chez Apizee"
 category: experience
 company: "Apizee"
 role: "Lead Tech React/TypeScript/Next.js"

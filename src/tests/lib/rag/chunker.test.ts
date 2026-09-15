@@ -215,7 +215,7 @@ describe("buildChunkContextHeader", () => {
   })
 })
 
-describe("chunkDocument — contextual retrieval", () => {
+describe("chunkDocument: contextual retrieval", () => {
   it("doit préfixer chaque chunk avec l'en-tête de contexte issu du frontmatter", () => {
     const doc: IContentDocument = {
       filename: "experience-apizee",

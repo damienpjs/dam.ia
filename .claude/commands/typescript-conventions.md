@@ -1,4 +1,4 @@
-# Conventions TypeScript — dam.ia
+# Conventions TypeScript (dam.ia)
 
 > Appliqué automatiquement sur tout fichier `*.ts` / `*.tsx`.
 
@@ -30,9 +30,9 @@ type Size = "sm" | "md" | "lg"
 
 ### Exceptions autorisées
 
-- Génériques courts (`T`, `K`, `V`, `E`) — pas de préfixe
-- Types importés de librairies tierces — pas renommés
-- Types React (`React.ReactNode`, `React.FC`, etc.) — pas renommés
+- Génériques courts (`T`, `K`, `V`, `E`) : pas de préfixe
+- Types importés de librairies tierces : pas renommés
+- Types React (`React.ReactNode`, `React.FC`, etc.) : pas renommés
 
 ## Tests unitaires obligatoires
 

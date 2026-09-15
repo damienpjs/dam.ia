@@ -252,7 +252,7 @@ describe("buildProjectsSummaryDocument", () => {
     const summary = buildProjectsSummaryDocument(profile, [repo])
     expect(summary).toContain("projets personnels")
     expect(summary).toContain("side projects")
-    expect(summary).toContain("- Komfy — Mobile remote for ComfyUI")
+    expect(summary).toContain("- Komfy : Mobile remote for ComfyUI")
     expect(summary).toContain("TypeScript")
     expect(summary).toContain("https://github.com/damienpjs")
   })
@@ -380,7 +380,7 @@ describe("chunkGitHubProfile", () => {
 
     expect(repoChunk?.metadata).toEqual({
       sourceUrl: "https://github.com/damienpjs/Komfy",
-      sourceLabel: "GitHub — Komfy",
+      sourceLabel: "GitHub / Komfy",
     })
   })
 
@@ -444,7 +444,7 @@ describe("chunkGitHubProfile", () => {
   })
 })
 
-describe("chunkGitHubProfile — synthèse des projets", () => {
+describe("chunkGitHubProfile : synthèse des projets", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     delete process.env.GITHUB_TOKEN
@@ -477,7 +477,7 @@ describe("chunkGitHubProfile — synthèse des projets", () => {
   })
 })
 
-describe("buildProjectsSummaryDocument — étanchéité avec les questions de carrière", () => {
+describe("buildProjectsSummaryDocument : étanchéité avec les questions de carrière", () => {
   it("n'emploie pas le vocabulaire salarial qui capterait les questions sur l'employeur", () => {
     const summary = buildProjectsSummaryDocument(profile, [repo]).toLowerCase()
 

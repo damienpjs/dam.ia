@@ -3,7 +3,7 @@
  *
  * Le site n'utilise pas le routage i18n de Next (pas de préfixe `/fr`, `/en`) :
  * la langue est un état purement client, mémorisé dans localStorage. Ce choix
- * garde une URL unique — et donc une seule page à indexer — pour un site
+ * garde une URL unique (et donc une seule page à indexer) pour un site
  * personnel dont le contenu SEO reste rédigé en français.
  */
 

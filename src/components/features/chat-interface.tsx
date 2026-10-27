@@ -8,6 +8,7 @@ import type { IMessage } from "@/components/features/message-bubble"
 import { streamChat, type IStreamResult, type ISourceInfo } from "@/lib/stream-chat"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
+import { characterSpeaks, setCharacterActivity, setCharacterMood } from "@/lib/character/character-cues"
 import { cn } from "@/lib/utils"
 
 import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, WELCOME_MESSAGE_ID, createWelcomeMessage } from "@/constants/chat"
@@ -179,6 +180,9 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
       setMessages((prev) => [...prev, assistantMessage])
       setIsStreaming(true)
       setStreamingMessageId(assistantMessageId)
+      // Le personnage réfléchit jusqu'à la première lettre de la réponse.
+      setCharacterActivity("thinking")
+      let started = false
 
       // Petit délai avant de commencer le stream (effet naturel). La phrase de
       // réflexion reste affichée pendant ce temps.
@@ -191,7 +195,13 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
         signal: abortControllerRef.current.signal,
         sessionId: sessionIdRef.current,
         locale,
+        onMood: setCharacterMood,
         onChunk: (char) => {
+          if (!started) {
+            started = true
+            setCharacterActivity("talking")
+          }
+          characterSpeaks(char)
           setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: msg.content + char } : msg)))
         },
         onComplete: (result: IStreamResult) => {
@@ -213,6 +223,7 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
+          setCharacterActivity("listening")
           if (!window.matchMedia("(pointer: coarse)").matches) {
             textareaRef.current?.focus()
           }
@@ -221,6 +232,8 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
           console.error("Erreur stream chat:", error)
           trackEvent("chat_response_error")
           setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: t.chat.streamError } : msg)))
+          setCharacterMood("sorry")
+          setCharacterActivity("listening")
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
@@ -277,7 +290,9 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
     localStorage.removeItem(SUGGESTIONS_STORAGE_KEY)
     setUsedSuggestions(new Set())
 
-    // Repart d'une conversation vierge
+    // Repart d'une conversation vierge, visage au repos
+    setCharacterActivity("listening")
+    setCharacterMood("neutral")
     setMessages((prev) => [prev[0]])
     setInput("")
     setIsStreaming(false)

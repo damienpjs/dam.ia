@@ -98,6 +98,45 @@ describe("streamChat", () => {
     expect(onComplete).toHaveBeenCalledWith({})
   })
 
+  it("transmet l'humeur annoncée via onMood, sans l'afficher", async () => {
+    const chunks: TStreamChunk[] = [
+      { content: "", done: false, mood: "joy" },
+      { content: "Oui", done: false },
+      { content: "", done: true },
+    ]
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    const onMood = vi.fn()
+    const onChunk = vi.fn()
+    await streamChat("test", { onChunk, onMood })
+
+    expect(onMood).toHaveBeenCalledWith("joy")
+    expect(onChunk.mock.calls.map((c) => c[0]).join("")).toBe("Oui")
+  })
+
+  it("ignore une humeur inconnue", async () => {
+    const chunks: TStreamChunk[] = [
+      { content: "", done: false, mood: "furious" },
+      { content: "", done: true },
+    ]
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    const onMood = vi.fn()
+    await streamChat("test", { onChunk: vi.fn(), onMood })
+
+    expect(onMood).not.toHaveBeenCalled()
+  })
+
+  it("accepte une humeur sans callback onMood", async () => {
+    const chunks: TStreamChunk[] = [
+      { content: "", done: false, mood: "sorry" },
+      { content: "", done: true },
+    ]
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    await expect(streamChat("test", { onChunk: vi.fn() })).resolves.toBeUndefined()
+  })
+
   it("transmet les sources RAG via onComplete", async () => {
     const sources = [
       { label: "CV", source: "cv" },

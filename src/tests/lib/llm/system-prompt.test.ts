@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { PERSONA } from "@/constants/llm"
 import { buildSystemPrompt } from "@/lib/llm/system-prompt"
+import { MOOD_DIRECTIVE } from "@/lib/llm/mood-tag"
 
 describe("buildSystemPrompt", () => {
   it("combine la date du jour avec le persona", () => {
@@ -8,6 +9,12 @@ describe("buildSystemPrompt", () => {
 
     expect(result).toContain(PERSONA)
     expect(result).toContain("Date du jour :")
+  })
+
+  it("termine par la consigne d'humeur lue par le personnage", () => {
+    const result = buildSystemPrompt()
+
+    expect(result.endsWith(MOOD_DIRECTIVE)).toBe(true)
   })
 
   it("place la date avant le persona", () => {

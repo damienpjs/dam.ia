@@ -1,9 +1,11 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { AboutContent } from "@/components/features/about-content"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
+import { EMAIL, GITHUB, LAST_UPDATED, LINKEDIN } from "@/constants/profile"
+import { byteLength } from "@/lib/format"
 
 const trackEvent = vi.fn()
 
@@ -11,98 +13,113 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }))
 
+const { about, common, landing } = DICTIONARIES.fr
+
+/** Boîte « fichier » dont l'en-tête porte ce nom. */
+function fileBox(name: string): HTMLElement {
+  return screen.getAllByTestId("file-box").find((box) => box.querySelector("p")?.textContent?.startsWith(name))!
+}
 
 afterEach(() => {
   localStorage.clear()
 })
 
 describe("AboutContent", () => {
-  it("affiche le titre éditorial avec le terme en dégradé animé", () => {
-    const { container } = render(<AboutContent />)
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/product builder/i)
-    expect(container.querySelector(".text-gradient-animated")).toHaveTextContent(/enthousiaste IA/i)
+  it("affiche le nom en bloc et l'intitulé du CV", () => {
+    render(<AboutContent />)
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("damien pasulj")
+    expect(screen.getByText(landing.role)).toBeInTheDocument()
   })
 
-  it("présente le parcours complet (Apizee, elloha, IDEM)", () => {
+  it("présente le README avec sa taille calculée", () => {
     render(<AboutContent />)
-    expect(screen.getByText("Apizee")).toBeInTheDocument()
-    expect(screen.getAllByText("elloha").length).toBeGreaterThanOrEqual(3)
-    expect(screen.getByText(/L'IDEM/)).toBeInTheDocument()
+    const readme = fileBox("README.md")
+    expect(readme).toHaveTextContent(about.readme)
+    expect(readme).toHaveTextContent(common.fileSize(byteLength(about.readme)))
   })
 
-  it("marque le poste actuel d'un badge", () => {
+  it("donne les coordonnées publiques dans contact.vcf", () => {
     render(<AboutContent />)
-    expect(screen.getByText("Actuel")).toBeInTheDocument()
+    const contact = within(fileBox("contact.vcf"))
+    for (const link of [EMAIL, GITHUB, LINKEDIN]) {
+      expect(contact.getByRole("link", { name: link.label })).toHaveAttribute("href", link.href)
+    }
+    expect(contact.getByText(about.contactLocation)).toBeInTheDocument()
   })
 
-  it("liste les compétences techniques clés", () => {
+  it("range les expériences et les projets dans des dossiers, avec leur décompte", () => {
     render(<AboutContent />)
-    expect(screen.getAllByText("React").length).toBeGreaterThan(0)
-    expect(screen.getByText("Qdrant")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 2, name: `${about.experienceDir} ${common.itemCount(3)}` })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 2, name: `${about.projectsDir} ${common.itemCount(3)}` })).toBeInTheDocument()
   })
 
-  it("affiche les centres d'intérêt", () => {
+  it("présente le parcours complet (Apizee, elloha) avec ses périodes", () => {
     render(<AboutContent />)
-    for (const interest of DICTIONARIES.fr.about.interests) {
-      // Scopé sur les <li> : « Philosophie » est aussi un titre de section
-      expect(screen.getByText(interest, { selector: "li" })).toBeInTheDocument()
+    for (const entry of about.experience) {
+      const box = fileBox(entry.file)
+      expect(box).toHaveTextContent(entry.role)
+      expect(box).toHaveTextContent(entry.period)
+    }
+    expect(fileBox("apizee.md").querySelectorAll("li")).toHaveLength(3)
+    expect(fileBox("elloha_web-front.md").querySelector("ul")).toBeNull()
+  })
+
+  it("relie chaque projet à son adresse publique", () => {
+    render(<AboutContent />)
+    for (const project of about.projects) {
+      expect(screen.getByRole("link", { name: project.file })).toHaveAttribute("href", project.href)
     }
   })
 
-  it("propose deux liens de retour vers la conversation (accueil)", () => {
+  it("barre les tâches faites du todo.md et garde la dernière ouverte, sur l'aplat teal", () => {
     render(<AboutContent />)
-    const homeLinks = screen.getAllByRole("link").filter((link) => link.getAttribute("href") === "/")
-    expect(homeLinks).toHaveLength(2)
+    const todo = fileBox("todo.md")
+    expect(todo).toHaveAttribute("data-tone", "accent")
+    const items = todo.querySelectorAll("li")
+    expect(items).toHaveLength(about.todoDone.length + 1)
+    expect(items[0]).toHaveClass("line-through")
+    expect(items[items.length - 1]).toHaveTextContent(about.todoOpen)
+    expect(items[items.length - 1]).not.toHaveClass("line-through")
   })
 
-  it("met en avant l'appel à discuter avec le double IA", () => {
+  it("n'affiche plus de bloc de compétences : le double IA y répond", () => {
     render(<AboutContent />)
-    expect(screen.getByRole("link", { name: /double IA/i })).toHaveAttribute("href", "/")
+    expect(screen.queryByText("skills.json")).not.toBeInTheDocument()
+    expect(screen.queryByText("Qdrant")).not.toBeInTheDocument()
   })
 
-  it("affiche le sélecteur de langue", () => {
+  it("liste les fichiers hors écran et la formation", () => {
     render(<AboutContent />)
-    expect(screen.getByTestId("language-switcher")).toBeInTheDocument()
+    for (const file of about.offscreen) {
+      expect(within(fileBox(about.offscreenDir)).getByText(file)).toBeInTheDocument()
+    }
+    expect(fileBox(about.educationFile)).toHaveTextContent(about.education)
   })
 
-  describe("en anglais", () => {
-    it("traduit le titre, les sections et l'appel à l'action", () => {
+  it("propose deux chemins vers la conversation et date la dernière mise à jour", () => {
+    render(<AboutContent />)
+    expect(screen.getByRole("link", { name: common.navChat })).toHaveAttribute("href", "/")
+    expect(screen.getByRole("link", { name: new RegExp(about.ctaLink) })).toHaveAttribute("href", "/")
+    expect(screen.getByRole("link", { name: common.navHome })).toHaveAttribute("href", "/")
+    expect(screen.getByText(LAST_UPDATED)).toBeInTheDocument()
+  })
+
+  describe("Traduction", () => {
+    it("traduit les fichiers, les dossiers et l'appel à l'action", () => {
       renderWithLocale(<AboutContent />, "en")
-      const { about } = DICTIONARIES.en
-
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(about.titleHighlight)
-      expect(screen.getByText(about.storyLabel)).toBeInTheDocument()
-      // Scopé sur le <p> de section : « Philosophy » est aussi un centre d'intérêt
-      expect(screen.getByText(about.philosophyLabel, { selector: "p" })).toBeInTheDocument()
-      expect(screen.getByRole("link", { name: new RegExp(about.ctaLink, "i") })).toHaveAttribute("href", "/")
+      const en = DICTIONARIES.en.about
+      expect(screen.getByText(en.readme)).toBeInTheDocument()
+      expect(screen.getByText(en.storyFile)).toBeInTheDocument()
+      expect(screen.getByText(en.experienceDir)).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: new RegExp(en.ctaLink) })).toBeInTheDocument()
+      expect(screen.getAllByText(/\(\d+ B\)/).length).toBeGreaterThan(0)
     })
 
-    it("traduit le badge du poste actuel et les centres d'intérêt", () => {
+    it("conserve les noms propres (entreprises)", () => {
       renderWithLocale(<AboutContent />, "en")
-      expect(screen.getByText(DICTIONARIES.en.about.currentBadge)).toBeInTheDocument()
-      expect(screen.queryByText(DICTIONARIES.fr.about.currentBadge)).not.toBeInTheDocument()
-      for (const interest of DICTIONARIES.en.about.interests) {
-        expect(screen.getByText(interest, { selector: "li" })).toBeInTheDocument()
-      }
+      expect(screen.getAllByText(/Apizee/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/elloha/).length).toBeGreaterThan(0)
     })
-
-    it("conserve les noms propres (entreprises, technos)", () => {
-      renderWithLocale(<AboutContent />, "en")
-      expect(screen.getByText("Apizee")).toBeInTheDocument()
-      expect(screen.getByText("Qdrant")).toBeInTheDocument()
-    })
-  })
-
-  it("bascule le contenu au clic sur le sélecteur", async () => {
-    const user = userEvent.setup()
-    renderWithLocale(<AboutContent />, "fr")
-
-    expect(screen.getByText(DICTIONARIES.fr.about.philosophy)).toBeInTheDocument()
-
-    await user.click(screen.getByText("EN"))
-
-    expect(screen.getByText(DICTIONARIES.en.about.philosophy)).toBeInTheDocument()
-    expect(screen.queryByText(DICTIONARIES.fr.about.philosophy)).not.toBeInTheDocument()
   })
 })
 
@@ -111,11 +128,11 @@ describe("AboutContent : mesure d'audience", () => {
     trackEvent.mockClear()
   })
 
-  it("consigne le retour vers la conversation depuis l'appel à l'action", async () => {
+  it("consigne le clic sur l'appel à l'action final", async () => {
     const user = userEvent.setup()
     render(<AboutContent />)
 
-    await user.click(screen.getByRole("link", { name: new RegExp(DICTIONARIES.fr.about.ctaLink, "i") }))
+    await user.click(screen.getByRole("link", { name: new RegExp(about.ctaLink) }))
 
     expect(trackEvent).toHaveBeenCalledWith("about_cta_clicked")
   })

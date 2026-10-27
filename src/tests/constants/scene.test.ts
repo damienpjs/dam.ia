@@ -64,13 +64,32 @@ describe("constants/scene", () => {
 
   it("expose des couleurs au format hexadécimal", () => {
     const hex = /^#[0-9a-fA-F]{6}$/
-    for (const color of [scene.SCENE_BG, scene.GRID_CELL_COLOR, scene.GRID_SECTION_COLOR, scene.KEY_LIGHT, scene.KEY_LIGHT_WARM, scene.KEY_LIGHT_COOL, scene.RIM_LIGHT, scene.FILL_LIGHT, scene.CRT_GLOW]) {
+    for (const color of [scene.FOG_COLOR, scene.GRID_CELL_COLOR, scene.GRID_SECTION_COLOR, scene.HEMI_SKY, scene.HEMI_GROUND, scene.KEY_LIGHT, scene.RIM_LIGHT, scene.FILL_LIGHT, scene.SHADOW_COLOR]) {
       expect(color).toMatch(hex)
     }
   })
 
-  it("définit une oscillation de key light entre deux teintes distinctes sur une période positive", () => {
-    expect(scene.KEY_LIGHT_WARM).not.toBe(scene.KEY_LIGHT_COOL)
-    expect(scene.KEY_LIGHT_OSC_PERIOD_S).toBeGreaterThan(0)
+  it("fond le brouillard dans le papier du site", () => {
+    expect(scene.FOG_COLOR).toBe("#eef0ec")
+  })
+
+  it("garde une ombre de contact discrète (opacité entre 0 et 1)", () => {
+    expect(scene.SHADOW_OPACITY).toBeGreaterThan(0)
+    expect(scene.SHADOW_OPACITY).toBeLessThan(1)
+  })
+
+  it("cadre le personnage à droite de l'interface sur desktop, plus encore quand le chat est ouvert", () => {
+    expect(scene.VIEW_OFFSET_WIDE.landing.x).toBeGreaterThan(0)
+    expect(scene.VIEW_OFFSET_WIDE.chat.x).toBeGreaterThan(scene.VIEW_OFFSET_WIDE.landing.x)
+  })
+
+  it("descend le personnage sous le texte sur mobile", () => {
+    expect(scene.VIEW_OFFSET_NARROW.y).toBeGreaterThan(scene.VIEW_OFFSET_WIDE.landing.y)
+    expect(scene.VIEW_OFFSET_NARROW.zoom).toBeGreaterThan(0)
+  })
+
+  it("aligne le seuil du cadrage desktop sur le breakpoint lg et glisse à une vitesse positive", () => {
+    expect(scene.WIDE_LAYOUT_MIN_WIDTH).toBe(1024)
+    expect(scene.VIEW_OFFSET_EASE).toBeGreaterThan(0)
   })
 })

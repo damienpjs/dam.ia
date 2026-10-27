@@ -1,13 +1,16 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import Image from "next/image"
+import { useState } from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
+import { formatClock } from "@/lib/format"
 import { ThinkingPhrase } from "@/components/features/thinking-phrase"
+import { ReadmeCard } from "@/components/features/readme-card"
+import { WELCOME_MESSAGE_ID } from "@/constants/chat"
+import { ASSISTANT_NAME } from "@/constants/profile"
 import type { ISourceInfo } from "@/lib/stream-chat"
 
 export type TMessageStatus = "ok" | "error"
@@ -28,14 +31,14 @@ interface IMessageBubbleProps {
   message: IMessage
   isStreaming?: boolean
   onReuse?: (content: string) => void
-  /** Affiche les boutons d'action (copier, réutiliser). Désactivé pour la bulle d'accueil de la landing. */
+  /** Affiche les actions (copier, renvoyer). */
   showActions?: boolean
 }
 
-/** Les liens markdown s'ouvrent dans un nouvel onglet et héritent du style accent. */
+/** Les liens markdown s'ouvrent dans un nouvel onglet, à l'encre teal des noms de fichiers. */
 const markdownComponents: Components = {
   a: ({ children, href }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-coral underline decoration-coral/40 underline-offset-2 hover:decoration-coral">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="file-name hover:text-ink">
       {children}
     </a>
   ),
@@ -51,12 +54,12 @@ function MarkdownMessage({ content }: { content: string }) {
       data-testid="markdown-content"
       className={cn(
         "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        "[&_p]:my-2 [&_strong]:font-semibold [&_em]:italic",
-        "[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5",
-        "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.85em]",
-        "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
-        "[&_h1]:my-2 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:my-2 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:font-semibold",
-        "[&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
+        "[&_p]:my-2.5 [&_strong]:font-bold [&_strong]:text-ink [&_em]:italic",
+        "[&_ul]:my-2 [&_ul]:list-none [&_ul]:pl-[2ch] [&_ul>li]:-indent-[2ch] [&_ul>li]:before:content-['-_'] [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-[3ch] [&_li]:my-1",
+        "[&_code]:bg-rule/50 [&_code]:px-1 [&_code]:text-ink",
+        "[&_pre]:my-2.5 [&_pre]:overflow-x-auto [&_pre]:border [&_pre]:border-rule [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
+        "[&_h1]:my-2.5 [&_h1]:font-bold [&_h1]:text-ink [&_h2]:my-2.5 [&_h2]:font-bold [&_h2]:text-ink [&_h3]:my-2.5 [&_h3]:font-bold [&_h3]:text-ink",
+        "[&_blockquote]:my-2.5 [&_blockquote]:border-l [&_blockquote]:border-rule [&_blockquote]:pl-3",
       )}
     >
       <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
@@ -66,145 +69,119 @@ function MarkdownMessage({ content }: { content: string }) {
   )
 }
 
+/** Petite action textuelle sous un message (copier, renvoyer). */
+const ACTION_CLASS = "cursor-pointer py-1 text-[13px] text-body transition-colors hover:text-teal-ink"
+
+/**
+ * Un message de la conversation.
+ *
+ * Trois rendus, dans l'esprit du CV : le message d'accueil est un README.md,
+ * une question du visiteur une ligne de terminal préfixée « > », une réponse
+ * un bloc signé « damien.ia » avec son heure (ou « erreur ») en corail.
+ */
 export function MessageBubble({ message, isStreaming = false, onReuse, showActions = true }: IMessageBubbleProps) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [copied, setCopied] = useState(false)
-  const [tapped, setTapped] = useState(false)
-  const bubbleRef = useRef<HTMLDivElement>(null)
+
+  if (message.id === WELCOME_MESSAGE_ID) {
+    return (
+      // Même largeur que sur la landing : le README qui glisse à l'ouverture se pose sans ressaut.
+      <div data-testid="message-bubble" className="max-w-[644px]">
+        <ReadmeCard content={message.content} />
+      </div>
+    )
+  }
+
   const isUser = message.role === "user"
   const isError = !isUser && message.status === "error"
   const isEmpty = !message.content
   const showThinking = !isUser && isStreaming && isEmpty
   const showCursor = !isUser && isStreaming && !isEmpty
   const showSources = !isUser && !isStreaming && message.sources && message.sources.length > 0
+  const canAct = showActions && !isStreaming && !isEmpty && !isError
 
-  useEffect(() => {
-    if (!tapped) return
-    function handleOutside(e: MouseEvent | TouchEvent) {
-      if (bubbleRef.current && !bubbleRef.current.contains(e.target as Node)) {
-        setTapped(false)
-      }
-    }
-    document.addEventListener("pointerdown", handleOutside)
-    return () => document.removeEventListener("pointerdown", handleOutside)
-  }, [tapped])
-
-  function handleCopy(e: React.MouseEvent) {
-    e.stopPropagation()
+  function handleCopy() {
     trackEvent("chat_message_copied", { role: message.role })
     navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  function handleBubbleTap() {
-    setTapped((prev) => !prev)
-  }
-
-  function handleReuse(e: React.MouseEvent) {
-    e.stopPropagation()
+  function handleReuse() {
     trackEvent("chat_message_reused")
     onReuse?.(message.content)
   }
 
-  return (
-    <div ref={bubbleRef} data-testid="message-bubble" onClick={handleBubbleTap} className={cn("group/bubble flex w-full items-end gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div aria-hidden="true" className={cn("flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold select-none", isUser ? "bg-white/10 text-white" : "bg-gradient-to-br from-coral-deep to-coral text-white")}>
-        {isUser ? "🫵" : <Image src="/bot-avatar.png" alt="" width={32} height={32} className="h-full w-full object-cover" />}
-      </div>
-
-      <div className={cn("relative", showThinking ? "w-[75%]" : "max-w-[75%]")}>
-        <div
-          data-testid={isError ? "message-bubble-error" : undefined}
-          className={cn(
-            "break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed tracking-wide",
-            isUser
-              ? "rounded-br-sm bg-white/8 text-coral ring-1 ring-coral/20 shadow-sm"
-              : isError
-                ? "rounded-bl-sm border border-destructive/30 bg-destructive/10 text-destructive"
-                : "rounded-bl-sm border border-border bg-card text-card-foreground",
-          )}
-        >
-          {showThinking ? (
-            <ThinkingPhrase />
-          ) : (
-            <>
-              {isUser ? message.content : <MarkdownMessage content={message.content} />}
-              {showCursor && <span data-testid="streaming-cursor" className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-current align-text-bottom" />}
-              {showSources && (
-                <div data-testid="message-sources" className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2.5">
-                  <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">{t.chat.sourcesLabel}</span>
-                  {message.sources!.map((s) => {
-                    const baseClass =
-                      "inline-flex items-center rounded-full border border-coral/20 bg-coral/5 px-2 py-0.5 text-[11px] font-medium text-coral/80 transition-colors hover:border-coral/40 hover:bg-coral/10 hover:text-coral"
-
-                    return s.url ? (
-                      <a
-                        key={s.source}
-                        href={s.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => trackEvent("chat_source_clicked", { source_label: s.label })}
-                        className={cn(baseClass, "cursor-pointer underline decoration-coral/30 underline-offset-2")}
-                      >
-                        {s.label}
-                      </a>
-                    ) : (
-                      <span key={s.source} className={baseClass}>
-                        {s.label}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {message.content && !isStreaming && showActions && !isError && (
-          <div className="absolute -top-3 right-1 flex gap-1">
-            {isUser && onReuse && (
-              <button
-                data-testid="reuse-button"
-                type="button"
-                onClick={handleReuse}
-                aria-label={t.chat.reuse}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
-                  tapped && "opacity-100",
-                )}
-              >
-                <svg data-testid="reuse-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 10 4 15 9 20" />
-                  <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-                </svg>
-              </button>
-            )}
-            <button
-              data-testid="copy-button"
-              type="button"
-              onClick={handleCopy}
-              aria-label={copied ? t.chat.copied : t.chat.copy}
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground opacity-0 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100",
-                tapped && "opacity-100",
-                copied && "text-green-500",
-              )}
-            >
-              {copied ? (
-                <svg data-testid="check-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              ) : (
-                <svg data-testid="copy-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                </svg>
-              )}
-            </button>
-          </div>
+  if (isUser) {
+    return (
+      <div data-testid="message-bubble" data-role="user" className="group/bubble flex items-baseline justify-between gap-4">
+        <p className="min-w-0 text-[15px] leading-relaxed font-medium break-words text-ink">
+          <span aria-hidden="true" className="mr-[1ch] text-teal-ink">
+            &gt;
+          </span>
+          {message.content}
+        </p>
+        {canAct && onReuse && (
+          <button
+            data-testid="reuse-button"
+            type="button"
+            onClick={handleReuse}
+            aria-label={t.chat.reuse}
+            className={cn(ACTION_CLASS, "shrink-0 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100 focus-visible:opacity-100")}
+          >
+            {t.chat.reuseLabel}
+          </button>
         )}
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <article data-testid="message-bubble" data-role="assistant" className="flex flex-col gap-2.5">
+      <p className="text-[13px]">
+        <span className="font-medium text-teal-ink">{ASSISTANT_NAME}</span>
+        {" "}
+        <span className="text-coral-ink">{isError ? t.chat.errorLabel : formatClock(new Date(message.createdAt), locale)}</span>
+      </p>
+
+      <div
+        data-testid={isError ? "message-bubble-error" : undefined}
+        className={cn("text-[15px] leading-[1.65] break-words", isError ? "text-ink" : "text-body", showCursor && "[&_[data-testid=markdown-content]>*:last-child]:inline")}
+      >
+        {showThinking ? (
+          <ThinkingPhrase />
+        ) : (
+          <>
+            <MarkdownMessage content={message.content} />
+            {showCursor && <span data-testid="streaming-cursor" aria-hidden="true" className="cursor-block" />}
+          </>
+        )}
+      </div>
+
+      {showSources && (
+        <p data-testid="message-sources" className="mt-1 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px]">
+          <span className="text-coral-ink">{t.chat.sourcesDir}</span>
+          {message.sources!.map((s) =>
+            s.url ? (
+              <a key={s.source} href={s.url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("chat_source_clicked", { source_label: s.label })} className="file-name hover:text-ink">
+                {s.label}
+              </a>
+            ) : (
+              <span key={s.source} className="file-name">
+                {s.label}
+              </span>
+            ),
+          )}
+        </p>
+      )}
+
+      {canAct && (
+        <p className="flex gap-5">
+          <button data-testid="copy-button" type="button" onClick={handleCopy} aria-label={copied ? t.chat.copied : t.chat.copy} className={cn(ACTION_CLASS, copied && "text-teal-ink")}>
+            {copied ? t.chat.copiedLabel : t.chat.copyLabel}
+          </button>
+        </p>
+      )}
+    </article>
   )
 }

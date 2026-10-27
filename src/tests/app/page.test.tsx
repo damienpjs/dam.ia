@@ -4,9 +4,15 @@ import userEvent from "@testing-library/user-event"
 import Home from "@/app/page"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
+import { CV, GITHUB, LINKEDIN } from "@/constants/profile"
+
+const heroScene = vi.fn()
 
 vi.mock("@/components/features/hero-scene", () => ({
-  HeroScene: () => <div data-testid="hero-scene" />,
+  HeroScene: (props: { bubblesEnabled?: boolean; layout?: string }) => {
+    heroScene(props)
+    return <div data-testid="hero-scene" data-layout={props.layout} data-bubbles={String(props.bubblesEnabled)} />
+  },
 }))
 
 vi.mock("@/components/features/chat-interface", () => ({
@@ -25,10 +31,16 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }))
 
+const { landing, chat, common } = DICTIONARIES.fr
+
 // Force des dimensions non nulles pour exercer le morph (jsdom renvoie 0 par défaut)
 function stubLayout() {
   const rect = { top: 100, left: 0, right: 300, bottom: 150, width: 300, height: 50, x: 0, y: 100, toJSON: () => ({}) } as DOMRect
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect)
+}
+
+function openButton() {
+  return screen.getByRole("button", { name: landing.startConversationAria })
 }
 
 afterEach(() => {
@@ -37,69 +49,92 @@ afterEach(() => {
 })
 
 describe("Page d'accueil (/)", () => {
-  it("affiche l'accroche principale", () => {
+  it("affiche le nom en bloc et l'intitulé du CV", () => {
     render(<Home />)
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/salut ! moi c'est damien/i)
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("damien pasulj")
+    expect(screen.getByText(landing.role)).toBeInTheDocument()
   })
 
-  it("met en exergue un terme avec un dégradé animé", () => {
-    const { container } = render(<Home />)
-    const highlight = container.querySelector(".text-gradient-animated")
-    expect(highlight).not.toBeNull()
-    expect(highlight).toHaveTextContent(/Damien/i)
-  })
-
-  it("affiche la bulle d'accueil comme premier message", () => {
+  it("présente le message d'accueil comme le README.md, avec sa taille réelle", () => {
     render(<Home />)
-    expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
-    // "Product Builder" est mis en gras via markdown (**…**)
-    expect(screen.getByText("Product Builder").tagName).toBe("STRONG")
+    const readme = within(openButton())
+    expect(readme.getByText(chat.welcomeFile)).toBeInTheDocument()
+    expect(readme.getByTestId("readme-content")).toHaveTextContent(chat.welcome)
+    expect(readme.getByText(/\(\d+ o\)/)).toBeInTheDocument()
   })
 
-  it("affiche le bouton CTA pour démarrer le chat", () => {
+  it("n'affiche plus de vignettes de technos", () => {
     render(<Home />)
-    const btn = screen.getByRole("button", { name: /commencer la conversation/i })
-    expect(btn).toBeInTheDocument()
+    expect(screen.queryByText("TypeScript")).not.toBeInTheDocument()
+    expect(screen.queryByText("Qdrant")).not.toBeInTheDocument()
   })
 
-  it("affiche les étiquettes des technos maîtrisées", () => {
+  it("propose le CV et les profils en pied de page", () => {
     render(<Home />)
-    expect(screen.getByText("TypeScript")).toBeInTheDocument()
-    expect(screen.getByText("Next.js")).toBeInTheDocument()
-    expect(screen.getByText("Qdrant")).toBeInTheDocument()
-    expect(screen.getByText("C#")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: CV.label })).toHaveAttribute("href", CV.href)
+    expect(screen.getByRole("link", { name: GITHUB.label })).toHaveAttribute("href", GITHUB.href)
+    expect(screen.getByRole("link", { name: LINKEDIN.label })).toHaveAttribute("href", LINKEDIN.href)
+    expect(screen.getByText(landing.orbitHint)).toBeInTheDocument()
   })
 
-  it("rend la hero scene 3D", () => {
+  it("rend la hero scene 3D cadrée pour l'accueil, bulles actives", () => {
     render(<Home />)
-    expect(screen.getByTestId("hero-scene")).toBeInTheDocument()
+    expect(screen.getByTestId("hero-scene")).toHaveAttribute("data-layout", "landing")
+    expect(screen.getByTestId("hero-scene")).toHaveAttribute("data-bubbles", "true")
   })
 
-  it("ouvre le panneau chat au clic sur la bulle d'accueil", async () => {
+  it("ouvre le panneau de conversation au clic sur le README et recadre la scène", async () => {
     const user = userEvent.setup()
     render(<Home />)
-    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
+    await user.click(openButton())
     expect(screen.getByTestId("chat-interface")).toBeInTheDocument()
+    expect(screen.getByTestId("hero-scene")).toHaveAttribute("data-layout", "chat")
+    expect(screen.getByTestId("hero-scene")).toHaveAttribute("data-bubbles", "false")
   })
 
-  it("ferme le panneau chat au clic sur le logo", async () => {
+  it("affiche le dossier de conversation et son nombre de messages", async () => {
     const user = userEvent.setup()
     render(<Home />)
-    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
-    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
-    expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
+    await user.click(openButton())
+    expect(screen.getByText(chat.conversationDir)).toBeInTheDocument()
+    expect(screen.getByText(chat.messageCount(0))).toBeInTheDocument()
+
+    await user.click(screen.getByTestId("simuler-echange"))
+    expect(screen.getByText(chat.messageCount(4))).toBeInTheDocument()
   })
 
-  it("anime la bulle d'accueil (morph) vers le haut du chat puis révèle les messages", async () => {
+  it("ferme le panneau au clic sur le nom", async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+    await user.click(openButton())
+    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
+    expect(openButton()).toBeInTheDocument()
+    expect(screen.getByTestId("hero-scene")).toHaveAttribute("data-layout", "landing")
+  })
+
+  it("rend inerte la vue masquée (landing pendant le chat, et inversement)", async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Home />)
+    const inertBefore = container.querySelectorAll("[inert]")
+    expect(inertBefore).toHaveLength(1)
+    expect(inertBefore[0]).toContainElement(screen.getByRole("button", { name: /damien pasulj/i, hidden: true }))
+
+    await user.click(openButton())
+    const inertAfter = container.querySelectorAll("[inert]")
+    expect(inertAfter).toHaveLength(1)
+    expect(inertAfter[0]).toContainElement(screen.getByRole("button", { name: landing.startConversationAria, hidden: true }))
+  })
+
+  it("fait glisser le README vers le haut du chat puis révèle les messages", async () => {
     stubLayout()
     const user = userEvent.setup()
     render(<Home />)
 
-    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
+    await user.click(openButton())
 
     // Pendant le morph : le clone est présent et la liste des messages est masquée
     const clone = screen.getByTestId("welcome-clone")
-    expect(clone).toBeInTheDocument()
+    expect(clone).toHaveTextContent(chat.welcome)
     expect(screen.getByTestId("chat-interface")).toHaveAttribute("data-messages-visible", "false")
 
     // Fin de la transition : le clone disparaît, les messages deviennent visibles
@@ -113,62 +148,40 @@ describe("Page d'accueil (/)", () => {
     const user = userEvent.setup()
     render(<Home />)
 
-    await user.click(screen.getByRole("button", { name: /commencer la conversation/i }))
+    await user.click(openButton())
     expect(screen.getByTestId("welcome-clone")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
     expect(screen.queryByTestId("welcome-clone")).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /commencer la conversation/i })).toBeInTheDocument()
+    expect(openButton()).toBeInTheDocument()
   })
 
-  describe("Sélecteur de langue", () => {
-    it("est présent sur l'accueil et dans le header de la conversation", () => {
+  describe("Navigation et langue", () => {
+    it("n'a qu'une barre de navigation, partagée par la landing et le chat", () => {
       render(<Home />)
-      // Un sur la landing, un dans le header du chat : celui qui est visible
-      // dépend de la phase, l'autre est masqué par l'opacité.
-      expect(screen.getAllByTestId("language-switcher")).toHaveLength(2)
+      const nav = screen.getByRole("navigation", { name: common.navLabel })
+      expect(within(nav).getByRole("link", { name: common.navAbout })).toHaveAttribute("href", "/about")
+      expect(screen.getAllByTestId("language-switcher")).toHaveLength(1)
     })
 
-    it("traduit l'accroche, le CTA et le lien « à propos » en anglais", () => {
+    it("traduit l'intitulé, le README et le CTA en anglais", () => {
       renderWithLocale(<Home />, "en")
-      const { landing } = DICTIONARIES.en
-
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(landing.greeting.trim())
-      expect(screen.getByRole("button", { name: landing.startConversationAria })).toBeInTheDocument()
-      // Plusieurs liens « à propos » coexistent (coin de la landing, header du
-      // chat) : on cible celui du flux central, sous les badges.
-      const inlineAbout = within(screen.getByRole("main")).getByRole("link", { name: new RegExp(landing.aboutLink, "i") })
-      expect(inlineAbout).toHaveAttribute("href", "/about")
-    })
-
-    it("expose « à propos » dans le coin de la landing et dans le header du chat", () => {
-      render(<Home />)
-      const { common } = DICTIONARIES.fr
-      // `hidden: true` est nécessaire : tant que le chat est fermé, son header
-      // est `aria-hidden` et sort donc de l'arbre d'accessibilité.
-      const navs = screen.getAllByRole("navigation", { name: common.navLabel, hidden: true })
-      expect(navs).toHaveLength(2)
-      // Seule la nav de la landing est réellement exposée au départ.
-      expect(screen.getByRole("navigation", { name: common.navLabel })).toBe(navs[0])
-      navs.forEach((nav) => {
-        expect(within(nav).getByRole("link", { name: common.navAbout, hidden: true })).toHaveAttribute("href", "/about")
-      })
-    })
-
-    it("traduit la bulle d'accueil en anglais", () => {
-      renderWithLocale(<Home />, "en")
-      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/AI enthusiast/i)
+      const en = DICTIONARIES.en
+      expect(screen.getByText(en.landing.role)).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: en.landing.startConversationAria })).toHaveTextContent(en.landing.startConversation)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(en.chat.welcome)
+      expect(screen.getByText(/\(\d+ KB\)/)).toBeInTheDocument()
     })
 
     it("bascule le contenu au clic sur EN", async () => {
       const user = userEvent.setup()
       renderWithLocale(<Home />, "fr")
 
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/moi c'est damien/i)
+      expect(screen.getByText(landing.role)).toBeInTheDocument()
 
-      await user.click(screen.getAllByText("EN")[0])
+      await user.click(screen.getByRole("button", { name: common.localeNames.en }))
 
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(DICTIONARIES.en.landing.greeting.trim())
+      expect(screen.getByText(DICTIONARIES.en.landing.role)).toBeInTheDocument()
       expect(localStorage.getItem("dam_ia_locale")).toBe("en")
     })
   })
@@ -188,7 +201,7 @@ describe("Page d'accueil : mesure d'audience", () => {
     const user = userEvent.setup()
     render(<Home />)
 
-    await user.click(screen.getByRole("button", { name: DICTIONARIES.fr.landing.startConversationAria }))
+    await user.click(openButton())
 
     expect(trackEvent).toHaveBeenCalledWith("chat_opened")
   })
@@ -197,10 +210,31 @@ describe("Page d'accueil : mesure d'audience", () => {
     const user = userEvent.setup()
     render(<Home />)
 
-    await user.click(screen.getByRole("button", { name: DICTIONARIES.fr.landing.startConversationAria }))
+    await user.click(openButton())
     await user.click(screen.getByTestId("simuler-echange"))
-    await user.click(screen.getByRole("button", { name: "Damien Pasulj" }))
+    await user.click(screen.getByRole("button", { name: /damien pasulj/i }))
 
     expect(trackEvent).toHaveBeenCalledWith("chat_closed", { turns: 4 })
+  })
+
+  it("consigne le clic sur un lien de profil, par son libellé", async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+
+    await user.click(screen.getByRole("link", { name: CV.label }))
+
+    expect(trackEvent).toHaveBeenCalledWith("profile_link_clicked", { link: CV.label })
+  })
+
+  it("distingue le contexte du clic sur « à propos » (landing ou chat)", async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+
+    await user.click(screen.getByRole("link", { name: common.navAbout }))
+    expect(trackEvent).toHaveBeenLastCalledWith("about_link_clicked", { from: "landing" })
+
+    await user.click(openButton())
+    await user.click(screen.getByRole("link", { name: common.navAbout }))
+    expect(trackEvent).toHaveBeenLastCalledWith("about_link_clicked", { from: "chat" })
   })
 })

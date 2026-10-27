@@ -18,22 +18,42 @@ and English**, switchable from a `FR / EN` toggle.
 - **Drizzle ORM** + **Neon PostgreSQL** (`@neondatabase/serverless`): chat persistence
 - **Qdrant** (`@qdrant/js-client-rest`) + **pdf-parse**: vector store and RAG indexing
 - **@upstash/ratelimit + @upstash/redis**: per-IP rate limiting (anti-spam)
-- **Lucide React**: icons
 - **Vitest**: unit tests (coverage threshold: 95%)
 - **Istanbul** (`@vitest/coverage-istanbul`): coverage reporting
 - **@testing-library/react**: React testing utilities
 
-### Typography
+### Visual identity
 
-Three Google Fonts are loaded via `next/font` in
-[`src/app/layout.tsx`](src/app/layout.tsx) and mapped to CSS variables in
-[`src/app/globals.css`](src/app/globals.css):
+The site follows the art direction of Damien's 2026 CV: a recycled-paper
+background, two inks and a "folder of files" metaphor (every block is a file
+with its size in bytes, every section a folder with its item count).
 
-| Font | CSS variable | Role |
+| Token | Value | Role |
 | --- | --- | --- |
-| **Geist** | `--font-sans` | Body text (default sans) |
-| **Geist Mono** | `--font-mono` | Monospace |
-| **Plus Jakarta Sans** | `--font-heading`, `--font-chat` | Headings and chat interface |
+| `paper` | `#eef0ec` | Background everywhere |
+| `ink` | `#0b1110` | Name, headings, visitor messages (16.6:1) |
+| `body` | `#4a4f4d` | Running text (7.3:1) |
+| `teal-ink` / `teal` | `#1a5f58` / `#84c7c1` | File names and links / solid fills only |
+| `coral-ink` / `coral` | `#a84b25` / `#efa07a` | Sizes, dates, times / solid fills only |
+| `rule` / `control` | `#c3ccc8` / `#6f7975` | Decorative rules / form control borders (3.9:1) |
+
+Tokens live in [`src/app/globals.css`](src/app/globals.css) (`@theme inline`
+plus the shadcn variables). Radius is 0 everywhere, no shadows, no blur.
+
+**Typography.** One family, **IBM Plex Mono** (400, 500, 700), self-hosted with
+`next/font/local` from [`src/app/fonts/`](src/app/fonts/) (SIL OFL, see
+`OFL.txt`). The files are subset to Latin, Latin Extended, arrows, check mark
+and block elements: Google's `latin` subset lacks `→`, used across the UI.
+
+**Paper grain.** [`public/paper-grain.jpg`](public/paper-grain.jpg) is the CV's
+paper scan, normalised to white and contrast-boosted, laid over the whole page
+with `mix-blend-mode: multiply` (fixed `.paper-grain` layer in the root layout).
+
+**3D scene.** The canvas is transparent (`alpha`, non-premultiplied) so the
+paper shows through. The camera framing follows the layout through
+`setViewOffset`: the character stands right of the UI on desktop, lower on
+mobile, and shifts again when the chat panel opens (`VIEW_OFFSET_*` in
+[`src/constants/scene.ts`](src/constants/scene.ts)).
 
 ## Installation
 
@@ -75,6 +95,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 src/
   app/                # Next.js pages (App Router)
     about/            # "À propos" page
+    fonts/            # IBM Plex Mono subsets (next/font/local) + licence
     api/
       chat/           # Chat endpoint + session read (/api/chat/session/[sessionId])
       feedback/       # Message feedback endpoint
@@ -83,12 +104,11 @@ src/
     sitemap.ts        # sitemap.xml
   components/
     features/         # Domain components (HeroScene, ChatInterface, MessageBubble,
-                      # ProviderStatus, TechBadges, ThinkingPhrase, Timeline,
-                      # AboutContent)
-    ui/               # Generic components (Button, Tooltip, ConfirmDialog,
-                      # LanguageSwitcher)
+                      # ReadmeCard, ThinkingPhrase, AboutContent)
+    ui/               # Generic components (Button, ConfirmDialog, DirLabel,
+                      # FileBox, LanguageSwitcher, NameBlock, SiteNav, Tooltip)
   constants/          # Shared configuration (chat, cors, dictionary, i18n,
-                      # landing, llm, rag, rate-limit, scene, validation)
+                      # llm, profile, rag, rate-limit, scene, validation)
   lib/
     db/               # Drizzle schema and chat service (Neon PostgreSQL)
     llm/              # Providers (Gemini, Groq, Mock), fallback chain, system
@@ -234,10 +254,9 @@ Gemini, so returning to the primary provider is automatic as soon as it becomes
 available again. If both providers are down, a fallback answer (`MockProvider`)
 is served with a wait message.
 
-The chat header shows a **status dot per active provider** (green = available,
-red = unavailable), depending on the configuration: a single dot if a provider is
-forced, both if the fallback chain is active, none in mock mode. The status is
-exposed by `GET /api/llm/status` and refreshed after each answer.
+Provider availability is exposed by `GET /api/llm/status` (one entry per active
+provider). The interface no longer displays it: visitors do not need to know
+which model answers.
 
 ### Generation parameters
 

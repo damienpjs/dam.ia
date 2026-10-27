@@ -31,27 +31,26 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
       <AlertDialog.Portal>
         <AlertDialog.Backdrop
           className={cn(
-            "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-150",
+            "fixed inset-0 z-50 bg-ink/40 transition-opacity duration-150",
             "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
           )}
         />
         <AlertDialog.Popup
           className={cn(
             "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2",
-            "rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl ring-1 ring-white/10",
+            "border border-control bg-paper p-5 text-body",
             "origin-center transition-[transform,opacity] duration-150 outline-none",
             "data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0",
           )}
         >
-          <AlertDialog.Title className="text-base font-semibold text-foreground">{title}</AlertDialog.Title>
-          {description && <AlertDialog.Description className="mt-2 text-sm text-muted-foreground">{description}</AlertDialog.Description>}
-          <div className="mt-6 flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+          <AlertDialog.Title className="text-[16px] font-bold text-ink">{title}</AlertDialog.Title>
+          {description && <AlertDialog.Description className="mt-2.5 text-[14px] leading-[1.55] text-body">{description}</AlertDialog.Description>}
+          <div className="mt-5 flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {cancelLabel}
             </Button>
             <Button
               type="button"
-              size="sm"
               variant={destructive ? "destructive" : "default"}
               onClick={() => {
                 onConfirm()

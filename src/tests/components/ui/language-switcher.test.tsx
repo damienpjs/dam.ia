@@ -70,13 +70,13 @@ describe("LanguageSwitcher", () => {
     const user = userEvent.setup()
     renderSwitcher()
 
-    expect(screen.getByText("FR").className).toContain("text-coral")
-    expect(screen.getByText("EN").className).not.toContain("text-coral")
+    expect(screen.getByText("FR").className).toContain("font-bold")
+    expect(screen.getByText("EN").className).not.toContain("font-bold")
 
     await user.click(screen.getByText("EN"))
 
-    expect(screen.getByText("EN").className).toContain("text-coral")
-    expect(screen.getByText("FR").className).not.toContain("text-coral")
+    expect(screen.getByText("EN").className).toContain("font-bold")
+    expect(screen.getByText("FR").className).not.toContain("font-bold")
   })
 
   it("accepte des classes supplémentaires (positionnement par le parent)", () => {

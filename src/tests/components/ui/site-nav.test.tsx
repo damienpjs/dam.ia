@@ -11,6 +11,7 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }))
 
+const { common } = DICTIONARIES.fr
 
 afterEach(() => {
   localStorage.clear()
@@ -19,18 +20,19 @@ afterEach(() => {
 describe("SiteNav", () => {
   it("expose un repère de navigation accessible", () => {
     render(<SiteNav current="home" />)
-    expect(screen.getByRole("navigation", { name: DICTIONARIES.fr.common.navLabel })).toBeInTheDocument()
+    expect(screen.getByRole("navigation", { name: common.navLabel })).toBeInTheDocument()
   })
 
-  it("propose le lien « à propos » depuis l'accueil", () => {
+  it("propose le dossier « à-propos/ » depuis l'accueil", () => {
     render(<SiteNav current="home" />)
-    const link = screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout })
-    expect(link).toHaveAttribute("href", "/about")
+    expect(screen.getByRole("link", { name: common.navAbout })).toHaveAttribute("href", "/about")
+    expect(screen.queryByRole("link", { name: common.navChat })).not.toBeInTheDocument()
   })
 
-  it("masque le lien lorsque « à propos » est déjà la page courante", () => {
+  it("propose le dossier « conversation/ » depuis « à propos »", () => {
     render(<SiteNav current="about" />)
-    expect(screen.queryByRole("link", { name: DICTIONARIES.fr.common.navAbout })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: common.navChat })).toHaveAttribute("href", "/")
+    expect(screen.queryByRole("link", { name: common.navAbout })).not.toBeInTheDocument()
   })
 
   it("embarque le sélecteur de langue sur les deux routes", () => {
@@ -42,66 +44,31 @@ describe("SiteNav", () => {
     expect(screen.getByTestId("language-switcher")).toBeInTheDocument()
   })
 
-  it("affiche la marque fournie et les encarts contextuels", () => {
-    render(
-      <SiteNav current="home" brand={<button type="button">Damien Pasulj</button>}>
-        <span data-testid="encart" />
-      </SiteNav>,
-    )
-    expect(screen.getByRole("button", { name: "Damien Pasulj" })).toBeInTheDocument()
-    expect(screen.getByTestId("encart")).toBeInTheDocument()
+  it("affiche la marque fournie, à gauche des liens", () => {
+    const { container } = render(<SiteNav current="about" brand={<span>accueil</span>} />)
+    const nav = container.querySelector("nav")!
+    expect(nav.firstElementChild).toHaveTextContent("accueil")
+    expect(nav).toHaveClass("justify-between")
   })
 
-  it("groupe les encarts de statut avec la marque, à gauche des liens", () => {
-    const { container } = render(
-      <SiteNav current="home" brand={<span data-testid="marque" />}>
-        <span data-testid="encart" />
-      </SiteNav>,
-    )
-    const groups = container.querySelectorAll("nav > div")
-    expect(groups).toHaveLength(2)
-    expect(groups[0]).toContainElement(screen.getByTestId("marque"))
-    expect(groups[0]).toContainElement(screen.getByTestId("encart"))
-    expect(groups[1]).toContainElement(screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout }))
-  })
-
-  it("n'insère pas de groupe vide quand il n'y a ni marque ni encart", () => {
+  it("aligne à droite sans marque", () => {
     const { container } = render(<SiteNav current="home" />)
-    // Un conteneur à zéro largeur décalerait le groupe de droite du `gap`.
-    expect(container.querySelectorAll("nav > div")).toHaveLength(1)
-  })
-
-  it("sépare le lien du sélecteur de langue par un point médian décoratif", () => {
-    const { container } = render(<SiteNav current="home" />)
-    const dot = container.querySelector("span[aria-hidden='true']")
-    expect(dot).toHaveTextContent("·")
-  })
-
-  it("n'affiche pas de séparateur orphelin sur la page « à propos »", () => {
-    const { container } = render(<SiteNav current="about" />)
-    // Seul le « / » interne au sélecteur de langue subsiste.
-    const decorations = [...container.querySelectorAll("span[aria-hidden='true']")].map((node) => node.textContent)
-    expect(decorations).toEqual(["/"])
-  })
-
-  it("aligne à droite sans marque, et écarte les deux groupes avec", () => {
-    const { container, unmount } = render(<SiteNav current="home" />)
     expect(container.querySelector("nav")).toHaveClass("justify-end")
-    unmount()
-
-    const withBrand = render(<SiteNav current="home" brand={<span>Damien Pasulj</span>} />)
-    expect(withBrand.container.querySelector("nav")).toHaveClass("justify-between")
   })
 
   it("reporte la className sur le repère de navigation", () => {
-    const { container } = render(<SiteNav current="home" className="mb-16" />)
-    expect(container.querySelector("nav")).toHaveClass("mb-16")
+    const { container } = render(<SiteNav current="home" className="fixed" />)
+    expect(container.querySelector("nav")).toHaveClass("fixed")
   })
 
-  it("traduit le lien et le libellé accessible en anglais", () => {
-    renderWithLocale(<SiteNav current="home" />, "en")
+  it("traduit les dossiers et le libellé accessible en anglais", () => {
+    const { unmount } = renderWithLocale(<SiteNav current="home" />, "en")
     expect(screen.getByRole("navigation", { name: DICTIONARIES.en.common.navLabel })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: DICTIONARIES.en.common.navAbout })).toBeInTheDocument()
+    unmount()
+
+    renderWithLocale(<SiteNav current="about" />, "en")
+    expect(screen.getByRole("link", { name: DICTIONARIES.en.common.navChat })).toBeInTheDocument()
   })
 })
 
@@ -114,7 +81,7 @@ describe("SiteNav : mesure d'audience", () => {
     const user = userEvent.setup()
     render(<SiteNav current="home" analyticsFrom="chat" />)
 
-    await user.click(screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout }))
+    await user.click(screen.getByRole("link", { name: common.navAbout }))
 
     expect(trackEvent).toHaveBeenCalledWith("about_link_clicked", { from: "chat" })
   })
@@ -123,8 +90,17 @@ describe("SiteNav : mesure d'audience", () => {
     const user = userEvent.setup()
     render(<SiteNav current="home" />)
 
-    await user.click(screen.getByRole("link", { name: DICTIONARIES.fr.common.navAbout }))
+    await user.click(screen.getByRole("link", { name: common.navAbout }))
 
     expect(trackEvent).toHaveBeenCalledWith("about_link_clicked", { from: "landing" })
+  })
+
+  it("consigne le retour vers la conversation depuis « à propos »", async () => {
+    const user = userEvent.setup()
+    render(<SiteNav current="about" analyticsFrom="about" />)
+
+    await user.click(screen.getByRole("link", { name: common.navChat }))
+
+    expect(trackEvent).toHaveBeenCalledWith("chat_link_clicked", { from: "about" })
   })
 })

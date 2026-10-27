@@ -11,7 +11,7 @@ import { AboutContent } from "@/components/features/about-content"
  */
 export const metadata: Metadata = {
   title: "À propos",
-  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+  description: "Lead Tech JavaScript, en transition vers l'IA appliquée. Parcours, projets et passions de Damien Pasulj.",
   alternates: {
     canonical: "/about",
   },
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "https://damienpasulj.com/about",
     siteName: "Damien Pasulj",
     title: "À propos | Damien Pasulj",
-    description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+    description: "Lead Tech JavaScript, en transition vers l'IA appliquée. Parcours, projets et passions de Damien Pasulj.",
     images: [
       {
         url: "/photo-damien.jpg",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "À propos | Damien Pasulj",
-    description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Parcours, compétences et passions de Damien Pasulj.",
+    description: "Lead Tech JavaScript, en transition vers l'IA appliquée. Parcours, projets et passions de Damien Pasulj.",
     images: ["/photo-damien.jpg"],
   },
 }
@@ -47,8 +47,8 @@ const jsonLd = {
   name: "Damien Pasulj",
   url: "https://damienpasulj.com",
   sameAs: ["https://www.linkedin.com/in/damien-pasulj-700928ba/"],
-  jobTitle: "Product Builder & Lead React / TypeScript / Next.js",
-  description: "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Douze ans d'expérience en front-end et en full-stack.",
+  jobTitle: "Lead Tech JavaScript · IA appliquée",
+  description: "Lead Tech JavaScript, en transition vers l'IA appliquée. Douze ans d'expérience en front-end et en full-stack.",
   image: "https://damienpasulj.com/photo-damien.jpg",
   worksFor: {
     "@type": "Organization",
@@ -69,7 +69,7 @@ const jsonLd = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen w-full px-6 py-16 sm:px-8 sm:py-24">
+    <div className="min-h-screen w-full px-5 pt-2 pb-12 lg:px-24 lg:pt-6 lg:pb-[72px]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <AboutContent />
     </div>

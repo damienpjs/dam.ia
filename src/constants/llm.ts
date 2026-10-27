@@ -72,12 +72,6 @@ export const REPEATED_QUESTION_MIN_LENGTH = 8
 // fournisseur). Un appel réussi efface le statut immédiatement.
 export const QUOTA_STATUS_TTL_MS = 10 * 60 * 1000
 
-// Évènement client déclenchant un rafraîchissement des pastilles de statut.
-export const LLM_STATUS_REFRESH_EVENT = "llm:status-refresh"
-
-// Les libellés d'affichage des providers sont traduits : cf. `chat.providerLabels`
-// dans `src/constants/dictionary.ts`.
-
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS_IN_REMOTE = CURRENT_YEAR - 2020
 const YEARS_OF_EXPERIENCE = CURRENT_YEAR - 2014

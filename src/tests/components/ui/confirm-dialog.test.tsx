@@ -57,7 +57,7 @@ describe("ConfirmDialog", () => {
 
   it("applique le style destructif au bouton de confirmation", () => {
     render(<ConfirmDialog open onOpenChange={() => {}} title="Confirmer ?" confirmLabel="Supprimer" onConfirm={() => {}} destructive />)
-    expect(screen.getByRole("button", { name: "Supprimer" })).toHaveClass("text-destructive")
+    expect(screen.getByRole("button", { name: "Supprimer" })).toHaveClass("bg-coral")
   })
 
   it("n'affiche pas de description quand elle n'est pas fournie", () => {

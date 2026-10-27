@@ -52,8 +52,42 @@ with `mix-blend-mode: multiply` (fixed `.paper-grain` layer in the root layout).
 **3D scene.** The canvas is transparent (`alpha`, non-premultiplied) so the
 paper shows through. The camera framing follows the layout through
 `setViewOffset`: the character stands right of the UI on desktop, lower on
-mobile, and shifts again when the chat panel opens (`VIEW_OFFSET_*` in
-[`src/constants/scene.ts`](src/constants/scene.ts)).
+mobile, and moves in to a waist shot when the chat panel opens, so the face
+reads (`VIEW_OFFSET_*` in [`src/constants/scene.ts`](src/constants/scene.ts)).
+
+## Character
+
+The 3D character (`public/models/founder.glb`) behaves like a virtual
+assistant while the chat is open: it walks to the centre, faces the visitor,
+and its face and arms follow the conversation.
+
+- **Activity.** The chat drives four states through a small cue store
+  ([`src/lib/character/character-cues.ts`](src/lib/character/character-cues.ts)):
+  `idle` (chat closed, it wanders), `listening`, `thinking` (question sent, no
+  answer yet), `talking` (answer streaming).
+- **Mood.** The LLM opens every answer with a tag such as `[[mood:joy]]`
+  (instruction in the system prompt). The API strips it from the streamed and
+  saved text and sends it as a separate `mood` field of the NDJSON stream
+  ([`src/lib/llm/mood-tag.ts`](src/lib/llm/mood-tag.ts)). Moods: `neutral`,
+  `joy`, `amused`, `curious`, `surprised`, `sorry`, `proud`; a fallback answer
+  is `sorry`. The mood is held 6 s after the answer ends.
+- **Face.** [`FaceController`](src/lib/character/face-controller.ts) turns
+  activity and mood into a frame: morph targets for brows, smile, frown, smirk
+  and jaw; eyelids with blinks (every 2.5 to 6 s, sometimes doubled); gaze
+  alternating between the visitor and short glances away, with the timings of
+  Lee, Badler & Badler, *Eyes Alive* (2002); a syllable-rate mouth while text
+  arrives; small head nods. The eyes and the open mouth are drawn by the head
+  material's shader ([`face-shader.ts`](src/lib/character/face-shader.ts))
+  from a second UV set, so they stay sharp at any distance.
+- **Gestures.** Arm poses (`talk`, `open`, `shrug`, `think`, `akimbo`,
+  [`gestures.ts`](src/lib/character/gestures.ts)) are hand targets solved by
+  two-bone IK on top of the `IDLE` clip, blended in and out, with the hand
+  straightened along the forearm
+  ([`character-rig.ts`](src/components/features/character-rig.ts)).
+- **Model.** Rebuilt from the Hunyuan export by the scripts in
+  [`scripts/character/`](scripts/character/README.md): head texture rebaked
+  from clean views, eyes removed from the texture, shape keys, straightened
+  wrists, cleaned body atlas.
 
 ## Installation
 
@@ -104,15 +138,19 @@ src/
     sitemap.ts        # sitemap.xml
   components/
     features/         # Domain components (HeroScene, ChatInterface, MessageBubble,
-                      # ReadmeCard, ThinkingPhrase, AboutContent)
+                      # ReadmeCard, ThinkingPhrase, AboutContent) and the
+                      # character rig (face shader patch, head look, arm IK)
     ui/               # Generic components (Button, ConfirmDialog, DirLabel,
                       # FileBox, LanguageSwitcher, NameBlock, SiteNav, Tooltip)
   constants/          # Shared configuration (chat, cors, dictionary, i18n,
                       # llm, profile, rag, rate-limit, scene, validation)
   lib/
+    character/        # Character behaviour without three.js: moods, face
+                      # controller, face shader source, gestures, chat cues
     db/               # Drizzle schema and chat service (Neon PostgreSQL)
     llm/              # Providers (Gemini, Groq, Mock), fallback chain, system
-                      # prompt, conversation history, repeated-question detection
+                      # prompt, conversation history, repeated-question detection,
+                      # mood tag filter
     rag/              # RAG pipeline (chunker, embeddings, Qdrant, PDF loader,
                       # web scraper, GitHub loader, follow-up query condensing)
                       # plus shared helpers: cors, rate-limit, sanitize-message,
@@ -122,6 +160,7 @@ src/
   tests/              # Unit tests (mirrors src/)
 scripts/
   index-content.ts    # RAG indexing script (npm run rag:index)
+  character/          # Blender / Python pipeline that rebuilds founder.glb
 content/
   *.md                # Career documents (frontmatter + markdown)
   *.pdf               # PDF documents (LinkedIn export)

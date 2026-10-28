@@ -46,6 +46,12 @@ a {
   mix-blend-mode: multiply;
 }
 
+/* Photo qui défile dans son cadre : barre fine, à l'encre des contrôles. */
+.photo-frame {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-control) transparent;
+}
+
 /* Nom de fichier : l'encre teal soulignée finement du CV. */
 .file-name {
   color: var(--color-teal-ink);

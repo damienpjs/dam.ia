@@ -13,6 +13,15 @@ import { cn } from "@/lib/utils"
 import { EMAIL, GITHUB, LAST_UPDATED, LINKEDIN } from "@/constants/profile"
 import type { IExperienceFile, IProjectFile } from "@/constants/dictionary"
 
+/** Part de la hauteur défilable où la photo s'ouvre : le visage, pas le ciel. */
+export const PHOTO_START = 0.35
+
+/** Place la photo sur le visage au chargement. */
+export function framePhoto(frame: HTMLElement | null): void {
+  if (!frame) return
+  frame.scrollTop = (frame.scrollHeight - frame.clientHeight) * PHOTO_START
+}
+
 /** Grille de 12 colonnes du CV, repliée en une colonne sur mobile. */
 const GRID = "grid grid-cols-1 gap-y-3 lg:grid-cols-12 lg:gap-x-6 lg:gap-y-5"
 
@@ -123,8 +132,12 @@ export function AboutContent() {
             </p>
           ))}
         </FileBox>
-        <FileBox name="photo.jpg" className="lg:col-span-5 lg:mt-[18px]">
-          <Image src="/photo-damien.jpg" alt={about.photoAlt} width={640} height={990} sizes="(min-width: 1024px) 500px, 100vw" className="h-[260px] w-full object-cover object-[50%_35%] lg:h-[300px]" priority />
+        <FileBox name="photo.jpg" meta={about.photoScrollHint} className="lg:col-span-5 lg:mt-[18px]">
+          {/* Cadre fixe, photo entière : on la fait défiler dedans. Elle s'ouvre
+              cadrée sur le visage (35 % de la hauteur), comme l'ancien recadrage. */}
+          <div tabIndex={0} role="region" aria-label={about.photoAlt} className="photo-frame h-[260px] overflow-y-auto overscroll-contain focus-visible:outline-1 focus-visible:outline-teal-ink lg:h-[300px]">
+            <Image src="/photo-damien.jpg" alt={about.photoAlt} width={640} height={990} sizes="(min-width: 1024px) 500px, 100vw" className="block h-auto w-full" priority onLoad={(event) => framePhoto(event.currentTarget.parentElement)} />
+          </div>
         </FileBox>
       </div>
 

@@ -119,6 +119,8 @@ export interface IDictionary {
     storyFile: string
     story: string[]
     photoAlt: string
+    /** Indique que la photo défile dans son cadre. */
+    photoScrollHint: string
     contactLocation: string
     contactLanguages: string
     experienceDir: string
@@ -219,6 +221,7 @@ const FR: IDictionary = {
       "Mais la surface ne suffisait pas. Je voulais comprendre l’envers du décor : comment on passe d’une maquette à un site en ligne. Cette curiosité m’a conduit à mêler une année de design d’interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.",
     ],
     photoAlt: "Damien Pasulj en voyage, devant un temple",
+    photoScrollHint: "↕ défiler",
     contactLocation: "Pyrénées-Orientales, full remote",
     contactLanguages: "FR natif, EN courant",
     experienceDir: "expérience/",
@@ -366,6 +369,7 @@ const EN: IDictionary = {
       "But the surface wasn’t enough. I wanted to understand the backstage: how you get from a mockup to a live site. That curiosity led me to combine a year of interface design with a year of development: a dual UI/UX and technical sensibility that still runs through everything I build.",
     ],
     photoAlt: "Damien Pasulj travelling, in front of a temple",
+    photoScrollHint: "↕ scroll",
     contactLocation: "South of France, fully remote",
     contactLanguages: "French (native), English (fluent)",
     experienceDir: "experience/",

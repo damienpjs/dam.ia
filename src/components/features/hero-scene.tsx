@@ -361,7 +361,7 @@ export function HeroScene({ bubblesEnabled = true, layout = "landing" }: IHeroSc
   const { t } = useLocale()
 
   return (
-    <div className="fixed inset-0 -z-10" aria-hidden="true">
+    <div className="fixed inset-0 z-0" aria-hidden="true">
       {mounted && (
         <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true, alpha: true, premultipliedAlpha: false }}>
           <SceneContent bubblesEnabled={bubblesEnabled} bubbleLines={t.scene.bubbleLines} layout={layout} />

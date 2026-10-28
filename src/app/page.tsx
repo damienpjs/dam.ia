@@ -9,7 +9,7 @@ import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
 import { MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
-import { CV, CV_BYTES, GITHUB, LINKEDIN, type IProfileLink } from "@/constants/profile"
+import { GITHUB, LINKEDIN, type IProfileLink } from "@/constants/profile"
 
 type TPhase = "landing" | "opening" | "chat"
 
@@ -20,7 +20,9 @@ interface ICloneState {
 }
 
 /** Liens du pied de l'accueil : le CV d'abord, puis les profils. */
-const FOOTER_LINKS: IProfileLink[] = [CV, GITHUB, LINKEDIN]
+// Le CV n'est pas proposé en lien direct : il n'apparaît que comme source
+// citée dans les réponses du chat.
+const FOOTER_LINKS: IProfileLink[] = [GITHUB, LINKEDIN]
 
 export default function Home() {
   const { t } = useLocale()
@@ -105,7 +107,7 @@ export default function Home() {
 
       {/* Accueil : pointer-events-none sur le conteneur pour laisser le clic-glissé
           atteindre la scène 3D ; réactivé sur les éléments interactifs. */}
-      <div aria-hidden={chatOpen} inert={chatOpen} className={`pointer-events-none flex min-h-dvh flex-col px-5 pt-[76px] pb-20 transition-all duration-500 ease-in-out lg:px-16 lg:pt-[136px] ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+      <div aria-hidden={chatOpen} inert={chatOpen} className={`pointer-events-none relative z-10 flex min-h-dvh flex-col px-5 pt-[76px] pb-20 transition-all duration-500 ease-in-out lg:px-16 lg:pt-[136px] ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
         <main className="flex w-full max-w-[644px] flex-col">
           <NameBlock className="text-[60px] lg:text-[128px]" />
           <p className="mt-4 text-[14px] font-medium text-ink lg:mt-7 lg:text-[22px]">{t.landing.role}</p>
@@ -142,7 +144,6 @@ export default function Home() {
                 >
                   {link.label}
                 </a>
-                {link === CV && <span className="hidden text-coral-ink lg:inline"> {t.common.fileSize(CV_BYTES)}</span>}
               </span>
             ))}
           </p>
@@ -151,8 +152,8 @@ export default function Home() {
       </div>
 
       {/* Conversation : un panneau papier à gauche, la scène reste visible à droite */}
-      <div aria-hidden={!chatOpen} inert={!chatOpen} className={`fixed inset-0 flex transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-        <section aria-label={t.chat.conversationDir} className="flex h-full w-full flex-col border-rule bg-paper lg:w-[58.333%] lg:border-r">
+      <div aria-hidden={!chatOpen} inert={!chatOpen} className={`pointer-events-none fixed inset-0 flex transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "opacity-0"}`}>
+        <section aria-label={t.chat.conversationDir} className={`flex h-full w-full flex-col border-rule bg-paper lg:w-[58.333%] lg:border-r ${chatOpen ? "pointer-events-auto" : ""}`}>
           <header ref={headerRef} className="flex h-[60px] shrink-0 items-center justify-between border-b border-rule px-5 lg:h-[72px] lg:pr-12 lg:pl-16">
             <button type="button" onClick={closeChat} className="cursor-pointer py-3 text-[16px] font-bold tracking-[-0.03em] text-ink lg:text-[18px]">
               damien pasulj

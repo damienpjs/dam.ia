@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { AboutContent } from "@/components/features/about-content"
+import { AboutContent, PHOTO_START, framePhoto } from "@/components/features/about-content"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
 import { EMAIL, GITHUB, LAST_UPDATED, LINKEDIN } from "@/constants/profile"
@@ -36,6 +36,27 @@ describe("AboutContent", () => {
     const readme = fileBox("README.md")
     expect(readme).toHaveTextContent(about.readme)
     expect(readme).toHaveTextContent(common.fileSize(byteLength(about.readme)))
+  })
+
+  it("fait défiler la photo entière dans son cadre, au clavier aussi", () => {
+    render(<AboutContent />)
+    const frame = screen.getByRole("region", { name: about.photoAlt })
+    expect(frame).toHaveClass("overflow-y-auto")
+    expect(frame).toHaveAttribute("tabindex", "0")
+    expect(within(frame).getByRole("img", { name: about.photoAlt })).toHaveClass("h-auto")
+    expect(fileBox("photo.jpg")).toHaveTextContent(about.photoScrollHint)
+  })
+
+  it("cadre la photo sur le visage : 35 % de la hauteur défilable", () => {
+    const frame = document.createElement("div")
+    Object.defineProperty(frame, "scrollHeight", { configurable: true, value: 780 })
+    Object.defineProperty(frame, "clientHeight", { configurable: true, value: 300 })
+    framePhoto(frame)
+    expect(frame.scrollTop).toBeCloseTo((780 - 300) * PHOTO_START)
+  })
+
+  it("ignore un cadre absent", () => {
+    expect(() => framePhoto(null)).not.toThrow()
   })
 
   it("donne les coordonnées publiques dans contact.vcf", () => {

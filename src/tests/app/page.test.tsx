@@ -69,9 +69,10 @@ describe("Page d'accueil (/)", () => {
     expect(screen.queryByText("Qdrant")).not.toBeInTheDocument()
   })
 
-  it("propose le CV et les profils en pied de page", () => {
+  it("propose les profils en pied de page, sans lien direct vers le CV", () => {
     render(<Home />)
-    expect(screen.getByRole("link", { name: CV.label })).toHaveAttribute("href", CV.href)
+    expect(screen.queryByRole("link", { name: CV.label })).not.toBeInTheDocument()
+    expect(document.querySelector(`a[href="${CV.href}"]`)).toBeNull()
     expect(screen.getByRole("link", { name: GITHUB.label })).toHaveAttribute("href", GITHUB.href)
     expect(screen.getByRole("link", { name: LINKEDIN.label })).toHaveAttribute("href", LINKEDIN.href)
     expect(screen.getByText(landing.orbitHint)).toBeInTheDocument()
@@ -170,7 +171,7 @@ describe("Page d'accueil (/)", () => {
       expect(screen.getByText(en.landing.role)).toBeInTheDocument()
       expect(screen.getByRole("button", { name: en.landing.startConversationAria })).toHaveTextContent(en.landing.startConversation)
       expect(screen.getByTestId("readme-content")).toHaveTextContent(en.chat.welcome)
-      expect(screen.getByText(/\(\d+ KB\)/)).toBeInTheDocument()
+      expect(screen.getByText(en.landing.orbitHint)).toBeInTheDocument()
     })
 
     it("bascule le contenu au clic sur EN", async () => {
@@ -221,9 +222,9 @@ describe("Page d'accueil : mesure d'audience", () => {
     const user = userEvent.setup()
     render(<Home />)
 
-    await user.click(screen.getByRole("link", { name: CV.label }))
+    await user.click(screen.getByRole("link", { name: GITHUB.label }))
 
-    expect(trackEvent).toHaveBeenCalledWith("profile_link_clicked", { link: CV.label })
+    expect(trackEvent).toHaveBeenCalledWith("profile_link_clicked", { link: GITHUB.label })
   })
 
   it("distingue le contexte du clic sur « à propos » (landing ou chat)", async () => {

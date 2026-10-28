@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { Canvas, useFrame } from "@react-three/fiber"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, ContactShadows, Grid, Html, useAnimations, useGLTF } from "@react-three/drei"
 import { EffectComposer, Glitch, ToneMapping } from "@react-three/postprocessing"
 import { GlitchMode, ToneMappingMode } from "postprocessing"
@@ -57,6 +57,8 @@ import {
   BUBBLE_HEIGHT,
 } from "@/constants/scene"
 import { useLocale } from "@/lib/locale-context"
+import { homeEase, isAwayFromHome, isHomeReached, type TVec3 } from "@/lib/scene/camera-home"
+import { SceneResetButton } from "@/components/features/scene-reset-button"
 import { cn } from "@/lib/utils"
 
 type TWanderMode = "idle" | "walk"
@@ -285,8 +287,83 @@ function ViewOffset({ layout, animated }: { layout: TSceneLayout; animated: bool
   return null
 }
 
+/** Ce dont le recadrage a besoin des OrbitControls de drei. */
+interface IOrbitLike {
+  target: THREE.Vector3
+  update: () => void
+  addEventListener: (type: "start", listener: () => void) => void
+  removeEventListener: (type: "start", listener: () => void) => void
+}
+
+const HOME_POSITION = new THREE.Vector3(...CAMERA_START)
+const HOME_TARGET = new THREE.Vector3(...CONTROLS_TARGET)
+
+interface ICameraHomeProps {
+  /** Incrémenté à chaque demande de recadrage. */
+  resetSignal: number
+  /** Prévenu quand la caméra quitte ou retrouve sa vue de départ. */
+  onMovedChange: (moved: boolean) => void
+  animated: boolean
+}
+
+/**
+ * Surveille l'orbite (rotation, zoom) et ramène la caméra à sa vue de départ
+ * sur demande : en douceur, ou d'un coup si le visiteur réduit les animations.
+ * Reprendre la main pendant le retour l'interrompt.
+ */
+function CameraHome({ resetSignal, onMovedChange, animated }: ICameraHomeProps) {
+  const controls = useThree((state) => state.controls) as unknown as IOrbitLike | null
+  const lastSignal = useRef(resetSignal)
+  const returning = useRef(false)
+  const moved = useRef(false)
+
+  useLayoutEffect(() => {
+    if (!controls) return
+    const interrupt = () => {
+      returning.current = false
+    }
+    controls.addEventListener("start", interrupt)
+    return () => controls.removeEventListener("start", interrupt)
+  }, [controls])
+
+  useFrame((state, dt) => {
+    if (!controls) return
+    const camera = state.camera
+    if (resetSignal !== lastSignal.current) {
+      lastSignal.current = resetSignal
+      returning.current = true
+    }
+    if (returning.current) {
+      const k = animated ? homeEase(dt) : 1
+      camera.position.lerp(HOME_POSITION, k)
+      controls.target.lerp(HOME_TARGET, k)
+      if (isHomeReached(camera.position.toArray() as TVec3, controls.target.toArray() as TVec3)) {
+        camera.position.copy(HOME_POSITION)
+        controls.target.copy(HOME_TARGET)
+        returning.current = false
+      }
+      controls.update()
+    }
+    const away = isAwayFromHome(camera.position.toArray() as TVec3, controls.target.toArray() as TVec3)
+    if (away !== moved.current) {
+      moved.current = away
+      onMovedChange(away)
+    }
+  })
+
+  return null
+}
+
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
-function SceneContent({ bubblesEnabled, bubbleLines, layout }: { bubblesEnabled: boolean; bubbleLines: string[]; layout: TSceneLayout }) {
+interface ISceneContentProps {
+  bubblesEnabled: boolean
+  bubbleLines: string[]
+  layout: TSceneLayout
+  resetSignal: number
+  onCameraMovedChange: (moved: boolean) => void
+}
+
+function SceneContent({ bubblesEnabled, bubbleLines, layout, resetSignal, onCameraMovedChange }: ISceneContentProps) {
   const reducedMotion = usePrefersReducedMotion()
 
   return (
@@ -327,6 +404,7 @@ function SceneContent({ bubblesEnabled, bubbleLines, layout }: { bubblesEnabled:
       )}
 
       <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.08} minDistance={MIN_DISTANCE} maxDistance={MAX_DISTANCE} minPolarAngle={MIN_POLAR} maxPolarAngle={MAX_POLAR} target={CONTROLS_TARGET} />
+      <CameraHome resetSignal={resetSignal} onMovedChange={onCameraMovedChange} animated={!reducedMotion} />
     </>
   )
 }
@@ -359,15 +437,20 @@ export function HeroScene({ bubblesEnabled = true, layout = "landing" }: IHeroSc
   // Les répliques sont résolues ici, HORS du <Canvas> : le réconciliateur
   // react-three-fiber ne propage pas les contextes React, on les passe donc en props.
   const { t } = useLocale()
+  const [cameraMoved, setCameraMoved] = useState(false)
+  const [resetSignal, setResetSignal] = useState(0)
 
   return (
-    <div className="fixed inset-0 z-0" aria-hidden="true">
-      {mounted && (
-        <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true, alpha: true, premultipliedAlpha: false }}>
-          <SceneContent bubblesEnabled={bubblesEnabled} bubbleLines={t.scene.bubbleLines} layout={layout} />
-        </Canvas>
-      )}
-    </div>
+    <>
+      <div className="fixed inset-0 z-0" aria-hidden="true">
+        {mounted && (
+          <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true, alpha: true, premultipliedAlpha: false }}>
+            <SceneContent bubblesEnabled={bubblesEnabled} bubbleLines={t.scene.bubbleLines} layout={layout} resetSignal={resetSignal} onCameraMovedChange={setCameraMoved} />
+          </Canvas>
+        )}
+      </div>
+      <SceneResetButton visible={cameraMoved} layout={layout} label={t.scene.resetView} hint={t.scene.resetViewHint} onReset={() => setResetSignal((n) => n + 1)} />
+    </>
   )
 }
 

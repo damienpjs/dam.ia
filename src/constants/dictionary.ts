@@ -113,6 +113,10 @@ export interface IDictionary {
   scene: {
     /** Répliques de la bulle au-dessus du personnage 3D. */
     bubbleLines: string[]
+    /** Bouton de retour à la vue de départ, visible une fois la caméra déplacée. */
+    resetView: string
+    /** Infobulle du bouton : ce qu'il fait, en une phrase. */
+    resetViewHint: string
   }
   about: {
     readme: string
@@ -211,6 +215,8 @@ const FR: IDictionary = {
   },
   scene: {
     bubbleLines: ["Comment tu sais que je suis né dans les 90's ?", "Cette chemise ? Un choix tout à fait assumé.", "Où est-ce que je me suis encore perdu ?"],
+    resetView: "recadrer la vue",
+    resetViewHint: "Revenir à la vue de départ de la scène 3D",
   },
   about: {
     readme:
@@ -359,6 +365,8 @@ const EN: IDictionary = {
   },
   scene: {
     bubbleLines: ["How can you tell I was born in the 90s?", "This shirt? A fully deliberate choice.", "Where have I wandered off to this time?"],
+    resetView: "reset view",
+    resetViewHint: "Back to the starting view of the 3D scene",
   },
   about: {
     readme:

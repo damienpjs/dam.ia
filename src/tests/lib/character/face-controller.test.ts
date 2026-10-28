@@ -73,6 +73,14 @@ describe("FaceController", () => {
     expect(face.getMood()).toBe("neutral")
   })
 
+  it("baisse le regard quand il est désolé", () => {
+    const face = new FaceController(sequence(0.5))
+    face.setActivity("talking")
+    face.setMood("sorry")
+    run(face, 1)
+    expect(face.frame.gaze[1]).toBeLessThan(-0.3)
+  })
+
   it("réfléchit : humeur remise à zéro, regard en l'air, pose dédiée", () => {
     const face = new FaceController(sequence(0.5))
     face.setMood("proud")

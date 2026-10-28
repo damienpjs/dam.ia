@@ -40,6 +40,8 @@ export interface IFacePose {
   /** Remontée des paupières inférieures (plissement des joues), 0 à 1. */
   squint: number
   head: IHeadOffset
+  /** Décalage du regard propre à l'humeur (unités de l'œil), ajouté aux saccades. */
+  gaze?: [number, number]
 }
 
 /** Ouverture des yeux au repos : la paupière couvre le haut de l'iris, regard calme. */
@@ -49,12 +51,12 @@ export const NEUTRAL_HEAD: IHeadOffset = { pitch: 0, yaw: 0, roll: 0 }
 
 export const MOOD_POSES: Record<TMood, IFacePose> = {
   neutral: { morphs: { mouthSmile: 0.12 }, eyeOpen: EYE_OPEN_REST, squint: 0.1, head: NEUTRAL_HEAD },
-  joy: { morphs: { mouthSmile: 0.9, browInnerUp: 0.25, browUp_L: 0.15, browUp_R: 0.15 }, eyeOpen: 0.8, squint: 0.65, head: { pitch: -0.04, yaw: 0, roll: 0.05 } },
-  amused: { morphs: { smirk_L: 0.85, mouthSmile: 0.3, browUp_R: 0.55, browDown_L: 0.2 }, eyeOpen: 0.74, squint: 0.45, head: { pitch: 0.02, yaw: 0.06, roll: -0.07 } },
-  curious: { morphs: { browUp_L: 0.6, browUp_R: 0.45, browInnerUp: 0.3, mouthSmile: 0.15 }, eyeOpen: 1.0, squint: 0, head: { pitch: 0.03, yaw: -0.04, roll: 0.1 } },
-  surprised: { morphs: { browUp_L: 0.95, browUp_R: 0.95, browInnerUp: 0.5, jawOpen: 0.35 }, eyeOpen: 1.18, squint: 0, head: { pitch: -0.07, yaw: 0, roll: 0 } },
-  sorry: { morphs: { browInnerUp: 0.95, mouthFrown: 0.6, browDown_L: 0.1, browDown_R: 0.1 }, eyeOpen: 0.68, squint: 0.15, head: { pitch: 0.1, yaw: 0, roll: 0.06 } },
-  proud: { morphs: { mouthSmile: 0.45, smirk_R: 0.4, browDown_L: 0.25, browDown_R: 0.25 }, eyeOpen: 0.72, squint: 0.35, head: { pitch: -0.08, yaw: 0, roll: 0 } },
+  joy: { morphs: { mouthSmile: 1, browInnerUp: 0.3, browUp_L: 0.3, browUp_R: 0.3 }, eyeOpen: 0.8, squint: 0.7, head: { pitch: -0.06, yaw: 0, roll: 0.07 } },
+  amused: { morphs: { smirk_L: 1, mouthSmile: 0.3, browUp_R: 0.75, browDown_L: 0.35 }, eyeOpen: 0.74, squint: 0.5, head: { pitch: 0.02, yaw: 0.08, roll: -0.1 } },
+  curious: { morphs: { browUp_L: 0.85, browUp_R: 0.55, browInnerUp: 0.35, mouthSmile: 0.15 }, eyeOpen: 1.02, squint: 0, head: { pitch: 0.04, yaw: -0.05, roll: 0.14 }, gaze: [0, 0.12] },
+  surprised: { morphs: { browUp_L: 1, browUp_R: 1, browInnerUp: 0.6, jawOpen: 0.45 }, eyeOpen: 1.2, squint: 0, head: { pitch: -0.09, yaw: 0, roll: 0 } },
+  sorry: { morphs: { browInnerUp: 1, mouthFrown: 0.9, browDown_L: 0.15, browDown_R: 0.15 }, eyeOpen: 0.66, squint: 0.1, head: { pitch: 0.14, yaw: 0, roll: 0.08 }, gaze: [0, -0.45] },
+  proud: { morphs: { mouthSmile: 0.55, smirk_R: 0.5, browDown_L: 0.35, browDown_R: 0.35 }, eyeOpen: 0.72, squint: 0.4, head: { pitch: -0.12, yaw: 0, roll: 0 } },
 }
 
 /** Pose de réflexion (attente du premier token) : un sourcil levé, regard ailleurs. */

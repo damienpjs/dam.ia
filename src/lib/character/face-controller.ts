@@ -160,8 +160,9 @@ export class FaceController {
 
     // regard
     this.updateGaze()
-    f.gaze[0] = damp(f.gaze[0], this.gazeTarget[0], 25, dt)
-    f.gaze[1] = damp(f.gaze[1], this.gazeTarget[1], 25, dt)
+    const bias = pose.gaze ?? [0, 0]
+    f.gaze[0] = damp(f.gaze[0], this.gazeTarget[0] + bias[0], 25, dt)
+    f.gaze[1] = damp(f.gaze[1], this.gazeTarget[1] + bias[1], 25, dt)
 
     // tête : pose de l'humeur, hochements en parlant, respiration lente
     const nod = f.beat * 0.05

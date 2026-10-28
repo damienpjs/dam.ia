@@ -419,29 +419,33 @@ def add_key(name, disp):
 def vec(w, dx=0, dy=0, dz=0):
     return np.stack([w * dx, w * dy, w * dz], 1)
 
+# Amplitudes: about 2 px on screen per centimetre in the chat framing, so the
+# brows travel up to 1.4 cm and the mouth corners about 1 cm (a cartoon face
+# reads by its brows and mouth corners, not by millimetres).
+BROW, MOUTH = 1.9, 1.7
 side = {"L": 1, "R": -1}
 for s, sg in side.items():
-    add_key(f"browUp_{s}", vec(gauss(LM[f"brow_{s}"], 0.032, 0.022), dz=0.0075, dy=-0.0012))
+    add_key(f"browUp_{s}", vec(gauss(LM[f"brow_{s}"], 0.032, 0.018), dz=0.0075 * BROW, dy=-0.0012 * BROW))
 for s, sg in side.items():
     w = gauss(LM[f"brow_{s}"], 0.03, 0.02)
     inner = smoothstep(LM[f"brow_{s}"].x * 1.6, 0, P2[:, 0]) if sg > 0 else smoothstep(LM[f"brow_{s}"].x * 1.6, 0, P2[:, 0])
-    add_key(f"browDown_{s}", vec(w * (0.55 + 0.6 * inner), dz=-0.0055, dx=-sg * 0.0018, dy=-0.0006))
+    add_key(f"browDown_{s}", vec(w * (0.55 + 0.6 * inner), dz=-0.0055 * BROW, dx=-sg * 0.0018 * BROW, dy=-0.0006 * BROW))
 w = gauss(LM["brow_in_L"], 0.017, 0.016) + gauss(LM["brow_in_R"], 0.017, 0.016)
-add_key("browInnerUp", vec(np.clip(w, 0, 1), dz=0.0075, dy=-0.0008))
+add_key("browInnerUp", vec(np.clip(w, 0, 1), dz=0.0075 * BROW, dy=-0.0008 * BROW))
 smile = np.zeros((len(co), 3))
 for s, sg in side.items():
     c = LM[f"corner_{s}"]
     wc = gauss(c, 0.017, 0.013)
     cheek = gauss(c + Vector((sg * 0.006, 0, 0.022)), 0.02, 0.016)
-    smile += vec(wc, dx=sg * 0.0032, dy=0.0022, dz=0.0058) + vec(cheek, dz=0.0028, dy=-0.0012)
+    smile += (vec(wc, dx=sg * 0.0032, dy=0.0022, dz=0.0058) + vec(cheek, dz=0.0028, dy=-0.0012)) * MOUTH
 add_key("mouthSmile", smile)
 frown = np.zeros((len(co), 3))
 for s, sg in side.items():
-    frown += vec(gauss(LM[f"corner_{s}"], 0.017, 0.014), dx=-sg * 0.0008, dz=-0.005, dy=0.0006)
+    frown += vec(gauss(LM[f"corner_{s}"], 0.017, 0.014), dx=-sg * 0.0008, dz=-0.005, dy=0.0006) * MOUTH
 add_key("mouthFrown", frown)
 for s, sg in side.items():
     c = LM[f"corner_{s}"]
-    add_key(f"smirk_{s}", vec(gauss(c, 0.018, 0.014), dx=sg * 0.003, dy=0.002, dz=0.0062) + vec(gauss(c + Vector((sg * 0.006, 0, 0.022)), 0.02, 0.016), dz=0.003))
+    add_key(f"smirk_{s}", (vec(gauss(c, 0.018, 0.014), dx=sg * 0.003, dy=0.002, dz=0.0062) + vec(gauss(c + Vector((sg * 0.006, 0, 0.022)), 0.02, 0.016), dz=0.003)) * MOUTH)
 mz, cz = LM["mouth"].z, LM["chin"].z
 jaw = smoothstep(mz + 0.002, mz - 0.006, P2[:, 1]) * smoothstep(cz - 0.03, cz, P2[:, 1]) * np.exp(-(P2[:, 0] / 0.055) ** 2) * front
 add_key("jawOpen", vec(jaw, dz=-0.0095, dy=0.0025))

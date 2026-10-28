@@ -80,14 +80,20 @@ and its face and arms follow the conversation.
   material's shader ([`face-shader.ts`](src/lib/character/face-shader.ts))
   from a second UV set, so they stay sharp at any distance.
 - **Gestures.** Arm poses (`talk`, `open`, `shrug`, `think`, `akimbo`,
-  [`gestures.ts`](src/lib/character/gestures.ts)) are hand targets solved by
-  two-bone IK on top of the `IDLE` clip, blended in and out, with the hand
-  straightened along the forearm
+  [`gestures.ts`](src/lib/character/gestures.ts)) are wrist targets solved by
+  two-bone IK on top of the clip, each with a hand shape (`HAND_*` clips in the
+  model). Every channel (wrist target, elbow, IK weight, forearm twist, finger
+  shape, head turn) follows its goal through a second-order spring with its own
+  tempo ([`dynamics.ts`](src/lib/character/dynamics.ts)): arcs, a small
+  overshoot, fingers settling after the wrist, the hand trailing a fast wrist.
+  A hand held away from the body is pushed out of per-bone capsules; a hand that
+  rests on it (chin, hips) follows a target measured on the real meshes
   ([`character-rig.ts`](src/components/features/character-rig.ts)).
-- **Model.** Rebuilt from the Hunyuan export by the scripts in
-  [`scripts/character/`](scripts/character/README.md): head texture rebaked
-  from clean views, eyes removed from the texture, shape keys, straightened
-  wrists, cleaned body atlas.
+- **Model.** The portfolio head (Hunyuan export: texture rebaked from clean
+  views, eyes removed from the texture, shape keys) and a generated pair of
+  hands on the stylised male body, outfit, rig and clips of Ship or Die, with
+  finger and forearm twist bones. Arms and hands share the head's skin tone.
+  Built by the scripts in [`scripts/character/`](scripts/character/README.md).
 
 ## Installation
 
@@ -146,7 +152,8 @@ src/
                       # llm, profile, rag, rate-limit, scene, validation)
   lib/
     character/        # Character behaviour without three.js: moods, face
-                      # controller, face shader source, gestures, chat cues
+                      # controller, face shader source, gestures and hand
+                      # shapes, spring dynamics, chat cues
     db/               # Drizzle schema and chat service (Neon PostgreSQL)
     llm/              # Providers (Gemini, Groq, Mock), fallback chain, system
                       # prompt, conversation history, repeated-question detection,

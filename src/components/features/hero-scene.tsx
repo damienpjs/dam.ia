@@ -61,8 +61,8 @@ import { homeEase, isAwayFromHome, isHomeReached, type TVec3 } from "@/lib/scene
 import { SceneResetButton } from "@/components/features/scene-reset-button"
 import { FaceController } from "@/lib/character/face-controller"
 import { readCharacterCues } from "@/lib/character/character-cues"
-import { GESTURES, gestureFor, type TGesture } from "@/lib/character/gestures"
-import { applyFace, applyGestures, applyHead, createCharacterRig } from "@/components/features/character-rig"
+import { gestureFor } from "@/lib/character/gestures"
+import { applyFace, createCharacterRig, GestureAnimator, HeadAnimator } from "@/components/features/character-rig"
 import { cn } from "@/lib/utils"
 
 type TWanderMode = "idle" | "walk"
@@ -135,11 +135,12 @@ function Character({ bubblesEnabled, bubbleLines, presenting }: ICharacterProps)
 
   // Visage, regard et gestes : la logique vit hors de three.js (testée à
   // part), le rig l'applique sur les os et le shader après l'animation.
-  const rig = useMemo(() => createCharacterRig(scene), [scene])
+  const rig = useMemo(() => createCharacterRig(scene, animations), [scene, animations])
   const face = useMemo(() => new FaceController(), [])
   const moodVersion = useRef(0)
   const lookWeight = useRef(0)
-  const gestureWeights = useRef<Record<TGesture, number>>(Object.fromEntries(GESTURES.map((g) => [g, 0])) as Record<TGesture, number>)
+  const gestures = useMemo(() => new GestureAnimator(), [])
+  const head = useMemo(() => new HeadAnimator(), [])
 
   const state = useRef<IWanderState>({
     mode: "idle",
@@ -180,14 +181,9 @@ function Character({ bubblesEnabled, bubbleLines, presenting }: ICharacterProps)
     g.updateMatrixWorld(true)
     const look = presenting && settled ? 1 : 0
     lookWeight.current += (look - lookWeight.current) * Math.min(1, dt * 3)
-    applyHead(rig, g, camera, frame.head, lookWeight.current)
+    head.update(rig, g, camera, frame.head, lookWeight.current, dt)
     const active = presenting && settled ? gestureFor(face.getActivity(), face.getMood()) : "none"
-    const weights = gestureWeights.current
-    for (const name of GESTURES) {
-      const target = name === active ? 1 : 0
-      weights[name] += (target - weights[name]) * Math.min(1, dt * (target ? 3.5 : 2.5))
-    }
-    applyGestures(rig, g, weights, frame.beat)
+    gestures.update(rig, g, active, frame.beat, dt)
   }
 
   useFrame(({ camera }, dt) => {

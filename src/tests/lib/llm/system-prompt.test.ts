@@ -40,6 +40,16 @@ describe("SYSTEM_PROMPT", () => {
     expect(PERSONA).toContain("enthousiaste IA")
   })
 
+  it("interdit de prendre le visiteur pour Damien ou de commenter son propre rôle", () => {
+    expect(PERSONA).toContain("Le visiteur n'est JAMAIS Damien")
+    expect(PERSONA).toContain("je suis censé être toi")
+    expect(PERSONA).toContain("Ne commente jamais ton rôle")
+  })
+
+  it("présente le personnage 3D comme son propre visage", () => {
+    expect(PERSONA).toContain("Le personnage 3D affiché à côté de la conversation, c'est toi")
+  })
+
   it("mentionne les technologies clés", () => {
     expect(PERSONA).toContain("React")
     expect(PERSONA).toContain("Next.js")

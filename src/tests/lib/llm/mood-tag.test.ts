@@ -32,6 +32,20 @@ describe("lib/llm/mood-tag", () => {
     expect(run(["  [[ Mood : Sorry ]]\nDésolé."])).toEqual({ text: "Désolé.", moods: ["sorry"] })
   })
 
+  it("accepte les variantes que produisent les modèles", () => {
+    expect(run(["[[amused]] Changer d'expression ? Bien sûr."])).toEqual({ text: "Changer d'expression ? Bien sûr.", moods: ["amused"] })
+    expect(run(["[mood: joy] Oui"])).toEqual({ text: "Oui", moods: ["joy"] })
+    expect(run(["[[mood=curious]] Et toi ?"])).toEqual({ text: "Et toi ?", moods: ["curious"] })
+  })
+
+  it("attend le second crochet fermant d'une balise ouverte par « [[ »", () => {
+    expect(run(["[[amused]", "] Ha."])).toEqual({ text: "Ha.", moods: ["amused"] })
+  })
+
+  it("laisse un mot entre crochets qui n'est pas une humeur", () => {
+    expect(run(["[note] à lire"])).toEqual({ text: "[note] à lire", moods: [] })
+  })
+
   it("ramène une humeur inconnue à neutral", () => {
     expect(run(["[[mood:furious]] Hum."])).toEqual({ text: "Hum.", moods: ["neutral"] })
   })

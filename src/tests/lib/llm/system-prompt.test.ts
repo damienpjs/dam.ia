@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { PERSONA } from "@/constants/llm"
 import { buildSystemPrompt } from "@/lib/llm/system-prompt"
+import { MOOD_DIRECTIVE } from "@/lib/llm/mood-tag"
 
 describe("buildSystemPrompt", () => {
   it("combine la date du jour avec le persona", () => {
@@ -8,6 +9,12 @@ describe("buildSystemPrompt", () => {
 
     expect(result).toContain(PERSONA)
     expect(result).toContain("Date du jour :")
+  })
+
+  it("termine par la consigne d'humeur lue par le personnage", () => {
+    const result = buildSystemPrompt()
+
+    expect(result.endsWith(MOOD_DIRECTIVE)).toBe(true)
   })
 
   it("place la date avant le persona", () => {
@@ -31,6 +38,16 @@ describe("SYSTEM_PROMPT", () => {
   it("met en avant le positionnement Product Builder & enthousiaste IA", () => {
     expect(PERSONA).toContain("Product Builder")
     expect(PERSONA).toContain("enthousiaste IA")
+  })
+
+  it("interdit de prendre le visiteur pour Damien ou de commenter son propre rôle", () => {
+    expect(PERSONA).toContain("Le visiteur n'est JAMAIS Damien")
+    expect(PERSONA).toContain("je suis censé être toi")
+    expect(PERSONA).toContain("Ne commente jamais ton rôle")
+  })
+
+  it("présente le personnage 3D comme son propre visage", () => {
+    expect(PERSONA).toContain("Le personnage 3D affiché à côté de la conversation, c'est toi")
   })
 
   it("mentionne les technologies clés", () => {

@@ -33,6 +33,8 @@ type TParsedChunk = {
   sources?: { label: string; source: string; url?: string }[]
   sessionId?: string
   messageId?: string
+  status?: "ok" | "error"
+  mood?: string
 }
 
 /**
@@ -88,6 +90,17 @@ vi.mock("@/lib/llm", () => ({
       }
       if (message.includes("quota-test")) {
         throw new QuotaExceededError()
+      }
+      if (message.includes("mood-test")) {
+        // balise coupée entre deux morceaux, comme le font les providers
+        yield "[[mood:"
+        yield "joy]] Avec "
+        yield "plaisir."
+        return
+      }
+      if (message.includes("partial-tag-test")) {
+        yield "[["
+        return
       }
       const response = "Réponse streamée."
       for (const char of response) {
@@ -163,6 +176,32 @@ describe("POST /api/chat", () => {
     // Reconstituer le message
     const fullMessage = chunksToFullMessage(chunks)
     expect(fullMessage).toBe("Réponse streamée.")
+  })
+
+  it("retire la balise d'humeur du texte et la transmet à part", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    const request = createMockRequest({ message: "mood-test", sessionId: "session-mood" })
+    const chunks = await POST(request).then((r) => readStreamToChunks(r.body!))
+
+    const moods = chunks.filter((chunk) => chunk.mood).map((chunk) => chunk.mood)
+    expect(moods).toEqual(["joy"])
+    expect(chunksToFullMessage(chunks)).toBe("Avec plaisir.")
+    expect(saveMessage).toHaveBeenCalledWith("session-mood", "assistant", "Avec plaisir.", undefined)
+  })
+
+  it("rend un début de balise inachevé en fin de flux", async () => {
+    const request = createMockRequest({ message: "partial-tag-test" })
+    const chunks = await POST(request).then((r) => readStreamToChunks(r.body!))
+
+    expect(chunksToFullMessage(chunks)).toBe("[[")
+    expect(chunks.some((chunk) => chunk.mood)).toBe(false)
+  })
+
+  it("donne au personnage une mine désolée quand la réponse est un repli", async () => {
+    const request = createMockRequest({ message: "error-test" })
+    const chunks = await POST(request).then((r) => readStreamToChunks(r.body!))
+
+    expect(chunks.find((chunk) => chunk.mood)?.mood).toBe("sorry")
   })
 
   it("gère les erreurs du provider dans le stream", async () => {

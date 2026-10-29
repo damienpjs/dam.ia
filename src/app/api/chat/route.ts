@@ -8,6 +8,8 @@ import { createSession, saveMessage, getSessionMessages } from "@/lib/db/chat-se
 import type { ISessionMessage } from "@/lib/db/chat-service"
 import { buildConversationHistory } from "@/lib/llm/conversation-history"
 import { findRepeatedQuestion } from "@/lib/llm/repeated-question"
+import { createMoodFilter } from "@/lib/llm/mood-tag"
+import type { TMood } from "@/lib/character/moods"
 import type { IConversationMessage } from "@/lib/llm/types"
 import type { ISearchResult } from "@/lib/rag/types"
 import { DEFAULT_LOCALE, isLocale, type TLocale } from "@/constants/i18n"
@@ -41,6 +43,7 @@ type TStreamChunk = {
   sessionId?: string
   messageId?: string
   status?: "ok" | "error"
+  mood?: TMood
 }
 
 /**
@@ -207,14 +210,19 @@ export async function POST(request: NextRequest): Promise<Response> {
         let fullResponse = ""
 
         try {
-          for await (const text of provider.streamResponse(enrichedMessage, history)) {
+          // La balise d'humeur de tête est retirée du texte (affiché et
+          // persisté) et transmise à part au personnage 3D.
+          const moodFilter = createMoodFilter()
+          const forward = ({ text, mood }: { text: string; mood?: TMood }) => {
+            if (mood) controller.enqueue(encoder.encode(encodeChunk({ content: "", done: false, mood })))
+            if (!text) return
             fullResponse += text
-            const chunk: TStreamChunk = {
-              content: text,
-              done: false,
-            }
-            controller.enqueue(encoder.encode(encodeChunk(chunk)))
+            controller.enqueue(encoder.encode(encodeChunk({ content: text, done: false })))
           }
+          for await (const text of provider.streamResponse(enrichedMessage, history)) {
+            forward(moodFilter.push(text))
+          }
+          forward({ text: moodFilter.flush() })
 
           // Sauvegarder la réponse assistant en DB
           let assistantMessageId: string | undefined
@@ -241,6 +249,8 @@ export async function POST(request: NextRequest): Promise<Response> {
           let status: "ok" | "error" = "error"
           let fallbackResponse = ""
 
+          // Une réponse de repli s'excuse, le visage aussi.
+          controller.enqueue(encoder.encode(encodeChunk({ content: "", done: false, mood: "sorry" })))
           if (error instanceof QuotaExceededError) {
             status = "ok"
             // Fallback : message d'excuse + réponse via MockProvider

@@ -17,6 +17,7 @@ export default defineConfig({
         "src/tests/**",
         "src/app/layout.tsx",
         "src/components/features/hero-scene.tsx", // Canvas WebGL / three.js, non testable avec jsdom
+        "src/components/features/character-rig.ts", // Os, shader et matériaux three.js du personnage, vérifiés au rendu
         "src/**/*.d.ts",
         "src/lib/llm/types.ts", // Types-only, pas de code runtime
         "src/lib/rag/types.ts", // Types-only, pas de code runtime

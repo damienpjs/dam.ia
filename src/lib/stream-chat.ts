@@ -1,4 +1,5 @@
 import type { TLocale } from "@/constants/i18n"
+import { isMood, type TMood } from "@/lib/character/moods"
 
 /**
  * Source RAG reçue de l'API
@@ -21,6 +22,8 @@ export type TStreamChunk = {
   sessionId?: string
   messageId?: string
   status?: TMessageStatus
+  /** Humeur annoncée par le LLM en tête de réponse (balise retirée côté serveur). */
+  mood?: string
 }
 
 /**
@@ -40,6 +43,8 @@ export interface IStreamResult {
 export interface IStreamChatOptions {
   /** Callback appelé à chaque nouveau caractère reçu */
   onChunk: (content: string) => void
+  /** Humeur de la réponse, reçue avant ses premières lettres. */
+  onMood?: (mood: TMood) => void
   /** Callback appelé quand le stream est terminé */
   onComplete?: (result: IStreamResult) => void
   /** Callback appelé en cas d'erreur */
@@ -71,7 +76,7 @@ export interface IStreamChatOptions {
  * ```
  */
 export async function streamChat(message: string, options: IStreamChatOptions): Promise<void> {
-  const { onChunk, onComplete, onError, signal, sessionId, locale } = options
+  const { onChunk, onMood, onComplete, onError, signal, sessionId, locale } = options
 
   try {
     const response = await fetch("/api/chat", {
@@ -108,6 +113,9 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
           if (chunk.sessionId) result.sessionId = chunk.sessionId
           if (chunk.messageId) result.messageId = chunk.messageId
           if (chunk.status) result.status = chunk.status
+        }
+        if (chunk.mood && isMood(chunk.mood)) {
+          onMood?.(chunk.mood)
         }
         if (!chunk.done && chunk.content) {
           onChunk(chunk.content)

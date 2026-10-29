@@ -60,6 +60,9 @@ export const MAX_POLAR = Math.PI / 2 - 0.04
  * et de la hauteur (positif : vers la droite, vers le bas), `zoom` agit sur la
  * focale. Sur desktop, l'interface tient dans la moitié gauche : le personnage
  * vit à droite. Sur mobile, le texte occupe le haut : il descend.
+ *
+ * En conversation, la caméra se rapproche jusqu'au plan taille, tête au tiers
+ * haut du panneau droit : le visage doit se lire (humeurs, regard, bouche).
  */
 export interface IViewOffset {
   x: number
@@ -72,7 +75,7 @@ export type TSceneLayout = "landing" | "chat"
 
 export const VIEW_OFFSET_WIDE: Record<TSceneLayout, IViewOffset> = {
   landing: { x: 0.17, y: 0.03, zoom: 1 },
-  chat: { x: 0.24, y: 0.06, zoom: 0.86 },
+  chat: { x: 0.29, y: 0.2, zoom: 2.4 },
 }
 export const VIEW_OFFSET_NARROW: IViewOffset = { x: 0.03, y: 0.35, zoom: 0.58 }
 /** Largeur (px) à partir de laquelle le cadrage « desktop » s'applique (breakpoint `lg`). */

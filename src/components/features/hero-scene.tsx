@@ -59,6 +59,10 @@ import {
 import { useLocale } from "@/lib/locale-context"
 import { homeEase, isAwayFromHome, isHomeReached, type TVec3 } from "@/lib/scene/camera-home"
 import { SceneResetButton } from "@/components/features/scene-reset-button"
+import { FaceController } from "@/lib/character/face-controller"
+import { readCharacterCues } from "@/lib/character/character-cues"
+import { cameraLookFor, gestureFor } from "@/lib/character/gestures"
+import { applyFace, createCharacterRig, GestureAnimator, HeadAnimator } from "@/components/features/character-rig"
 import { cn } from "@/lib/utils"
 
 type TWanderMode = "idle" | "walk"
@@ -84,7 +88,14 @@ function lerpAngle(current: number, target: number, t: number): number {
  * d'animation et de support au déplacement (translation/rotation sur le sol).
  * Le modèle est normalisé (centré, pieds sur y=0, mis à l'échelle) une seule fois.
  */
-function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; bubbleLines: string[] }) {
+interface ICharacterProps {
+  bubblesEnabled: boolean
+  bubbleLines: string[]
+  /** Conversation ouverte : il revient au centre, fait face et réagit. */
+  presenting: boolean
+}
+
+function Character({ bubblesEnabled, bubbleLines, presenting }: ICharacterProps) {
   const root = useRef<THREE.Group>(null!)
   const { scene, animations } = useGLTF(MODEL_PATH)
   const { actions, mixer } = useAnimations(animations, root)
@@ -122,6 +133,15 @@ function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; b
     [actions],
   )
 
+  // Visage, regard et gestes : la logique vit hors de three.js (testée à
+  // part), le rig l'applique sur les os et le shader après l'animation.
+  const rig = useMemo(() => createCharacterRig(scene, animations), [scene, animations])
+  const face = useMemo(() => new FaceController(), [])
+  const moodVersion = useRef(0)
+  const lookWeight = useRef(0)
+  const gestures = useMemo(() => new GestureAnimator(), [])
+  const head = useMemo(() => new HeadAnimator(), [])
+
   const state = useRef<IWanderState>({
     mode: "idle",
     timer: randRange(IDLE_MIN_S, IDLE_MAX_S),
@@ -145,7 +165,28 @@ function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; b
     mixer.update(0)
   }, [playAction, mixer])
 
-  useFrame((_, dt) => {
+  /** Visage, tête et bras, après le mixer (son useFrame est abonné avant celui-ci). */
+  const animateFace = (camera: THREE.Camera, dt: number, settled: boolean) => {
+    const cues = readCharacterCues()
+    face.setActivity(presenting ? (cues.activity === "idle" ? "listening" : cues.activity) : "idle")
+    if (cues.moodVersion !== moodVersion.current) {
+      moodVersion.current = cues.moodVersion
+      face.setMood(cues.mood)
+    }
+    if (cues.speech) face.speak(cues.speech)
+    const frame = face.update(dt)
+    if (!rig) return
+    applyFace(rig, frame)
+    const g = root.current
+    g.updateMatrixWorld(true)
+    const look = presenting && settled ? cameraLookFor(face.getActivity()) : 0
+    lookWeight.current += (look - lookWeight.current) * Math.min(1, dt * 3)
+    head.update(rig, g, camera, frame.head, lookWeight.current, dt)
+    const active = presenting && settled ? gestureFor(face.getActivity(), face.getMood()) : "none"
+    gestures.update(rig, g, active, frame.beat, dt)
+  }
+
+  useFrame(({ camera }, dt) => {
     const g = root.current
     if (!g) return
     const s = state.current
@@ -172,15 +213,28 @@ function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; b
       }
     }
 
+    // Conversation ouverte : il rejoint le centre de la scène puis se tourne vers la caméra.
+    if (presenting && s.mode === "idle" && Math.hypot(g.position.x, g.position.z) > ARRIVE_DISTANCE) {
+      s.target.set(0, 0, 0)
+      s.mode = "walk"
+      playAction(ANIM_WALK)
+    }
+
     if (s.mode === "idle") {
-      s.timer -= dt
-      if (s.timer <= 0) {
-        const angle = Math.random() * Math.PI * 2
-        const radius = Math.sqrt(Math.random()) * WANDER_RADIUS
-        s.target.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
-        s.mode = "walk"
-        playAction(ANIM_WALK)
+      if (presenting) {
+        const toCamera = Math.atan2(camera.position.x - g.position.x, camera.position.z - g.position.z) + MODEL_FORWARD_OFFSET
+        g.rotation.y = lerpAngle(g.rotation.y, toCamera, 3 * dt)
+      } else {
+        s.timer -= dt
+        if (s.timer <= 0) {
+          const angle = Math.random() * Math.PI * 2
+          const radius = Math.sqrt(Math.random()) * WANDER_RADIUS
+          s.target.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius)
+          s.mode = "walk"
+          playAction(ANIM_WALK)
+        }
       }
+      animateFace(camera, dt, true)
       return
     }
 
@@ -193,6 +247,7 @@ function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; b
       s.mode = "idle"
       s.timer = randRange(IDLE_MIN_S, IDLE_MAX_S)
       playAction(ANIM_IDLE)
+      animateFace(camera, dt, false)
       return
     }
 
@@ -202,6 +257,7 @@ function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; b
     const step = Math.min(WALK_SPEED * dt, dist)
     g.position.x += (dx / dist) * step
     g.position.z += (dz / dist) * step
+    animateFace(camera, dt, false)
   })
 
   return (
@@ -364,6 +420,7 @@ interface ISceneContentProps {
 }
 
 function SceneContent({ bubblesEnabled, bubbleLines, layout, resetSignal, onCameraMovedChange }: ISceneContentProps) {
+  const presenting = layout === "chat"
   const reducedMotion = usePrefersReducedMotion()
 
   return (
@@ -379,7 +436,7 @@ function SceneContent({ bubblesEnabled, bubbleLines, layout, resetSignal, onCame
       <pointLight position={[0, 2.2, -5]} intensity={3} distance={16} color={FILL_LIGHT} />
 
       <Suspense fallback={null}>
-        <Character bubblesEnabled={bubblesEnabled} bubbleLines={bubbleLines} />
+        <Character bubblesEnabled={bubblesEnabled} bubbleLines={bubbleLines} presenting={presenting} />
       </Suspense>
 
       <AutoClearFix />

@@ -81,6 +81,8 @@ describe("constants/scene", () => {
   it("cadre le personnage à droite de l'interface sur desktop, plus encore quand le chat est ouvert", () => {
     expect(scene.VIEW_OFFSET_WIDE.landing.x).toBeGreaterThan(0)
     expect(scene.VIEW_OFFSET_WIDE.chat.x).toBeGreaterThan(scene.VIEW_OFFSET_WIDE.landing.x)
+    // en conversation, plan taille : le visage doit être lisible
+    expect(scene.VIEW_OFFSET_WIDE.chat.zoom).toBeGreaterThan(2)
   })
 
   it("descend le personnage sous le texte sur mobile", () => {

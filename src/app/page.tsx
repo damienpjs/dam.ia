@@ -8,6 +8,7 @@ import { NameBlock } from "@/components/ui/name-block"
 import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
+import { resetCharacterCues } from "@/lib/character/character-cues"
 import { MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
 import { GITHUB, LINKEDIN, type IProfileLink } from "@/constants/profile"
 
@@ -62,6 +63,8 @@ export default function Home() {
 
   const closeChat = useCallback(() => {
     trackEvent("chat_closed", { turns: turnsRef.current })
+    // Le personnage repart se promener, l'humeur de la conversation oubliée.
+    resetCharacterCues()
     clearFallback()
     setClone(null)
     setPhase("landing")

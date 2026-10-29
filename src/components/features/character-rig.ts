@@ -28,8 +28,10 @@ export interface IFaceUniforms {
 interface IArm {
   upper: THREE.Bone
   lower: THREE.Bone
-  /** Os de torsion de l'avant-bras (du milieu au poignet), parent de la main ; absent sur un ancien modèle. */
+  /** Os de torsion de l'avant-bras (jusqu'au poignet), parent de la main ; absent sur un ancien modèle. */
   twist: THREE.Bone | null
+  /** Os de torsion intermédiaire (du tiers aux deux tiers de l'avant-bras), parent de `twist` ; absent sur un ancien modèle. */
+  twist1: THREE.Bone | null
   hand: THREE.Bone
   /** Rotation de repos de la main : alignée sur l'avant-bras. */
   handRest: THREE.Quaternion
@@ -130,6 +132,7 @@ export function createCharacterRig(root: THREE.Object3D, animations: THREE.Anima
     upper: bones[`${side}Arm`],
     lower: bones[`${side}ForeArm`],
     twist: bones[`${side}ForeArmTwist`] ?? null,
+    twist1: bones[`${side}ForeArmTwist1`] ?? null,
     hand: bones[`${side}Hand`],
     handRest: bones[`${side}Hand`].quaternion.clone(),
     fingers: new Map(Object.entries(bones).filter(([name]) => FINGER.test(name) && name.startsWith(side))),
@@ -307,8 +310,9 @@ function rollAboutForearm(arm: IArm, bone: THREE.Bone, angle: number): void {
 /**
  * Résout un bras pour amener le poignet sur `target`, coude vers `pole`
  * (repère monde), puis oriente la paume (`twist`, rad, autour de l'avant-bras).
- * Avec un os de torsion, il porte toute la rotation, répartie sur la peau du
- * coude au poignet ; sinon elle est partagée entre coude et poignet.
+ * Avec deux os de torsion, elle est partagée en trois tiers entre l'avant-bras
+ * (sur son axe), Twist1 et Twist ; avec un seul, il la porte toute ; sans os de
+ * torsion, elle est partagée entre coude et poignet.
  */
 export function solveArm(arm: IArm, target: THREE.Vector3, pole: THREE.Vector3, weight: number, twist = 0): void {
   if (weight <= 0.001) return
@@ -331,7 +335,11 @@ export function solveArm(arm: IArm, target: THREE.Vector3, pole: THREE.Vector3, 
   arm.lower.getWorldPosition(vB)
   arm.hand.getWorldPosition(vC)
   aimBone(arm.lower, vB, vC, wrist, weight)
-  if (twist && arm.twist) rollAboutForearm(arm, arm.twist, twist * weight)
+  if (twist && arm.twist && arm.twist1) {
+    // trois pas égaux (avant-bras sur son axe, Twist1, Twist) : le skinning linéaire
+    // ne pince chaque mélange que de 1 - cos(angle / 6), au lieu de 1 - cos(angle / 2)
+    for (const bone of [arm.lower, arm.twist1, arm.twist]) rollAboutForearm(arm, bone, (twist * weight) / 3)
+  } else if (twist && arm.twist) rollAboutForearm(arm, arm.twist, twist * weight)
   else if (twist) rollAboutForearm(arm, arm.lower, twist * weight * TWIST_AT_ELBOW)
   if (twist) {
     // l'os de torsion n'est pas exactement sur l'axe coude-poignet : sa rotation
@@ -537,7 +545,7 @@ interface IArmState {
   lastGoal: THREE.Vector3
 }
 
-const clipQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()]
+const clipQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()]
 const wristClip = new THREE.Vector3()
 const goal = new THREE.Vector3()
 const goalPole = new THREE.Vector3()
@@ -629,7 +637,7 @@ export class GestureAnimator {
       }
       if (weight <= 0.001) continue
 
-      const chain = [arm.upper, arm.lower, arm.twist ?? arm.lower, arm.hand]
+      const chain = [arm.upper, arm.lower, arm.twist1 ?? arm.lower, arm.twist ?? arm.lower, arm.hand]
       chain.forEach((bone, i) => clipQ[i].copy(bone.quaternion))
       const sideName = side === "right" ? "Right" : "Left"
       // jusqu'à trois passes : si le bras entre dans le corps, on décale la cible d'autant
@@ -677,6 +685,7 @@ function armBones(rig: ICharacterRig): THREE.Bone[] {
     out = []
     for (const arm of [rig.arms.right, rig.arms.left]) {
       out.push(arm.upper, arm.lower, arm.hand, ...arm.fingers.values())
+      if (arm.twist1) out.push(arm.twist1)
       if (arm.twist) out.push(arm.twist)
     }
     armBonesOf.set(rig, out)

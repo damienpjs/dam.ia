@@ -20,29 +20,41 @@ import { GESTURE_POSES } from "@/lib/character/gestures"
 
 type TArm = Parameters<typeof solveArm>[0]
 
-/** Bras droit tendu le long de -X, comme le T-pose du rig : épaule, coude, (torsion), poignet, bout des doigts. */
-function makeArm(withTwist = false) {
+/**
+ * Bras droit tendu le long de -X, comme le T-pose du rig : épaule, coude,
+ * (torsion intermédiaire), (torsion), poignet, bout des doigts.
+ */
+function makeArm(withTwist = false, withTwist1 = false) {
   const root = new THREE.Bone()
   const upper = new THREE.Bone()
   const lower = new THREE.Bone()
+  const twist1 = withTwist && withTwist1 ? new THREE.Bone() : null
   const twist = withTwist ? new THREE.Bone() : null
   const hand = new THREE.Bone()
   const tip = new THREE.Bone()
   lower.position.set(-0.19, 0, 0)
-  if (twist) {
+  if (twist1 && twist) {
+    twist1.position.set(-0.066, 0, 0)
+    twist.position.set(-0.067, 0, 0)
+    hand.position.set(-0.067, 0, 0)
+  } else if (twist) {
     twist.position.set(-0.1, 0, 0)
     hand.position.set(-0.1, 0, 0)
   } else hand.position.set(-0.2, 0, 0)
   tip.position.set(-0.08, 0, 0)
   root.add(upper)
   upper.add(lower)
-  if (twist) {
+  if (twist1 && twist) {
+    lower.add(twist1)
+    twist1.add(twist)
+    twist.add(hand)
+  } else if (twist) {
     lower.add(twist)
     twist.add(hand)
   } else lower.add(hand)
   hand.add(tip)
   root.updateMatrixWorld(true)
-  const arm: TArm = { upper, lower, twist, hand, handRest: hand.quaternion.clone(), fingers: new Map() }
+  const arm: TArm = { upper, lower, twist, twist1, hand, handRest: hand.quaternion.clone(), fingers: new Map() }
   return { arm, root, tip }
 }
 
@@ -130,6 +142,14 @@ describe("solveArm", () => {
     solveArm(arm, new THREE.Vector3(-0.39, 0, 0), new THREE.Vector3(0, -1, 0), 1, 1.2)
     expect(rollOf(arm.twist!)).toBeCloseTo(-1.2, 2)
     expect(Math.abs(rollOf(arm.lower))).toBeLessThan(1e-3)
+  })
+
+  it("avec deux os de torsion, répartit la rotation de la paume en trois tiers", () => {
+    const { arm } = makeArm(true, true)
+    solveArm(arm, new THREE.Vector3(-0.39, 0, 0), new THREE.Vector3(0, -1, 0), 1, 1.5)
+    expect(rollOf(arm.lower)).toBeCloseTo(-0.5, 2)
+    expect(rollOf(arm.twist1!)).toBeCloseTo(-0.5, 2)
+    expect(rollOf(arm.twist!)).toBeCloseTo(-0.5, 2)
   })
 
   it("tourne la main de toute la torsion demandée, dans le prolongement de l'avant-bras", () => {

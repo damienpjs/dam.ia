@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { ASSISTANT_NAME, CV, CV_BYTES, EMAIL, GITHUB, LAST_UPDATED, LINKEDIN } from "@/constants/profile"
+import { ASSISTANT_NAME, CV, CV_BYTES, EMAIL, GITHUB, LINKEDIN } from "@/constants/profile"
 
 describe("constants/profile", () => {
   it("affiche des adresses courtes, sans protocole", () => {
@@ -15,9 +15,8 @@ describe("constants/profile", () => {
     expect(CV.href).toMatch(/^\/.*\.pdf$/)
   })
 
-  it("donne un poids de CV plausible et une date ISO", () => {
+  it("donne un poids de CV plausible", () => {
     expect(CV_BYTES).toBeGreaterThan(0)
-    expect(LAST_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
   it("nomme le double IA comme un fichier", () => {

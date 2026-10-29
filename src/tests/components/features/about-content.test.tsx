@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { AboutContent, PHOTO_START, framePhoto } from "@/components/features/about-content"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
-import { EMAIL, GITHUB, LAST_UPDATED, LINKEDIN } from "@/constants/profile"
+import { EMAIL, GITHUB, LINKEDIN } from "@/constants/profile"
 import { byteLength } from "@/lib/format"
 
 const trackEvent = vi.fn()
@@ -44,7 +44,7 @@ describe("AboutContent", () => {
     expect(frame).toHaveClass("overflow-y-auto")
     expect(frame).toHaveAttribute("tabindex", "0")
     expect(within(frame).getByRole("img", { name: about.photoAlt })).toHaveClass("h-auto")
-    expect(fileBox("photo.jpg")).toHaveTextContent(about.photoScrollHint)
+    expect(fileBox(about.photoFile)).toHaveTextContent(about.photoScrollHint)
   })
 
   it("cadre la photo sur le visage : 35 % de la hauteur défilable", () => {
@@ -117,12 +117,11 @@ describe("AboutContent", () => {
     expect(fileBox(about.educationFile)).toHaveTextContent(about.education)
   })
 
-  it("propose deux chemins vers la conversation et date la dernière mise à jour", () => {
+  it("propose deux chemins vers la conversation", () => {
     render(<AboutContent />)
     expect(screen.getByRole("link", { name: common.navChat })).toHaveAttribute("href", "/")
     expect(screen.getByRole("link", { name: new RegExp(about.ctaLink) })).toHaveAttribute("href", "/")
     expect(screen.getByRole("link", { name: common.navHome })).toHaveAttribute("href", "/")
-    expect(screen.getByText(LAST_UPDATED)).toBeInTheDocument()
   })
 
   describe("Traduction", () => {
@@ -131,6 +130,7 @@ describe("AboutContent", () => {
       const en = DICTIONARIES.en.about
       expect(screen.getByText(en.readme)).toBeInTheDocument()
       expect(screen.getByText(en.storyFile)).toBeInTheDocument()
+      expect(screen.getByText(en.photoFile)).toBeInTheDocument()
       expect(screen.getByText(en.experienceDir)).toBeInTheDocument()
       expect(screen.getByRole("link", { name: new RegExp(en.ctaLink) })).toBeInTheDocument()
       expect(screen.getAllByText(/\(\d+ B\)/).length).toBeGreaterThan(0)

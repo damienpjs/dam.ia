@@ -10,7 +10,7 @@ import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
 import { byteLength } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { EMAIL, GITHUB, LAST_UPDATED, LINKEDIN } from "@/constants/profile"
+import { EMAIL, GITHUB, LINKEDIN } from "@/constants/profile"
 import type { IExperienceFile, IProjectFile } from "@/constants/dictionary"
 
 /** Part de la hauteur défilable où la photo s'ouvre : le visage, pas le ciel. */
@@ -132,7 +132,7 @@ export function AboutContent() {
             </p>
           ))}
         </FileBox>
-        <FileBox name="photo.jpg" meta={about.photoScrollHint} className="lg:col-span-5 lg:mt-[18px]">
+        <FileBox name={about.photoFile} meta={about.photoScrollHint} className="lg:col-span-5 lg:mt-[18px]">
           {/* Cadre fixe, photo entière : on la fait défiler dedans. Elle s'ouvre
               cadrée sur le visage (35 % de la hauteur), comme l'ancien recadrage. */}
           <div tabIndex={0} role="region" aria-label={about.photoAlt} className="photo-frame h-[260px] overflow-y-auto overscroll-contain focus-visible:outline-1 focus-visible:outline-teal-ink lg:h-[300px]">
@@ -199,9 +199,6 @@ export function AboutContent() {
             {about.ctaLink}
           </Link>
         </div>
-        <p className="text-[12px] lg:text-[13px]">
-          <span className="text-coral-ink">{about.updatedLabel}</span> {LAST_UPDATED}
-        </p>
       </footer>
     </article>
   )

@@ -122,6 +122,8 @@ export interface IDictionary {
     readme: string
     storyFile: string
     story: string[]
+    /** Nom du fichier affiché en tête de la photo, localisé comme le reste du contenu. */
+    photoFile: string
     photoAlt: string
     /** Indique que la photo défile dans son cadre. */
     photoScrollHint: string
@@ -141,7 +143,6 @@ export interface IDictionary {
     offscreen: string[]
     ctaQuestion: string
     ctaLink: string
-    updatedLabel: string
   }
 }
 
@@ -168,7 +169,7 @@ const FR: IDictionary = {
     orbitHint: "clic-glissé : tourner · molette : zoom",
   },
   chat: {
-    welcome: "Ici, c’est mon double IA qui te répond. Demande-lui mon parcours, de la refonte d’elloha à mon poste de lead tech chez Apizee, mes projets, ou ce que je fais loin de l’écran.",
+    welcome: "👋 Harness engineer, avec un vrai Lead Tech JS sous le capot. Quelques années de route au compteur, alors on peut parler de mon parcours, mes projets ou mes passions... 👀",
     welcomeFile: "README.md",
     conversationDir: "conversation/",
     messageCount: (count) => `(${count} message${count > 1 ? "s" : ""})`,
@@ -226,6 +227,7 @@ const FR: IDictionary = {
       "Tout a commencé à l’IDEM, une école de design où j’étudiais l’ergonomie, l’apparence et l’identité visuelle des sites. Ce qui fait qu’un site fonctionne (ou pas) d’un point de vue marketing. Passionné d’interfaces et de technologies depuis toujours, j’ai aussi un côté esthète : j’aime concevoir des choses, initialement inertes, et leur donner vie sur le web.",
       "Mais la surface ne suffisait pas. Je voulais comprendre l’envers du décor : comment on passe d’une maquette à un site en ligne. Cette curiosité m’a conduit à mêler une année de design d’interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.",
     ],
+    photoFile: "birmanie-2020.jpg",
     photoAlt: "Damien Pasulj en voyage, devant un temple",
     photoScrollHint: "↕ défiler",
     contactLocation: "Pyrénées-Orientales, full remote",
@@ -296,7 +298,6 @@ const FR: IDictionary = {
     offscreen: ["callisthenie.txt", "course-a-pied.txt", "bricolage.txt", "philosophie.txt"],
     ctaQuestion: "Envie d’en savoir plus sur mon parcours, mes projets ou mes passions ?",
     ctaLink: "discute avec mon double IA",
-    updatedLabel: "dernière mise à jour",
   },
 }
 
@@ -318,7 +319,7 @@ const EN: IDictionary = {
     orbitHint: "drag: orbit · scroll: zoom",
   },
   chat: {
-    welcome: "This is my AI double talking. Ask it about my background, from rebuilding elloha to leading JavaScript at Apizee, my side projects, or what I do away from the screen.",
+    welcome: "👋 Harness engineer, with a real JS Tech Lead under the hood. We can talk about my background, my projects, my hobbies or my passions 👀",
     welcomeFile: "README.md",
     conversationDir: "chat/",
     messageCount: (count) => `(${count} message${count > 1 ? "s" : ""})`,
@@ -376,6 +377,7 @@ const EN: IDictionary = {
       "It all started at IDEM, a design school where I studied usability, visual design and the brand identity of websites. What makes a site work (or not) from a marketing standpoint. Always passionate about interfaces and technology, I also have an aesthete’s streak: I love designing things that start out inert, and bringing them to life on the web.",
       "But the surface wasn’t enough. I wanted to understand the backstage: how you get from a mockup to a live site. That curiosity led me to combine a year of interface design with a year of development: a dual UI/UX and technical sensibility that still runs through everything I build.",
     ],
+    photoFile: "myanmar-2020.jpg",
     photoAlt: "Damien Pasulj travelling, in front of a temple",
     photoScrollHint: "↕ scroll",
     contactLocation: "South of France, fully remote",
@@ -446,7 +448,6 @@ const EN: IDictionary = {
     offscreen: ["calisthenics.txt", "running.txt", "diy.txt", "philosophy.txt"],
     ctaQuestion: "Want to know more about my background, my projects or my passions?",
     ctaLink: "chat with my AI double",
-    updatedLabel: "last updated",
   },
 }
 

@@ -36,6 +36,3 @@ export const CV: IProfileLink = {
 
 /** Poids du PDF du CV en octets, affiché à côté de son nom. À mettre à jour avec le fichier. */
 export const CV_BYTES = 307_425
-
-/** Date de dernière mise à jour du contenu, au format ISO (affichée telle quelle). */
-export const LAST_UPDATED = "2026-10-19"

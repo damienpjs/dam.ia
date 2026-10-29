@@ -81,15 +81,15 @@ export function mirror(target: IHandTarget): IHandTarget {
 const TALK_RIGHT: IHandTarget = { anchor: "chest", offset: [-0.15, -0.06, 0.3], pole: [-0.5, -0.7, -0.3], twist: 1.5, hand: "talk" }
 const OPEN_RIGHT: IHandTarget = { anchor: "chest", offset: [-0.3, -0.07, 0.27], pole: [-0.6, -0.6, -0.3], twist: 1.6, hand: "open" }
 const SHRUG_RIGHT: IHandTarget = { anchor: "hips", offset: [-0.3, 0.16, 0.24], pole: [-0.3, -0.8, -0.3], twist: 1.8, hand: "open" }
-const AKIMBO_RIGHT: IHandTarget = { anchor: "hips", offset: [-0.2, 0.07, -0.03], pole: [-0.9, 0.1, -0.5], hand: "hip", contact: true }
+const AKIMBO_RIGHT: IHandTarget = { anchor: "hips", offset: [-0.225, 0.1, -0.02], pole: [-0.9, 0.1, -0.5], hand: "hip", contact: true }
 
 export const GESTURE_POSES: Record<TGesture, IGesturePose> = {
   none: {},
   talk: { right: TALK_RIGHT, beat: [0, 0.05, 0.03] },
   // main au menton : le coude s'écarte devant l'épaule pour que l'avant-bras passe
   // devant la poitrine, la paume tournée vers le cou, le menton posé sur l'index replié
-  // (cible mesurée sur le maillage : 0,5 à 2 mm entre l'index et le menton)
-  think: { right: { anchor: "head", offset: [-0.0259, -0.0988, 0.2121], pole: [-0.6, -0.6, 0.5], twist: 0.5, wrist: [0.1, 0.35], hand: "chin", contact: true, touch: { finger: "Index2", offset: [0.0373, -0.0035, 0.1481] } } },
+  // (cible mesurée sur le maillage v4 : l'index à 1,3 mm sous le menton, sans le traverser)
+  think: { right: { anchor: "head", offset: [-0.039, -0.151, 0.162], pole: [-0.6, -0.6, 0.5], twist: 0.5, wrist: [0.1, 0.35], hand: "chin", contact: true, touch: { finger: "Index2", offset: [0.024, -0.056, 0.098] } } },
   shrug: { right: SHRUG_RIGHT, left: mirror(SHRUG_RIGHT) },
   open: { right: OPEN_RIGHT, left: mirror(OPEN_RIGHT), beat: [0, 0.03, 0.02] },
   akimbo: { right: AKIMBO_RIGHT, left: mirror(AKIMBO_RIGHT) },

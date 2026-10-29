@@ -416,9 +416,16 @@ describe("GestureAnimator, trajectoires", () => {
     const rig = createCharacterRig(root, animations)!
     const reset = restPose(root)
     const gestures = new GestureAnimator()
-    for (let i = 0; i < 240; i++) {
-      reset()
-      gestures.update(rig, root, "think", 0, 1 / 60)
+    // la flexion seule : arrivé au contact, touchWith réoriente la main vers son point
+    const think = GESTURE_POSES.think.right!
+    GESTURE_POSES.think.right = { ...think, touch: undefined }
+    try {
+      for (let i = 0; i < 240; i++) {
+        reset()
+        gestures.update(rig, root, "think", 0, 1 / 60)
+      }
+    } finally {
+      GESTURE_POSES.think.right = think
     }
     const arm = rig.arms.right
     const fore = arm.hand.getWorldPosition(new THREE.Vector3()).sub(arm.lower.getWorldPosition(new THREE.Vector3())).normalize()

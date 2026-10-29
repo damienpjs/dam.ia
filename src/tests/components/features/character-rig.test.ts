@@ -2,6 +2,7 @@ import * as THREE from "three"
 import { describe, expect, it } from "vitest"
 import {
   CONTACT_ZONE,
+  ClipPoseGuard,
   GestureAnimator,
   HeadAnimator,
   TWIST_AT_ELBOW,
@@ -449,5 +450,57 @@ describe("HeadAnimator", () => {
     reset()
     still.update(rig, root, camera, { yaw: 0, pitch: 0, roll: 0 }, 0, 1 / 60)
     expect(forward().x).toBeCloseTo(0, 6)
+  })
+})
+
+describe("ClipPoseGuard", () => {
+  it("rend la pose du clip à un os que le mixer n'a pas réécrit, et garde une nouvelle valeur du clip", () => {
+    const bone = new THREE.Bone()
+    const clip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.4)
+    const guard = new ClipPoseGuard()
+    bone.quaternion.copy(clip)
+    guard.restore([bone])
+    bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.8))
+    guard.record([bone])
+    // piste constante : le mixer laisse la correction en place
+    guard.restore([bone])
+    expect(bone.quaternion.angleTo(clip)).toBeLessThan(1e-6)
+    // piste animée : le mixer a écrit une autre valeur, elle est gardée
+    guard.record([bone])
+    const next = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.3)
+    bone.quaternion.copy(next)
+    guard.restore([bone])
+    expect(bone.quaternion.angleTo(next)).toBeLessThan(1e-6)
+  })
+
+  it("sur un clip constant, un geste ne cumule pas d'une image à l'autre et rend la pose du clip", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const gestures = new GestureAnimator()
+    const angles: number[] = []
+    // aucun reset : le mixer ne réécrit pas les os d'une piste constante
+    for (let i = 0; i < 240; i++) {
+      gestures.update(rig, root, "talk", 0, 1 / 60)
+      if (i === 179 || i === 239) angles.push(rig.arms.right.lower.quaternion.angleTo(new THREE.Quaternion()))
+    }
+    expect(Math.abs(angles[1] - angles[0])).toBeLessThan(1e-3)
+    for (let i = 0; i < 300; i++) gestures.update(rig, root, "none", 0, 1 / 60)
+    expect(rig.arms.right.upper.quaternion.angleTo(new THREE.Quaternion())).toBeLessThan(1e-3)
+    expect(rig.arms.right.lower.quaternion.angleTo(new THREE.Quaternion())).toBeLessThan(1e-3)
+  })
+
+  it("sur un clip constant, la tête suit le regard sans tourner sur elle-même", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const head = new HeadAnimator()
+    const camera = new THREE.PerspectiveCamera()
+    camera.position.set(1, 1.5, 2)
+    const at: THREE.Quaternion[] = []
+    for (let i = 0; i < 400; i++) {
+      head.update(rig, root, camera, { pitch: 0, yaw: 0, roll: 0 }, 1, 1 / 60)
+      if (i === 299 || i === 399) at.push(rig.bones.head.quaternion.clone())
+    }
+    expect(at[0].angleTo(at[1])).toBeLessThan(1e-3)
+    expect(rig.bones.head.quaternion.angleTo(new THREE.Quaternion())).toBeLessThan(1)
   })
 })

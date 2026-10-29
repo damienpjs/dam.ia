@@ -182,6 +182,43 @@ function rotateWorld(bone: THREE.Bone, delta: THREE.Quaternion, weight = 1): voi
   bone.updateMatrixWorld(true)
 }
 
+// ---------------------------------------------------------------- pose du clip
+
+/**
+ * Pose du clip sous les corrections procédurales (tête, bras, doigts).
+ *
+ * Le mixer de three.js ne réécrit un os que lorsque la valeur de son clip
+ * change : sur une piste constante (deux clés égales, fréquent pour la torsion
+ * de l'avant-bras ou les doigts au repos), la correction de l'image précédente
+ * resterait en place et la suivante s'y ajouterait, jusqu'à vriller
+ * l'avant-bras. Avant les corrections, un os que le mixer n'a pas réécrit
+ * reprend la pose du clip mémorisée ; après, on retient ce qui a été écrit.
+ */
+export class ClipPoseGuard {
+  private readonly clip = new Map<THREE.Bone, THREE.Quaternion>()
+  private readonly written = new Map<THREE.Bone, THREE.Quaternion>()
+
+  /** Avant les corrections : rend leur pose de clip aux os que le mixer a laissés tels quels. */
+  restore(bones: Iterable<THREE.Bone>): void {
+    for (const bone of bones) {
+      const written = this.written.get(bone)
+      let clip = this.clip.get(bone)
+      if (written && clip && bone.quaternion.equals(written)) bone.quaternion.copy(clip)
+      if (!clip) this.clip.set(bone, (clip = new THREE.Quaternion()))
+      clip.copy(bone.quaternion)
+    }
+  }
+
+  /** Après les corrections : retient la rotation écrite sur chaque os. */
+  record(bones: Iterable<THREE.Bone>): void {
+    for (const bone of bones) {
+      let written = this.written.get(bone)
+      if (!written) this.written.set(bone, (written = new THREE.Quaternion()))
+      written.copy(bone.quaternion)
+    }
+  }
+}
+
 // ---------------------------------------------------------------- tête
 
 const camLocal = new THREE.Vector3()
@@ -205,8 +242,12 @@ const NECK_SHARE = 0.38
  */
 export class HeadAnimator {
   private readonly spring = new SecondOrder(SPRINGS.head, [0, 0, 0])
+  private readonly guard = new ClipPoseGuard()
 
   update(rig: ICharacterRig, root: THREE.Object3D, camera: THREE.Camera, offset: IHeadOffset, lookWeight: number, dt: number): void {
+    const bones = [rig.bones.neck, rig.bones.head]
+    this.guard.restore(bones)
+    rig.bones.neck.updateMatrixWorld(true)
     rig.bones.head.getWorldPosition(headWorld)
     camLocal.copy(camera.position).sub(headWorld).applyAxisAngle(UP, -root.rotation.y)
     const clamp = (v: number, m: number) => Math.max(-m, Math.min(m, v))
@@ -226,6 +267,7 @@ export class HeadAnimator {
       qRoll.setFromAxisAngle(axisZ, roll * share)
       rotateWorld(bone, tmpQ.copy(qYaw).multiply(qPitch).multiply(qRoll))
     }
+    this.guard.record(bones)
   }
 }
 
@@ -515,6 +557,7 @@ const arcGoal = new THREE.Vector3()
  */
 export class GestureAnimator {
   private readonly arms: Record<"right" | "left", IArmState>
+  private readonly guard = new ClipPoseGuard()
 
   constructor() {
     const make = (): IArmState => ({
@@ -534,6 +577,8 @@ export class GestureAnimator {
   }
 
   update(rig: ICharacterRig, root: THREE.Object3D, gesture: TGesture, beat: number, dt: number, scale = 1): void {
+    const bones = armBones(rig)
+    this.guard.restore(bones)
     rig.bones.hips.updateMatrixWorld(true)
     const pose = GESTURE_POSES[gesture]
     for (const side of ["right", "left"] as const) {
@@ -619,5 +664,22 @@ export class GestureAnimator {
         springTarget.add(push)
       }
     }
+    this.guard.record(bones)
   }
+}
+
+const armBonesOf = new WeakMap<ICharacterRig, THREE.Bone[]>()
+
+/** Os des deux bras que les gestes peuvent modifier : épaule à main, torsion et phalanges. */
+function armBones(rig: ICharacterRig): THREE.Bone[] {
+  let out = armBonesOf.get(rig)
+  if (!out) {
+    out = []
+    for (const arm of [rig.arms.right, rig.arms.left]) {
+      out.push(arm.upper, arm.lower, arm.hand, ...arm.fingers.values())
+      if (arm.twist) out.push(arm.twist)
+    }
+    armBonesOf.set(rig, out)
+  }
+  return out
 }

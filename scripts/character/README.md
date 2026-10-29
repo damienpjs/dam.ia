@@ -20,7 +20,7 @@ Builds `public/models/founder.glb` in two parts, both driven by `./run.sh`
 | Assembly | `blender/assemble.py` | The founder head moved onto the Ship or Die neck (offset between the two `Head` bones), skin weights copied from the game's own head, the game's head removed |
 | Generated hands | `blender/hand_graft.py` | The game's hands (eight-sided fingers, a stubby T-pose thumb) replaced by a hand generated on its own: Gemini reference sheet (palm, back, both profiles, fingers spread), Hunyuan 3D multi-view at 500k faces. Welded with voxels, QuadriFlow quads (about 4,000), colour baked, set to the head's skin tone with only its own shading kept, mirrored for the right hand. Grafted 6 cm above the wrist: three intermediate rings and a zipper of triangles to the body's ring, lofted, the band textured from a small gradient patch |
 | Body build | `blender/build_v3.py`, `blender/fingers.py` | Finger chains on each finger's centre line (slices of the free finger, root pushed into the palm), 4 Mixamo bones per finger, bone-heat weights per hand. A forearm twist bone carries the palm's turn from elbow to wrist. Clips: hand twist moved onto it, wrist bend eased, fingers relaxed. One-frame `HAND_*` clips (open, talk, fist, chin, hip) for the gestures |
-| Body checks | `blender/collide.py`, `blender/cloth.py`, `blender/watch.py`, `blender/colliders.py` | Arms swung out frame by frame until the hands clear the trousers; outfit weights taken from the skin underneath; a modelled watch in place of the torn strap; elliptic capsules per body bone for the site's runtime hand push-out (glTF extras) |
+| Body checks | `blender/collide.py`, `blender/cloth.py`, `blender/watch.py`, `blender/colliders.py` | Arms swung out frame by frame until the hands clear the trousers; outfit weights taken from the torso and upper-arm skin underneath (never the forearm: a shirt panel that followed the hanging forearm left the waist when the arm rose); bare feet removed inside the shoes; each upper arm cut square inside its sleeve and extended as a clean tube; the V tears of the sleeve hems sewn shut; a modelled watch in place of the torn strap; elliptic capsules per body bone for the site's runtime hand push-out (glTF extras) |
 | Export | `optimize.mjs` | webp textures at 2048 px, meshopt, sparse morph targets |
 
 Tools: a Python with `bpy` (`pip install bpy`, Blender 5.x), one with `torch`
@@ -38,3 +38,8 @@ included), hand shape clips `HAND_*` = `HAND_SHAPES` in
 
 The generated inputs (`work/hunyuan_hand.glb`, 35 MB, and its Gemini sheet) are
 kept out of git like the rest of `work/`.
+
+To compare hand shapes without one build per try, `DAM_SHAPE_VARIANTS` takes
+extra shapes as JSON (`{"chinB": {"curl": {...}, "gather": 0.9, "thumb": [...]}}`)
+and adds them as `HAND_*` clips. The site ignores clips it does not know, so a
+model built this way is only for comparison, never for `public/models/`.

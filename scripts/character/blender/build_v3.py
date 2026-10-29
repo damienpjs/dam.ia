@@ -7,7 +7,7 @@ python build_v3.py -- founder_v3.blend head_color.png out.glb
 import bpy, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fingers import find_chains, add_finger_bones, relax_hands, ease_wrists, heat_weight_hands, subdivide, add_twist_bones, twist_to_twist_bone, add_hand_shape_clips, centreline_chains
-from cloth import fit_outfit_weights
+from cloth import close_sleeve_notches, fit_outfit_weights, hide_feet, seal_sleeves
 from collide import clear_hands
 from watch import remove_strap, build_watch
 from colliders import fit_colliders
@@ -37,6 +37,9 @@ add_finger_bones(rig, chains)
 heat_weight_hands(skin, rig)
 add_twist_bones(rig, skin)
 fit_outfit_weights(outfit, skin)
+hide_feet(skin)
+seal_sleeves(skin, rig)
+close_sleeve_notches(outfit, rig)
 watch = build_watch(skin, rig, remove_strap(outfit, rig))
 fit_colliders(rig, [skin, outfit, head])
 rig.data.pose_position = "POSE"

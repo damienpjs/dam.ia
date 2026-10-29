@@ -13,7 +13,7 @@ The base mesh has five separate fingers, spread, palms towards the camera
 - the clips get a relaxed hand: fingers gathered and slightly curled,
   instead of the spread T-pose hand.
 """
-import bpy, math
+import bpy, json, math, os
 import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
@@ -238,11 +238,17 @@ HAND_SHAPES = {
                  gather=0.65, thumb=(8, 18, 0, 8, 10)),
     "fist": dict(curl={"Index": (55, 78, 45), "Middle": (68, 90, 55), "Ring": (72, 92, 55), "Pinky": (76, 92, 50)},
                  gather=0.9, thumb=(30, 34, 8, 22, 28)),
-    "chin": dict(curl={"Index": (30, 55, 30), "Middle": (62, 88, 50), "Ring": (70, 92, 50), "Pinky": (76, 92, 46)},
-                 gather=0.85, thumb=(-8, 22, 0, 6, 12)),
+    # loose fist the chin rests on: the index hooks under the jaw, the thumb runs up along it
+    "chin": dict(curl={"Index": (48, 52, 28), "Middle": (68, 84, 50), "Ring": (74, 90, 50), "Pinky": (78, 90, 44)},
+                 gather=0.9, thumb=(-8, 22, 0, 6, 12)),
     "hip": dict(curl={"Index": (10, 8, 4), "Middle": (10, 8, 4), "Ring": (12, 10, 5), "Pinky": (14, 12, 6)},
                 gather=0.95, thumb=(-30, -18, 0, 6, 6)),
 }
+
+
+# lab builds only: extra shapes to compare, as JSON {"name": {curl, gather, thumb}}
+if os.environ.get("DAM_SHAPE_VARIANTS"):
+    HAND_SHAPES.update(json.loads(os.environ["DAM_SHAPE_VARIANTS"]))
 
 
 def thumb_rotation(rig, side, spread, palmar):

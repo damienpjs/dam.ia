@@ -1,9 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react"
-import { Send, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Tooltip } from "@/components/ui/tooltip"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { MessageBubble } from "@/components/features/message-bubble"
 import type { IMessage } from "@/components/features/message-bubble"
@@ -14,7 +12,6 @@ import { cn } from "@/lib/utils"
 
 import { SESSION_STORAGE_KEY, SUGGESTIONS_STORAGE_KEY, WELCOME_MESSAGE_ID, createWelcomeMessage } from "@/constants/chat"
 import { SUGGESTION_IDS, type TSuggestionId } from "@/constants/dictionary"
-import { LLM_STATUS_REFRESH_EVENT } from "@/constants/llm"
 
 function loadUsedSuggestions(): Set<string> {
   if (typeof window === "undefined") return new Set()
@@ -35,11 +32,11 @@ function generateId(): string {
 
 function SessionLoader({ label }: { label: string }) {
   return (
-    <div data-testid="session-loader" className="flex h-full items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-coral/20 border-t-coral" />
-        <p className="text-sm text-muted-foreground">{label}</p>
-      </div>
+    <div data-testid="session-loader" role="status" className="flex h-full items-center justify-center">
+      <p className="text-[14px] text-body">
+        {label}
+        <span aria-hidden="true" className="cursor-block" />
+      </p>
     </div>
   )
 }
@@ -162,6 +159,8 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
 
       setMessages((prev) => [...prev, userMessage])
       setInput("")
+      // Le champ a pu grandir sur plusieurs lignes : il reprend sa hauteur d'une ligne.
+      if (textareaRef.current) textareaRef.current.style.height = ""
 
       // Fermer le clavier virtuel sur mobile
       textareaRef.current?.blur()
@@ -214,8 +213,6 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
-          // Le quota d'un provider a pu changer pendant la réponse : on rafraîchit les pastilles.
-          window.dispatchEvent(new Event(LLM_STATUS_REFRESH_EVENT))
           if (!window.matchMedia("(pointer: coarse)").matches) {
             textareaRef.current?.focus()
           }
@@ -227,7 +224,6 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
           setIsStreaming(false)
           setStreamingMessageId(null)
           abortControllerRef.current = null
-          window.dispatchEvent(new Event(LLM_STATUS_REFRESH_EVENT))
           if (!window.matchMedia("(pointer: coarse)").matches) {
             textareaRef.current?.focus()
           }
@@ -307,33 +303,37 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
   const displayedMessages = useMemo(() => messages.map((message) => (message.id === WELCOME_MESSAGE_ID ? { ...message, content: t.chat.welcome } : message)), [messages, t])
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden overflow-x-hidden font-mono">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Zone de messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-4 py-6">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-5 py-6 lg:pr-12 lg:pl-16">
         {isLoadingSession ? (
           <SessionLoader label={t.chat.loadingSession} />
         ) : (
-          <div className={cn("mx-auto flex max-w-3xl flex-col gap-4 transition-opacity duration-300", messagesVisible ? "opacity-100" : "opacity-0")}>
+          <div className={cn("flex flex-col gap-8 transition-opacity duration-300", messagesVisible ? "opacity-100" : "opacity-0")}>
             {displayedMessages.map((message) => (
               <MessageBubble key={message.id} message={message} isStreaming={message.id === streamingMessageId} onReuse={message.role === "user" ? handleReuseMessage : undefined} />
             ))}
 
-            {/* Suggestions de questions */}
+            {/* Suggestions de questions : un dossier, une ligne de terminal par question */}
             {remainingSuggestions.length > 0 && !isStreaming && (
-              <div data-testid="suggestions" className="flex flex-col gap-2 pt-2">
-                <p className="text-xs text-muted-foreground">{t.chat.suggestionsLabel}</p>
-                <div className="flex flex-wrap gap-2">
+              <div data-testid="suggestions">
+                <p className="mb-1.5 text-[13px]">
+                  <span className="font-bold tracking-[0.1em] text-ink uppercase">{t.chat.suggestionsDir}</span>
+                  {" "}
+                  <span className="text-coral-ink">{t.common.itemCount(remainingSuggestions.length)}</span>
+                </p>
+                <ul className="border-b border-rule">
                   {remainingSuggestions.map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => handleSuggestionClick(id, t.chat.suggestions[id])}
-                      className="cursor-pointer rounded-full border border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm transition-colors hover:border-coral/50 hover:bg-coral/10 hover:text-foreground"
-                    >
-                      {t.chat.suggestions[id]}
-                    </button>
+                    <li key={id} className="border-t border-rule">
+                      <button type="button" onClick={() => handleSuggestionClick(id, t.chat.suggestions[id])} className="w-full cursor-pointer py-3 text-left text-[14px] text-ink transition-colors hover:text-teal-ink">
+                        <span aria-hidden="true" className="mr-[1ch] text-teal-ink">
+                          &gt;
+                        </span>
+                        {t.chat.suggestions[id]}
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
@@ -343,59 +343,47 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
       </div>
 
       {/* Barre de saisie */}
-      <div className="border-t border-border bg-background/60 p-2 sm:p-4 backdrop-blur-md">
+      <div className="border-t border-rule bg-paper px-3 pt-3 pb-7 lg:pt-5 lg:pr-12 lg:pb-6 lg:pl-16">
         <form
           onSubmit={(e) => {
             e.preventDefault()
             void sendMessage()
           }}
-          className="mx-auto flex max-w-3xl items-end gap-2"
+          className="flex items-end gap-2 lg:gap-3"
         >
           {messages.length > 1 && (
-            <Tooltip content={t.chat.reset}>
-              <Button
-                type="button"
-                size="icon-lg"
-                variant="ghost"
-                onClick={() => setIsResetDialogOpen(true)}
-                disabled={isLoadingSession}
-                aria-label={t.chat.reset}
-                className="group/reset shrink-0 rounded-xl ring-1 ring-white/20 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-coral/10 hover:text-coral"
-              >
-                <RotateCcw className="size-4 transition-transform duration-500 ease-out group-hover/reset:-rotate-180" />
-              </Button>
-            </Tooltip>
-          )}
-          <textarea
-            ref={textareaRef}
-            value={input}
-            name="message"
-            onChange={handleChange}
-            onInput={handleResize}
-            onKeyDown={handleKeyDown}
-            enterKeyHint="send"
-            placeholder={t.chat.inputPlaceholder}
-            rows={1}
-            disabled={isLoadingSession}
-            aria-label={t.chat.inputAria}
-            className={cn(
-              "min-w-0 flex-1 resize-none rounded-xl ring-1 ring-white/20 bg-input/30 px-3 sm:px-4 py-2",
-              "text-sm text-foreground placeholder:text-muted-foreground",
-              "max-h-32 min-h-9 overflow-y-hidden leading-relaxed backdrop-blur-sm",
-              "focus:outline-none focus:ring-2 focus:ring-ring/50",
-            )}
-          />
-          <Tooltip content={t.chat.send}>
-            <Button
-              type="submit"
-              size="icon-lg"
-              disabled={!input.trim() || isStreaming || isLoadingSession}
-              aria-label={t.chat.sendAria}
-              className="shrink-0 bg-gradient-to-br from-coral-deep to-coral text-white shadow-md shadow-coral/20 hover:from-coral-deeper hover:to-coral-deep disabled:opacity-40"
-            >
-              <Send className="size-4" />
+            <Button type="button" variant="outline" onClick={() => setIsResetDialogOpen(true)} disabled={isLoadingSession} aria-label={t.chat.reset} className="h-12 min-w-12 px-0 lg:px-4">
+              <span aria-hidden="true" className="text-[18px] lg:hidden">
+                ↺
+              </span>
+              <span className="hidden lg:inline">{t.chat.resetLabel}</span>
             </Button>
-          </Tooltip>
+          )}
+          <label className="flex min-h-12 min-w-0 flex-1 items-start gap-[1ch] border border-control px-3 py-3 transition-colors focus-within:border-teal-ink focus-within:outline focus-within:outline-1 focus-within:outline-teal-ink lg:px-4">
+            <span aria-hidden="true" className="leading-6 text-teal-ink">
+              &gt;
+            </span>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              name="message"
+              onChange={handleChange}
+              onInput={handleResize}
+              onKeyDown={handleKeyDown}
+              enterKeyHint="send"
+              placeholder={isStreaming ? t.chat.thinkingAria : t.chat.inputPlaceholder}
+              rows={1}
+              disabled={isLoadingSession}
+              aria-label={t.chat.inputAria}
+              className="max-h-32 min-h-6 min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent text-[16px] leading-6 text-ink outline-none placeholder:text-body lg:text-[15px]"
+            />
+          </label>
+          <Button type="submit" disabled={!input.trim() || isStreaming || isLoadingSession} aria-label={t.chat.sendAria} className="h-12 min-w-12 px-0 lg:px-5">
+            <span aria-hidden="true" className="text-[18px] lg:hidden">
+              ↲
+            </span>
+            <span className="hidden lg:inline">{t.chat.send}</span>
+          </Button>
         </form>
       </div>
 

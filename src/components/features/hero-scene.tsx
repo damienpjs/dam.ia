@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { Canvas, useFrame } from "@react-three/fiber"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, ContactShadows, Grid, Html, useAnimations, useGLTF } from "@react-three/drei"
 import { EffectComposer, Glitch, ToneMapping } from "@react-three/postprocessing"
 import { GlitchMode, ToneMappingMode } from "postprocessing"
@@ -26,18 +26,24 @@ import {
   MAX_DISTANCE,
   MIN_POLAR,
   MAX_POLAR,
-  SCENE_BG,
+  FOG_COLOR,
   FOG_NEAR,
   FOG_FAR,
   GRID_CELL_COLOR,
   GRID_SECTION_COLOR,
+  HEMI_SKY,
+  HEMI_GROUND,
   KEY_LIGHT,
-  KEY_LIGHT_WARM,
-  KEY_LIGHT_COOL,
-  KEY_LIGHT_OSC_PERIOD_S,
   RIM_LIGHT,
   FILL_LIGHT,
-  CRT_GLOW,
+  SHADOW_COLOR,
+  SHADOW_OPACITY,
+  VIEW_OFFSET_WIDE,
+  VIEW_OFFSET_NARROW,
+  VIEW_OFFSET_EASE,
+  WIDE_LAYOUT_MIN_WIDTH,
+  type IViewOffset,
+  type TSceneLayout,
   GLITCH_DELAY_MIN,
   GLITCH_DELAY_MAX,
   GLITCH_DURATION_MIN,
@@ -51,6 +57,8 @@ import {
   BUBBLE_HEIGHT,
 } from "@/constants/scene"
 import { useLocale } from "@/lib/locale-context"
+import { homeEase, isAwayFromHome, isHomeReached, type TVec3 } from "@/lib/scene/camera-home"
+import { SceneResetButton } from "@/components/features/scene-reset-button"
 import { cn } from "@/lib/utils"
 
 type TWanderMode = "idle" | "walk"
@@ -205,13 +213,14 @@ function Character({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; b
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none relative w-max max-w-[15rem] origin-bottom rounded-2xl rounded-bl-sm border border-border bg-card/95 px-3.5 py-2 text-center text-[0.8rem] leading-snug font-medium tracking-wide text-card-foreground shadow-xl backdrop-blur-sm transition-all duration-300 ease-out select-none",
-            bubble.visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0",
+            "pointer-events-none flex w-max max-w-[15rem] origin-bottom flex-col items-center transition-all ease-out select-none",
+            bubble.visible ? "translate-y-0 opacity-100 duration-200" : "translate-y-1 opacity-0 duration-150",
           )}
         >
-          {bubble.text}
-          {/* Queue de la bulle, orientée vers le personnage. */}
-          <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] border-r border-b border-border bg-card/95" />
+          <div className="border border-teal-ink bg-paper px-3 py-2 font-mono text-[13px] leading-[1.45] text-ink">{bubble.text}</div>
+          {/* Pointe : un filet et un carré, orientés vers la tête du personnage. */}
+          <span className="h-5 w-px bg-teal-ink" />
+          <span className="size-[5px] bg-teal-ink" />
         </div>
       </Html>
     </group>
@@ -251,51 +260,130 @@ function AutoClearFix() {
   return null
 }
 
-/** Teintes de la key light, pré-instanciées une fois (évite le coût par frame). */
-const KEY_LIGHT_WARM_COLOR = new THREE.Color(KEY_LIGHT_WARM)
-const KEY_LIGHT_COOL_COLOR = new THREE.Color(KEY_LIGHT_COOL)
-
 /**
- * Key light dont la couleur oscille en boucle entre une teinte chaude et froide,
- * en écho au dégradé animé du prénom dans le titre. Le fondu suit une sinusoïde
- * (donc sans à-coups au changement de sens), calée sur `KEY_LIGHT_OSC_PERIOD_S`.
- * En mouvement réduit, la lumière reste fixe sur la teinte statique `KEY_LIGHT`.
+ * Cadrage selon la mise en page : décale le personnage dans l'écran
+ * (`setViewOffset`) et ajuste la focale, sans toucher à l'orbite. Le passage
+ * de l'accueil au chat glisse en douceur ; en mouvement réduit, il est immédiat.
  */
-function KeyLight({ animated }: { animated: boolean }) {
-  const ref = useRef<THREE.DirectionalLight>(null)
+function ViewOffset({ layout, animated }: { layout: TSceneLayout; animated: boolean }) {
+  const current = useRef<IViewOffset | null>(null)
 
-  useFrame((state) => {
-    const light = ref.current
-    if (!light || !animated) return
-    // t ∈ [0, 1] : 0 = chaud, 1 = froid, va-et-vient sur la période voulue.
-    const t = (Math.sin((state.clock.elapsedTime / KEY_LIGHT_OSC_PERIOD_S) * Math.PI * 2) + 1) / 2
-    light.color.copy(KEY_LIGHT_WARM_COLOR).lerp(KEY_LIGHT_COOL_COLOR, t)
+  useFrame((state, dt) => {
+    const camera = state.camera as THREE.PerspectiveCamera
+    const { width, height } = state.size
+    const target = width >= WIDE_LAYOUT_MIN_WIDTH ? VIEW_OFFSET_WIDE[layout] : VIEW_OFFSET_NARROW
+    const c = current.current ?? { ...target }
+    const k = animated ? Math.min(1, dt * VIEW_OFFSET_EASE) : 1
+    c.x += (target.x - c.x) * k
+    c.y += (target.y - c.y) * k
+    c.zoom += (target.zoom - c.zoom) * k
+    current.current = c
+
+    camera.zoom = c.zoom
+    // setViewOffset recalcule la matrice de projection (zoom compris).
+    camera.setViewOffset(width, height, -c.x * width, -c.y * height, width, height)
   })
 
-  return <directionalLight ref={ref} position={[5, 8, 4]} intensity={1.35} color={animated ? KEY_LIGHT_WARM : KEY_LIGHT} />
+  return null
+}
+
+/** Ce dont le recadrage a besoin des OrbitControls de drei. */
+interface IOrbitLike {
+  target: THREE.Vector3
+  update: () => void
+  addEventListener: (type: "start", listener: () => void) => void
+  removeEventListener: (type: "start", listener: () => void) => void
+}
+
+const HOME_POSITION = new THREE.Vector3(...CAMERA_START)
+const HOME_TARGET = new THREE.Vector3(...CONTROLS_TARGET)
+
+interface ICameraHomeProps {
+  /** Incrémenté à chaque demande de recadrage. */
+  resetSignal: number
+  /** Prévenu quand la caméra quitte ou retrouve sa vue de départ. */
+  onMovedChange: (moved: boolean) => void
+  animated: boolean
+}
+
+/**
+ * Surveille l'orbite (rotation, zoom) et ramène la caméra à sa vue de départ
+ * sur demande : en douceur, ou d'un coup si le visiteur réduit les animations.
+ * Reprendre la main pendant le retour l'interrompt.
+ */
+function CameraHome({ resetSignal, onMovedChange, animated }: ICameraHomeProps) {
+  const controls = useThree((state) => state.controls) as unknown as IOrbitLike | null
+  const lastSignal = useRef(resetSignal)
+  const returning = useRef(false)
+  const moved = useRef(false)
+
+  useLayoutEffect(() => {
+    if (!controls) return
+    const interrupt = () => {
+      returning.current = false
+    }
+    controls.addEventListener("start", interrupt)
+    return () => controls.removeEventListener("start", interrupt)
+  }, [controls])
+
+  useFrame((state, dt) => {
+    if (!controls) return
+    const camera = state.camera
+    if (resetSignal !== lastSignal.current) {
+      lastSignal.current = resetSignal
+      returning.current = true
+    }
+    if (returning.current) {
+      const k = animated ? homeEase(dt) : 1
+      camera.position.lerp(HOME_POSITION, k)
+      controls.target.lerp(HOME_TARGET, k)
+      if (isHomeReached(camera.position.toArray() as TVec3, controls.target.toArray() as TVec3)) {
+        camera.position.copy(HOME_POSITION)
+        controls.target.copy(HOME_TARGET)
+        returning.current = false
+      }
+      controls.update()
+    }
+    const away = isAwayFromHome(camera.position.toArray() as TVec3, controls.target.toArray() as TVec3)
+    if (away !== moved.current) {
+      moved.current = away
+      onMovedChange(away)
+    }
+  })
+
+  return null
 }
 
 /** Lumières + sol + brouillard donnant l'ambiance sombre/nostalgique. */
-function SceneContent({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean; bubbleLines: string[] }) {
+interface ISceneContentProps {
+  bubblesEnabled: boolean
+  bubbleLines: string[]
+  layout: TSceneLayout
+  resetSignal: number
+  onCameraMovedChange: (moved: boolean) => void
+}
+
+function SceneContent({ bubblesEnabled, bubbleLines, layout, resetSignal, onCameraMovedChange }: ISceneContentProps) {
   const reducedMotion = usePrefersReducedMotion()
 
   return (
     <>
-      <color attach="background" args={[SCENE_BG]} />
-      <fog attach="fog" args={[SCENE_BG, FOG_NEAR, FOG_FAR]} />
+      {/* Pas de fond : le canvas est transparent, le papier du site passe dessous. */}
+      <fog attach="fog" args={[FOG_COLOR, FOG_NEAR, FOG_FAR]} />
+      <ViewOffset layout={layout} animated={!reducedMotion} />
 
-      <hemisphereLight intensity={0.55} color={CRT_GLOW} groundColor={SCENE_BG} />
-      <ambientLight intensity={0.3} color={CRT_GLOW} />
-      <KeyLight animated={!reducedMotion} />
-      <directionalLight position={[-6, 3, -4]} intensity={0.7} color={RIM_LIGHT} />
-      <pointLight position={[0, 2.2, -5]} intensity={6} distance={16} color={FILL_LIGHT} />
+      <hemisphereLight intensity={0.9} color={HEMI_SKY} groundColor={HEMI_GROUND} />
+      <ambientLight intensity={0.35} color={HEMI_SKY} />
+      <directionalLight position={[5, 8, 4]} intensity={1.35} color={KEY_LIGHT} />
+      <directionalLight position={[-6, 3, -4]} intensity={0.9} color={RIM_LIGHT} />
+      <pointLight position={[0, 2.2, -5]} intensity={3} distance={16} color={FILL_LIGHT} />
 
       <Suspense fallback={null}>
         <Character bubblesEnabled={bubblesEnabled} bubbleLines={bubbleLines} />
       </Suspense>
 
       <AutoClearFix />
-      <ContactShadows position={[0, 0.01, 0]} opacity={0.5} blur={2.6} far={6} resolution={512} color="#000000" />
+      <ContactShadows position={[0, 0.01, 0]} opacity={SHADOW_OPACITY} blur={2.6} far={6} resolution={512} color={SHADOW_COLOR} />
 
       <Grid args={[40, 40]} infiniteGrid cellSize={0.6} cellThickness={0.6} sectionSize={3} sectionThickness={1} cellColor={GRID_CELL_COLOR} sectionColor={GRID_SECTION_COLOR} fadeDistance={26} fadeStrength={5} followCamera={false} />
 
@@ -316,6 +404,7 @@ function SceneContent({ bubblesEnabled, bubbleLines }: { bubblesEnabled: boolean
       )}
 
       <OrbitControls makeDefault enablePan={false} enableDamping dampingFactor={0.08} minDistance={MIN_DISTANCE} maxDistance={MAX_DISTANCE} minPolarAngle={MIN_POLAR} maxPolarAngle={MAX_POLAR} target={CONTROLS_TARGET} />
+      <CameraHome resetSignal={resetSignal} onMovedChange={onCameraMovedChange} animated={!reducedMotion} />
     </>
   )
 }
@@ -339,30 +428,29 @@ function useIsMounted(): boolean {
 interface IHeroSceneProps {
   /** Affiche les bulles de réplique du personnage (masquées quand le chat est ouvert). */
   bubblesEnabled?: boolean
+  /** Mise en page courante de l'accueil, qui décide où se tient le personnage. */
+  layout?: TSceneLayout
 }
 
-export function HeroScene({ bubblesEnabled = true }: IHeroSceneProps = {}) {
+export function HeroScene({ bubblesEnabled = true, layout = "landing" }: IHeroSceneProps = {}) {
   const mounted = useIsMounted()
   // Les répliques sont résolues ici, HORS du <Canvas> : le réconciliateur
   // react-three-fiber ne propage pas les contextes React, on les passe donc en props.
   const { t } = useLocale()
+  const [cameraMoved, setCameraMoved] = useState(false)
+  const [resetSignal, setResetSignal] = useState(0)
 
   return (
-    <div className="fixed inset-0 -z-10" aria-hidden="true">
-      {mounted && (
-        <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true }}>
-          <SceneContent bubblesEnabled={bubblesEnabled} bubbleLines={t.scene.bubbleLines} />
-        </Canvas>
-      )}
-      {/* Vignette : assombrit les bords pour renforcer l'atmosphère nostalgique. */}
-      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(120% 120% at 50% 35%, transparent 55%, rgba(8,12,12,0.55) 100%)" }} />
-      {/* Grésillement CRT : bandes qui défilent (roll bars) + lignes de balayage. */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="crt-band" />
-        <div className="crt-band crt-band--thin" />
+    <>
+      <div className="fixed inset-0 z-0" aria-hidden="true">
+        {mounted && (
+          <Canvas dpr={[1, 2]} camera={{ position: CAMERA_START, fov: CAMERA_FOV }} gl={{ antialias: true, alpha: true, premultipliedAlpha: false }}>
+            <SceneContent bubblesEnabled={bubblesEnabled} bubbleLines={t.scene.bubbleLines} layout={layout} resetSignal={resetSignal} onCameraMovedChange={setCameraMoved} />
+          </Canvas>
+        )}
       </div>
-      <div className="crt-scanlines pointer-events-none absolute inset-0" />
-    </div>
+      <SceneResetButton visible={cameraMoved} layout={layout} label={t.scene.resetView} hint={t.scene.resetViewHint} onReset={() => setResetSignal((n) => n + 1)} />
+    </>
   )
 }
 

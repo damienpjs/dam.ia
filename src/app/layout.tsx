@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { GoogleAnalytics } from "@next/third-parties/google"
-import { Plus_Jakarta_Sans, Geist, Geist_Mono } from "next/font/google"
+import localFont from "next/font/local"
 import { DEFAULT_LOCALE } from "@/constants/i18n"
 import { LocaleProvider } from "@/lib/locale-context"
 import "./globals.css"
@@ -9,30 +9,29 @@ import "./globals.css"
 // développement local, les tests et les prévisualisations Vercel restent muets.
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+// IBM Plex Mono, la police du CV, en trois graisses. Auto-hébergée et sous-
+// ensemblée (latin, latin étendu, flèches, coche, blocs) : le sous-ensemble
+// « latin » de Google Fonts n'a pas la flèche →, omniprésente dans l'interface.
+const plexMono = localFont({
+  variable: "--font-plex-mono",
+  display: "swap",
+  src: [
+    { path: "./fonts/ibm-plex-mono-regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-bold.woff2", weight: "700", style: "normal" },
+  ],
 })
 
-const geist = Geist({
-  variable: "--font-geist",
-  subsets: ["latin"],
-})
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-})
+const TITLE = "Damien Pasulj | Lead Tech JavaScript · IA appliquée"
+const DESCRIPTION = "Lead Tech JavaScript, en transition vers l'IA appliquée. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets."
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://damienpasulj.com"),
   title: {
-    default: "Damien Pasulj | Product Builder & enthousiaste IA",
+    default: TITLE,
     template: "%s | Damien Pasulj",
   },
-  description:
-    "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+  description: DESCRIPTION,
   authors: [{ name: "Damien Pasulj", url: "https://damienpasulj.com" }],
   creator: "Damien Pasulj",
   robots: {
@@ -45,9 +44,8 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     url: "https://damienpasulj.com",
     siteName: "Damien Pasulj",
-    title: "Damien Pasulj | Product Builder & enthousiaste IA",
-    description:
-      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+    title: TITLE,
+    description: DESCRIPTION,
     images: [
       {
         url: "/photo-damien.jpg",
@@ -59,9 +57,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Damien Pasulj | Product Builder & enthousiaste IA",
-    description:
-      "Product Builder & enthousiaste IA, ancré sur un solide socle en Technical Lead JS. Discute avec mon double IA pour en savoir plus sur mon parcours et mes projets.",
+    title: TITLE,
+    description: DESCRIPTION,
     images: ["/photo-damien.jpg"],
   },
 }
@@ -71,6 +68,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#eef0ec",
 }
 
 export default function RootLayout({
@@ -81,9 +79,12 @@ export default function RootLayout({
   return (
     // `lang` reflète la langue du rendu serveur ; le LocaleProvider le réaligne
     // côté client sur la langue mémorisée par le visiteur.
-    <html lang={DEFAULT_LOCALE} className={`${plusJakartaSans.variable} ${geist.variable} ${geistMono.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex flex-col overflow-x-hidden bg-background text-foreground">
+    <html lang={DEFAULT_LOCALE} className={`${plexMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col overflow-x-hidden bg-background text-body">
         <LocaleProvider>{children}</LocaleProvider>
+        {/* Grain du papier, par-dessus tout : purement décoratif, il laisse
+            passer les clics et sort de l'arbre d'accessibilité. */}
+        <div aria-hidden="true" className="paper-grain pointer-events-none fixed inset-0 z-[60]" />
       </body>
       {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>

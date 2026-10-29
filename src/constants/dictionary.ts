@@ -7,22 +7,31 @@ import { DEFAULT_LOCALE, type TLocale } from "@/constants/i18n"
  * afin qu'ajouter une langue se résume à ajouter une entrée dans
  * {@link DICTIONARIES}. Les noms propres (technos, entreprises, écoles) ne sont
  * pas traduits.
+ *
+ * L'interface reprend la métaphore du CV : chaque bloc est un fichier (nom,
+ * taille en octets), chaque section un dossier (nom, nombre d'éléments). Les
+ * noms de fichiers et de dossiers se traduisent avec le reste.
  */
 
-/** Une étape du parcours professionnel ou de formation. */
-export interface ITimelineEntry {
-  period: string
+/** Une expérience, présentée comme un fichier `.md` de la page « à propos ». */
+export interface IExperienceFile {
+  file: string
   role: string
   org: string
-  description: string
-  stack?: string[]
-  current?: boolean
+  period: string
+  /** Points clés en liste, ou à défaut un paragraphe dans `text`. */
+  bullets?: string[]
+  text?: string
 }
 
-/** Un groupe de compétences affiché en colonne sur la page « à propos ». */
-export interface ISkillGroup {
-  label: string
-  items: string[]
+/** Un projet personnel : le nom de fichier est son adresse publique. */
+export interface IProjectFile {
+  /** Adresse affichée en en-tête, sans protocole. */
+  file: string
+  href: string
+  name: string
+  tags: string
+  text: string
 }
 
 /**
@@ -46,21 +55,33 @@ export interface IDictionary {
     navLabel: string
     /** Lien de navigation vers la page « à propos ». */
     navAbout: string
+    /** Lien de navigation vers la conversation, depuis « à propos ». */
+    navChat: string
+    /** Retour à l'accueil, depuis « à propos ». */
+    navHome: string
+    /** Taille d'un fichier, entre parenthèses : « (431 o) », « (300 Ko) ». */
+    fileSize: (bytes: number) => string
+    /** Contenu d'un dossier, entre parenthèses : « (3 éléments) ». */
+    itemCount: (count: number) => string
   }
   landing: {
-    greeting: string
-    /** Terme mis en exergue (dégradé animé) à la fin de l'accroche. */
-    greetingHighlight: string
+    /** Intitulé de poste, sous le nom. */
+    role: string
     startConversation: string
     startConversationAria: string
-    aboutLink: string
-    /** Bouton révélant les technos masquées (« voir 3 + »). */
-    showMoreTechs: (count: number) => string
+    /** Aide discrète sur la manipulation de la scène 3D (desktop). */
+    orbitHint: string
   }
   chat: {
-    /** Bulle d'accueil (markdown), jamais persistée, elle suit la langue courante. */
+    /** Message d'accueil (README.md), jamais persisté : il suit la langue courante. */
     welcome: string
-    suggestionsLabel: string
+    /** Nom du fichier d'accueil. */
+    welcomeFile: string
+    /** Dossier qui regroupe la conversation, dans l'en-tête du panneau. */
+    conversationDir: string
+    /** Nombre de messages échangés, à côté du dossier de conversation. */
+    messageCount: (count: number) => string
+    suggestionsDir: string
     suggestions: Record<TSuggestionId, string>
     /** Phrases de « réflexion » tapées lettre par lettre en attendant la réponse. */
     thinkingPhrases: string[]
@@ -68,47 +89,66 @@ export interface IDictionary {
     loadingSession: string
     inputPlaceholder: string
     inputAria: string
+    /** Libellé visible du bouton d'envoi. */
     send: string
     sendAria: string
+    /** Libellé visible du bouton de réinitialisation. */
+    resetLabel: string
     reset: string
     resetDialogTitle: string
     resetDialogDescription: string
     resetConfirm: string
     resetCancel: string
     streamError: string
-    sourcesLabel: string
+    /** Remplace l'heure dans l'en-tête d'une réponse en erreur. */
+    errorLabel: string
+    sourcesDir: string
+    copyLabel: string
+    copiedLabel: string
     copy: string
     copied: string
+    reuseLabel: string
     reuse: string
-    providerAvailable: string
-    providerUnavailable: string
-    /** Libellés d'affichage des providers LLM (seul « Démo » se traduit). */
-    providerLabels: Record<string, string>
   }
   scene: {
-    /** Répliques de la bulle BD au-dessus du personnage 3D. */
+    /** Répliques de la bulle au-dessus du personnage 3D. */
     bubbleLines: string[]
+    /** Bouton de retour à la vue de départ, visible une fois la caméra déplacée. */
+    resetView: string
+    /** Infobulle du bouton : ce qu'il fait, en une phrase. */
+    resetViewHint: string
   }
   about: {
-    eyebrow: string
-    titleLead: string
-    titleHighlight: string
-    intro: string
-    storyLabel: string
+    readme: string
+    storyFile: string
     story: string[]
-    careerLabel: string
-    timeline: ITimelineEntry[]
-    currentBadge: string
-    skillsLabel: string
-    skillGroups: ISkillGroup[]
-    beyondCodeLabel: string
-    beyondCodeIntro: string
-    interests: string[]
-    philosophyLabel: string
+    /** Nom du fichier affiché en tête de la photo, localisé comme le reste du contenu. */
+    photoFile: string
+    photoAlt: string
+    /** Indique que la photo défile dans son cadre. */
+    photoScrollHint: string
+    contactLocation: string
+    contactLanguages: string
+    experienceDir: string
+    experience: IExperienceFile[]
+    projectsDir: string
+    projects: IProjectFile[]
+    philosophyFile: string
     philosophy: string
+    todoDone: string[]
+    todoOpen: string
+    educationFile: string
+    education: string
+    offscreenDir: string
+    offscreen: string[]
     ctaQuestion: string
     ctaLink: string
   }
+}
+
+/** « 431 o » sous 1 Ko, « 300 Ko » au-delà (unité selon la langue). */
+function formatFileSize(bytes: number, byteUnit: string, kiloUnit: string): string {
+  return bytes < 1024 ? `(${bytes} ${byteUnit})` : `(${Math.round(bytes / 1024)} ${kiloUnit})`
 }
 
 const FR: IDictionary = {
@@ -116,19 +156,24 @@ const FR: IDictionary = {
     languageLabel: "Langue",
     localeNames: { fr: "Français", en: "Anglais" },
     navLabel: "Navigation",
-    navAbout: "À propos",
+    navAbout: "à-propos/",
+    navChat: "conversation/",
+    navHome: "← accueil",
+    fileSize: (bytes) => formatFileSize(bytes, "o", "Ko"),
+    itemCount: (count) => `(${count} élément${count > 1 ? "s" : ""})`,
   },
   landing: {
-    greeting: "Salut ! Moi c'est ",
-    greetingHighlight: "Damien.",
-    startConversation: "Démarrer la conversation",
+    role: "Lead Tech JavaScript · IA appliquée",
+    startConversation: "démarrer la conversation",
     startConversationAria: "Commencer la conversation",
-    aboutLink: "À propos",
-    showMoreTechs: (count) => `voir ${count} +`,
+    orbitHint: "clic-glissé : tourner · molette : zoom",
   },
   chat: {
-    welcome: "👋 **Product Builder** & **enthousiaste IA** (avec un solide socle en **Technical Lead JS**). On peut parler de mon parcours, mes projets, mes loisirs ou mes passions ;)",
-    suggestionsLabel: "Suggestions :",
+    welcome: "👋 Harness engineer, avec un vrai Lead Tech JS sous le capot. Quelques années de route au compteur, alors on peut parler de mon parcours, mes projets ou mes passions... 👀",
+    welcomeFile: "README.md",
+    conversationDir: "conversation/",
+    messageCount: (count) => `(${count} message${count > 1 ? "s" : ""})`,
+    suggestionsDir: "suggestions/",
     suggestions: {
       skills: "Quelles sont tes compétences ?",
       softSkills: "Parle-moi de tes soft skills",
@@ -145,100 +190,114 @@ const FR: IDictionary = {
       "Poignée de main secrète cognitive",
       "Égarement dans le bruit latent de l'espace vide",
       "Damien essaye de créer un lien humain",
-      "Réflexion en cours dans le phosphor",
+      "Damien relit ses notes",
     ],
     thinkingAria: "Damien réfléchit",
     loadingSession: "Chargement de la conversation…",
     inputPlaceholder: "Écris ton message…",
     inputAria: "Message à envoyer",
-    send: "Envoyer le message",
+    send: "envoyer ↲",
     sendAria: "Envoyer",
-    reset: "Réinitialiser la conversation",
+    resetLabel: "effacer",
+    reset: "Effacer la conversation",
     resetDialogTitle: "Réinitialiser la conversation ?",
     resetDialogDescription: "Tous les messages échangés seront définitivement effacés. Cette action est irréversible.",
     resetConfirm: "Réinitialiser",
     resetCancel: "Annuler",
     streamError: "Désolé, une erreur est survenue. Réessaie !",
-    sourcesLabel: "Sources",
+    errorLabel: "erreur",
+    sourcesDir: "sources/",
+    copyLabel: "copier",
+    copiedLabel: "copié ✓",
     copy: "Copier le message",
     copied: "Copié",
+    reuseLabel: "↻ renvoyer",
     reuse: "Renvoyer ce message",
-    providerAvailable: "disponible",
-    providerUnavailable: "indisponible",
-    providerLabels: { gemini: "Gemini", groq: "Groq", mock: "Démo" },
   },
   scene: {
     bubbleLines: ["Comment tu sais que je suis né dans les 90's ?", "Cette chemise ? Un choix tout à fait assumé.", "Où est-ce que je me suis encore perdu ?"],
+    resetView: "recadrer la vue",
+    resetViewHint: "Revenir à la vue de départ de la scène 3D",
   },
   about: {
-    eyebrow: "À propos",
-    titleLead: "Product Builder & ",
-    titleHighlight: "enthousiaste IA",
-    intro:
-      "Je m'appelle Damien Pasulj. Je conçois et construis des produits web, avec douze ans d'expérience en front-end et en full-stack, ancré sur un solide socle de Technical Lead JavaScript, avec en filigrane une sensibilité esthète forgée à l'école de design.",
-    storyLabel: "Le fil rouge",
+    readme:
+      "J’ai passé dix ans chez elloha, jusqu’à y mener la réécriture du produit vers React et Next.js, le tout sans coupure. Depuis 2024, chez Apizee, je suis lead technique JavaScript sur le cœur de produit. En parallèle, je contribue à la transition vers l’IA dans l’équipe : skills et guardrails dans la stack, et un workflow agentique qui prend en charge le traitement des tickets, de Jira jusqu’à la merge request.",
+    storyFile: "fil-rouge.md",
     story: [
-      "Tout a commencé à l'IDEM, une école de design où j'étudiais l'ergonomie, l'apparence et l'identité visuelle des sites. Ce qui fait qu'un site fonctionne (ou pas) d'un point de vue marketing. Passionné d'interfaces et de technologies depuis toujours, j'ai aussi un côté esthète : j'aime concevoir des choses, initialement inertes, et leur donner vie sur le web.",
-      "Mais la surface ne suffisait pas. Je voulais comprendre l'envers du décor : comment on passe d'une maquette à un site en ligne. Cette curiosité m'a conduit à mêler une année de design d'interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.",
-      "Pendant dix ans chez elloha, j'ai grandi avec le produit : des premiers sites touristiques sous CMS jusqu'à la refonte complète du cœur de l'application en React, TypeScript et Next.js, que j'ai eu la chance de mener en tant que lead. Aujourd'hui, chez Apizee, je continue sur cette voie : architecture front-end, CI/CD et accompagnement d'équipe.",
-      "En parallèle, l'IA générative est devenue un terrain de jeu et d'exploration : LLM, RAG, embeddings. Ce site en est d'ailleurs une démonstration : mon « double IA » répond à votre place pour parler de mon parcours.",
+      "Tout a commencé à l’IDEM, une école de design où j’étudiais l’ergonomie, l’apparence et l’identité visuelle des sites. Ce qui fait qu’un site fonctionne (ou pas) d’un point de vue marketing. Passionné d’interfaces et de technologies depuis toujours, j’ai aussi un côté esthète : j’aime concevoir des choses, initialement inertes, et leur donner vie sur le web.",
+      "Mais la surface ne suffisait pas. Je voulais comprendre l’envers du décor : comment on passe d’une maquette à un site en ligne. Cette curiosité m’a conduit à mêler une année de design d’interface à une année de développement : une double sensibilité UI/UX et technique qui irrigue encore tout mon travail.",
     ],
-    careerLabel: "Parcours",
-    timeline: [
+    photoFile: "birmanie-2020.jpg",
+    photoAlt: "Damien Pasulj en voyage, devant un temple",
+    photoScrollHint: "↕ défiler",
+    contactLocation: "Pyrénées-Orientales, full remote",
+    contactLanguages: "FR natif, EN courant",
+    experienceDir: "expérience/",
+    experience: [
       {
-        period: "2024 - présent",
-        role: "Lead React / TypeScript / Next.js",
+        file: "apizee.md",
+        role: "Tech Lead React / TypeScript / Next.js",
         org: "Apizee",
-        description: "Lead technique sur le cœur de produit, définition de l'architecture front-end et des bonnes pratiques, mise en place de pipelines GitLab CI/CD et encadrement de l'équipe.",
-        stack: ["React", "TypeScript", "Next.js", "GitLab CI/CD"],
-        current: true,
+        period: "2024–aujourd’hui",
+        bullets: [
+          "Pipeline agentique GitLab CI/Jira : un agent de code trie, implémente puis challenge les tickets.",
+          "Architecture front-end, conventions, revue de code, pipelines GitLab CI/CD.",
+          "Équipe de 3 développeurs, montée en compétences par le pairing et des standards écrits.",
+        ],
       },
       {
-        period: "2022 - 2024",
-        role: "Lead refonte du cœur de produit",
+        file: "elloha_lead-refonte.md",
+        role: "Lead de la refonte du produit",
         org: "elloha",
-        description: "Pilotage de la refonte complète du produit en React, TypeScript et Next.js. Migration progressive depuis l'ancienne stack ASP.NET/C# et montée en compétences de l'équipe.",
-        stack: ["React", "TypeScript", "Next.js"],
+        period: "2022–2024",
+        bullets: [
+          "Refonte complète du SaaS de réservation touristique (plus de 10 000 professionnels) d’ASP.NET/C# vers React, TypeScript et Next.js, migré progressivement, sans coupure.",
+          "Architecture, conventions et outillage définis pour l’équipe. 3 développeurs encadrés en continu, une dizaine formés sur la période.",
+        ],
       },
       {
-        period: "2017 - 2022",
-        role: "Développeur front-end",
+        file: "elloha_web-front.md",
+        role: "Développeur web puis front-end",
         org: "elloha",
-        description: "Développement et maintenance de la web application principale en ASP.NET/C#. Acquisition d'une expertise solide sur les problématiques métier du secteur touristique.",
-        stack: ["ASP.NET", "C#"],
-      },
-      {
-        period: "2014 - 2017",
-        role: "Développeur web",
-        org: "elloha",
-        description: "Création de sites web sous le CMS DotNetNuke pour des destinations touristiques majeures : collioure.com, tourismegard.com, morbihan.com, et bien d'autres.",
-        stack: ["DotNetNuke", "Front-end web"],
-      },
-      {
-        period: "2012 - 2014",
-        role: "Formation UI/UX & développement web",
-        org: "L'IDEM, École Supérieure des Métiers Créatifs et Numériques",
-        description: "Une première année dédiée au design d'interface et à l'expérience utilisateur, une seconde au développement web. La double compétence qui irrigue encore tout mon travail.",
+        period: "2014–2022",
+        text: "Application principale en ASP.NET/C#, et avant cela des sites de destinations sous DotNetNuke (collioure.com, morbihan.com).",
       },
     ],
-    currentBadge: "Actuel",
-    skillsLabel: "Compétences",
-    skillGroups: [
-      { label: "Stack principale", items: ["React", "TypeScript", "Next.js", "Node.js"] },
-      { label: "DevOps", items: ["GitLab CI/CD", "Git", "Architecture front-end"] },
-      { label: "IA & RAG", items: ["LLM (Claude, OpenAI, Gemini)", "RAG", "Embeddings", "Qdrant"] },
-      { label: "Design & identité visuelle", items: ["UI/UX", "Photoshop", "Illustrator", "InDesign", "After Effects", "Premiere Pro"] },
-      { label: "Historique", items: ["ASP.NET / C# (5+ ans)", "DotNetNuke"] },
-      { label: "Soft skills", items: ["Organisation", "Travail d'équipe", "Good vibes", "Créativité"] },
+    projectsDir: "projets/",
+    projects: [
+      {
+        file: "damienpasulj.com",
+        href: "https://damienpasulj.com",
+        name: "dam.ia",
+        tags: "IA, RAG, multi-LLM",
+        text: "En ligne : un double IA répond sur mon parcours. RAG sur Qdrant, bascule de Gemini vers Groq en plein streaming, détection de prompt injection, rate limiting. 10 800 lignes de TypeScript, 95 % de couverture exigée en CI.",
+      },
+      {
+        file: "hodl-on-a-minute.vercel.app",
+        href: "https://hodl-on-a-minute.vercel.app",
+        name: "hodl-on-a-minute",
+        tags: "jeu en ligne",
+        text: "Prédiction du bitcoin à 60 secondes, en ligne. Le client n’envoie qu’une direction ; un seul pari à la fois, garanti par des écritures conditionnelles DynamoDB testées contre une vraie base en Docker.",
+      },
+      {
+        file: "github.com/damienpjs/Komfy",
+        href: "https://github.com/damienpjs/Komfy",
+        name: "Komfy",
+        tags: "IA générative, mobile",
+        text: "Télécommande mobile de mon instance ComfyUI, utilisée au quotidien (React Native, Expo, 20 000 lignes de TypeScript). Chaque workflow importé génère son formulaire.",
+      },
     ],
-    beyondCodeLabel: "En dehors du code",
-    beyondCodeIntro: "Basé dans les Pyrénées-Orientales, je travaille en full remote. Français langue maternelle, anglais courant. En dehors de l'écran, je nourris ma curiosité autrement.",
-    interests: ["Voyages", "Sport", "Philosophie", "Dessin"],
-    philosophyLabel: "Philosophie",
+    philosophyFile: "philosophie.txt",
     philosophy:
-      "Quelle que soit la mission, l'objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet, et livrer quelque chose dont on est fier.",
-    ctaQuestion: "Envie d'en savoir plus sur mon parcours, mes projets ou mes passions ?",
-    ctaLink: "Discute avec mon double IA",
+      "Quelle que soit la mission, l’objectif reste le même : trouver le meilleur compromis entre élégance, rapidité et durabilité. Rester léger, ne pas accumuler de dette technique, choisir les pratiques les mieux adaptées au projet, et livrer quelque chose dont on est fier.",
+    todoDone: ["réécrire un legacy en React, sans coupure", "former une équipe front", "mettre un double IA en ligne", "orchestrer des agents dans le flux de l’équipe"],
+    todoOpen: "arrêter de poster chaque run sur Strava",
+    educationFile: "formation.txt",
+    education: "2012–2014, L’IDEM, métiers créatifs et numériques : design UI/UX, puis développement web.",
+    offscreenDir: "hors-ecran/",
+    offscreen: ["callisthenie.txt", "course-a-pied.txt", "bricolage.txt", "philosophie.txt"],
+    ctaQuestion: "Envie d’en savoir plus sur mon parcours, mes projets ou mes passions ?",
+    ctaLink: "discute avec mon double IA",
   },
 }
 
@@ -247,19 +306,24 @@ const EN: IDictionary = {
     languageLabel: "Language",
     localeNames: { fr: "French", en: "English" },
     navLabel: "Navigation",
-    navAbout: "About",
+    navAbout: "about/",
+    navChat: "chat/",
+    navHome: "← home",
+    fileSize: (bytes) => formatFileSize(bytes, "B", "KB"),
+    itemCount: (count) => `(${count} item${count > 1 ? "s" : ""})`,
   },
   landing: {
-    greeting: "Hi there! I'm ",
-    greetingHighlight: "Damien.",
-    startConversation: "Start the conversation",
+    role: "JavaScript Tech Lead · Applied AI",
+    startConversation: "start the conversation",
     startConversationAria: "Start the conversation",
-    aboutLink: "About",
-    showMoreTechs: (count) => `${count} more`,
+    orbitHint: "drag: orbit · scroll: zoom",
   },
   chat: {
-    welcome: "👋 **Product Builder** & **AI enthusiast** (with a solid **JS Tech Lead** foundation). We can talk about my background, my projects, my hobbies or my passions ;)",
-    suggestionsLabel: "Suggestions:",
+    welcome: "👋 Harness engineer, with a real JS Tech Lead under the hood. We can talk about my background, my projects, my hobbies or my passions 👀",
+    welcomeFile: "README.md",
+    conversationDir: "chat/",
+    messageCount: (count) => `(${count} message${count > 1 ? "s" : ""})`,
+    suggestionsDir: "suggestions/",
     suggestions: {
       skills: "What are your skills?",
       softSkills: "Tell me about your soft skills",
@@ -276,100 +340,114 @@ const EN: IDictionary = {
       "Secret cognitive handshake",
       "Wandering off into the latent noise of empty space",
       "Damien is attempting a human connection",
-      "Thinking, somewhere in the phosphor",
+      "Damien is rereading his notes",
     ],
     thinkingAria: "Damien is thinking",
     loadingSession: "Loading the conversation…",
     inputPlaceholder: "Write your message…",
     inputAria: "Message to send",
-    send: "Send the message",
+    send: "send ↲",
     sendAria: "Send",
-    reset: "Reset the conversation",
+    resetLabel: "clear",
+    reset: "Clear the conversation",
     resetDialogTitle: "Reset the conversation?",
     resetDialogDescription: "Every message exchanged will be permanently erased. This action cannot be undone.",
     resetConfirm: "Reset",
     resetCancel: "Cancel",
     streamError: "Sorry, something went wrong. Give it another try!",
-    sourcesLabel: "Sources",
+    errorLabel: "error",
+    sourcesDir: "sources/",
+    copyLabel: "copy",
+    copiedLabel: "copied ✓",
     copy: "Copy the message",
     copied: "Copied",
-    reuse: "Send this message again",
-    providerAvailable: "available",
-    providerUnavailable: "unavailable",
-    providerLabels: { gemini: "Gemini", groq: "Groq", mock: "Demo" },
+    reuseLabel: "↻ resend",
+    reuse: "Resend this message",
   },
   scene: {
     bubbleLines: ["How can you tell I was born in the 90s?", "This shirt? A fully deliberate choice.", "Where have I wandered off to this time?"],
+    resetView: "reset view",
+    resetViewHint: "Back to the starting view of the 3D scene",
   },
   about: {
-    eyebrow: "About",
-    titleLead: "Product Builder & ",
-    titleHighlight: "AI enthusiast",
-    intro:
-      "My name is Damien Pasulj. I design and build web products, with twelve years of front-end and full-stack experience, grounded in a solid JavaScript Tech Lead foundation, with an eye for aesthetics shaped at design school running underneath it all.",
-    storyLabel: "The through line",
+    readme:
+      "I spent ten years at elloha, up to leading the product’s rewrite to React and Next.js, all with zero downtime. Since 2024 at Apizee, I have been the JavaScript tech lead on the core product. Alongside that, I contribute to the team’s transition to AI: skills and guardrails in the stack, and an agentic workflow that handles ticket processing, from Jira all the way to the merge request.",
+    storyFile: "through-line.md",
     story: [
-      "It all started at IDEM, a design school where I studied usability, visual design and the brand identity of websites. What makes a site work (or not) from a marketing standpoint. Always passionate about interfaces and technology, I also have an aesthete's streak: I love designing things that start out inert, and bringing them to life on the web.",
-      "But the surface wasn't enough. I wanted to understand the backstage: how you get from a mockup to a live site. That curiosity led me to combine a year of interface design with a year of development: a dual UI/UX and technical sensibility that still runs through everything I build.",
-      "Over ten years at elloha, I grew alongside the product: from the first CMS-based tourism websites to the complete rewrite of the application core in React, TypeScript and Next.js, which I had the chance to lead. Today, at Apizee, I keep going down that road: front-end architecture, CI/CD and team mentoring.",
-      "Alongside that, generative AI has become a playground and a field of exploration: LLMs, RAG, embeddings. This very site is a demonstration of it: my \"AI double\" answers on my behalf to talk about my background.",
+      "It all started at IDEM, a design school where I studied usability, visual design and the brand identity of websites. What makes a site work (or not) from a marketing standpoint. Always passionate about interfaces and technology, I also have an aesthete’s streak: I love designing things that start out inert, and bringing them to life on the web.",
+      "But the surface wasn’t enough. I wanted to understand the backstage: how you get from a mockup to a live site. That curiosity led me to combine a year of interface design with a year of development: a dual UI/UX and technical sensibility that still runs through everything I build.",
     ],
-    careerLabel: "Career",
-    timeline: [
+    photoFile: "myanmar-2020.jpg",
+    photoAlt: "Damien Pasulj travelling, in front of a temple",
+    photoScrollHint: "↕ scroll",
+    contactLocation: "South of France, fully remote",
+    contactLanguages: "French (native), English (fluent)",
+    experienceDir: "experience/",
+    experience: [
       {
-        period: "2024 - present",
-        role: "React / TypeScript / Next.js Lead",
+        file: "apizee.md",
+        role: "React / TypeScript / Next.js Tech Lead",
         org: "Apizee",
-        description: "Tech lead on the product core, defining the front-end architecture and engineering standards, setting up GitLab CI/CD pipelines and mentoring the team.",
-        stack: ["React", "TypeScript", "Next.js", "GitLab CI/CD"],
-        current: true,
+        period: "2024–present",
+        bullets: [
+          "Agentic GitLab CI/Jira pipeline: a coding agent triages, implements, then challenges tickets.",
+          "Front-end architecture, conventions, code review, GitLab CI/CD pipelines.",
+          "Team of 3 developers, grown through pairing and written standards.",
+        ],
       },
       {
-        period: "2022 - 2024",
-        role: "Lead on the product core rewrite",
+        file: "elloha_lead-rewrite.md",
+        role: "Core product rewrite lead",
         org: "elloha",
-        description: "Drove the complete rewrite of the product in React, TypeScript and Next.js. Gradual migration away from the legacy ASP.NET/C# stack, and upskilling of the team.",
-        stack: ["React", "TypeScript", "Next.js"],
+        period: "2022–2024",
+        bullets: [
+          "Complete rewrite of the travel booking SaaS (10,000+ tourism professionals) from ASP.NET/C# to React, TypeScript and Next.js, migrated incrementally with zero downtime.",
+          "Defined the architecture, conventions and tooling. Led 3 developers at any given time, onboarded around ten over the period.",
+        ],
       },
       {
-        period: "2017 - 2022",
-        role: "Front-end developer",
+        file: "elloha_web-front.md",
+        role: "Web then front-end developer",
         org: "elloha",
-        description: "Built and maintained the main web application in ASP.NET/C#. Built up deep expertise in the business domain of the tourism industry.",
-        stack: ["ASP.NET", "C#"],
-      },
-      {
-        period: "2014 - 2017",
-        role: "Web developer",
-        org: "elloha",
-        description: "Built websites on the DotNetNuke CMS for major tourism destinations: collioure.com, tourismegard.com, morbihan.com, and many more.",
-        stack: ["DotNetNuke", "Front-end web"],
-      },
-      {
-        period: "2012 - 2014",
-        role: "UI/UX & web development training",
-        org: "L'IDEM, École Supérieure des Métiers Créatifs et Numériques",
-        description: "A first year devoted to interface design and user experience, a second one to web development. The dual skill set that still runs through all of my work.",
+        period: "2014–2022",
+        text: "Main application in ASP.NET/C#; before that, destination websites on DotNetNuke (collioure.com, morbihan.com).",
       },
     ],
-    currentBadge: "Current",
-    skillsLabel: "Skills",
-    skillGroups: [
-      { label: "Core stack", items: ["React", "TypeScript", "Next.js", "Node.js"] },
-      { label: "DevOps", items: ["GitLab CI/CD", "Git", "Front-end architecture"] },
-      { label: "AI & RAG", items: ["LLM (Claude, OpenAI, Gemini)", "RAG", "Embeddings", "Qdrant"] },
-      { label: "Design & visual identity", items: ["UI/UX", "Photoshop", "Illustrator", "InDesign", "After Effects", "Premiere Pro"] },
-      { label: "Legacy", items: ["ASP.NET / C# (5+ years)", "DotNetNuke"] },
-      { label: "Soft skills", items: ["Organisation", "Teamwork", "Good vibes", "Creativity"] },
+    projectsDir: "projects/",
+    projects: [
+      {
+        file: "damienpasulj.com",
+        href: "https://damienpasulj.com",
+        name: "dam.ia",
+        tags: "AI, RAG, multi-LLM",
+        text: "Live: an AI double answers questions about my career. RAG on Qdrant, mid-stream failover from Gemini to Groq, prompt injection detection, rate limiting. 10,800 lines of TypeScript, 95% coverage enforced in CI.",
+      },
+      {
+        file: "hodl-on-a-minute.vercel.app",
+        href: "https://hodl-on-a-minute.vercel.app",
+        name: "hodl-on-a-minute",
+        tags: "web game",
+        text: "Live 60-second bitcoin prediction game. The client only sends a direction; one bet at a time, enforced by DynamoDB conditional writes tested against a real database in Docker.",
+      },
+      {
+        file: "github.com/damienpjs/Komfy",
+        href: "https://github.com/damienpjs/Komfy",
+        name: "Komfy",
+        tags: "generative AI, mobile",
+        text: "Mobile remote for my own ComfyUI instance, used daily (React Native, Expo, 20,000 lines of TypeScript). Each imported workflow generates its own form.",
+      },
     ],
-    beyondCodeLabel: "Beyond the code",
-    beyondCodeIntro: "Based in the Pyrénées-Orientales, I work fully remote. Native French speaker, fluent in English. Away from the screen, I feed my curiosity in other ways.",
-    interests: ["Travel", "Sport", "Philosophy", "Drawing"],
-    philosophyLabel: "Philosophy",
+    philosophyFile: "philosophy.txt",
     philosophy:
-      "Whatever the assignment, the goal stays the same: find the best trade-off between elegance, speed and durability. Stay lightweight, avoid piling up technical debt, pick the practices that fit the project best, and ship something you're proud of.",
+      "Whatever the assignment, the goal stays the same: find the best trade-off between elegance, speed and durability. Stay lightweight, avoid piling up technical debt, pick the practices that fit the project best, and ship something you’re proud of.",
+    todoDone: ["move legacy to React, zero downtime", "train a front-end team", "ship an AI double", "orchestrate agents in the team’s workflow"],
+    todoOpen: "stop posting every run on Strava",
+    educationFile: "education.txt",
+    education: "2012–2014, L’IDEM, France: UI/UX design, then web development.",
+    offscreenDir: "off-screen/",
+    offscreen: ["calisthenics.txt", "running.txt", "diy.txt", "philosophy.txt"],
     ctaQuestion: "Want to know more about my background, my projects or my passions?",
-    ctaLink: "Chat with my AI double",
+    ctaLink: "chat with my AI double",
   },
 }
 

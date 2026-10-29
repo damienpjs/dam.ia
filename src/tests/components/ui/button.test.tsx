@@ -12,37 +12,37 @@ describe("Button", () => {
   it("applique la variante 'default' par défaut", () => {
     render(<Button>Default</Button>)
     const btn = screen.getByRole("button")
-    expect(btn).toHaveClass("bg-primary")
+    expect(btn).toHaveClass("bg-teal")
   })
 
   it("applique la variante 'outline'", () => {
     render(<Button variant="outline">Outline</Button>)
     const btn = screen.getByRole("button")
-    expect(btn).toHaveClass("border-border")
+    expect(btn).toHaveClass("border-control")
   })
 
   it("applique la variante 'destructive'", () => {
     render(<Button variant="destructive">Supprimer</Button>)
     const btn = screen.getByRole("button")
-    expect(btn).toHaveClass("bg-destructive/10")
+    expect(btn).toHaveClass("bg-coral")
   })
 
   it("applique la variante 'ghost'", () => {
     render(<Button variant="ghost">Ghost</Button>)
     const btn = screen.getByRole("button")
-    expect(btn).toHaveClass("hover:bg-muted")
+    expect(btn).toHaveClass("hover:text-ink")
   })
 
   it("applique la taille 'lg'", () => {
     render(<Button size="lg">Large</Button>)
     const btn = screen.getByRole("button")
-    expect(btn).toHaveClass("h-9")
+    expect(btn).toHaveClass("h-12")
   })
 
   it("applique la taille 'sm'", () => {
     render(<Button size="sm">Small</Button>)
     const btn = screen.getByRole("button")
-    expect(btn).toHaveClass("h-7")
+    expect(btn).toHaveClass("h-9")
   })
 
   it("est désactivé quand la prop disabled est présente", () => {

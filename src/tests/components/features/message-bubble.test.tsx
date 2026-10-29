@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { render, screen, fireEvent, act } from "@testing-library/react"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
+import { WELCOME_MESSAGE_ID } from "@/constants/chat"
+import { ASSISTANT_NAME } from "@/constants/profile"
+import { DICTIONARIES } from "@/constants/dictionary"
 
 const trackEvent = vi.fn()
 
@@ -8,6 +11,7 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }))
 
+const { chat } = DICTIONARIES.fr
 
 const userMessage: IMessage = {
   id: "1",
@@ -20,7 +24,7 @@ const assistantMessage: IMessage = {
   id: "2",
   role: "assistant",
   content: "Salut ! Je vais bien, merci.",
-  createdAt: new Date("2024-01-01T10:00:01"),
+  createdAt: new Date("2024-01-01T10:07:00"),
 }
 
 describe("MessageBubble", () => {
@@ -34,61 +38,35 @@ describe("MessageBubble", () => {
     expect(screen.getByText("Salut ! Je vais bien, merci.")).toBeInTheDocument()
   })
 
-  it("aligne le message utilisateur à droite (flex-row-reverse)", () => {
-    const { container } = render(<MessageBubble message={userMessage} />)
-    const wrapper = container.querySelector("[data-testid='message-bubble']")
-    expect(wrapper).toHaveClass("flex-row-reverse")
-  })
-
-  it("aligne le message assistant à gauche (flex-row)", () => {
-    const { container } = render(<MessageBubble message={assistantMessage} />)
-    const wrapper = container.querySelector("[data-testid='message-bubble']")
-    expect(wrapper).toHaveClass("flex-row")
-  })
-
-  it("applique le style bulle semi-transparent pour les messages utilisateur", () => {
+  it("préfixe la question du visiteur d'un chevron, comme une ligne de terminal", () => {
     render(<MessageBubble message={userMessage} />)
-    const bubble = screen.getByText("Bonjour, comment ça va ?")
-    expect(bubble).toHaveClass("text-coral")
+    const bubble = screen.getByTestId("message-bubble")
+    expect(bubble).toHaveAttribute("data-role", "user")
+    expect(bubble.textContent?.startsWith(">")).toBe(true)
   })
 
-  it("applique le style carte pour les messages assistant", () => {
-    const { container } = render(<MessageBubble message={assistantMessage} />)
-    const bubble = container.querySelector(".bg-card")
-    expect(bubble).toBeInTheDocument()
-    expect(bubble).toHaveTextContent("Salut ! Je vais bien, merci.")
+  it("signe la réponse du nom du double IA et de son heure", () => {
+    render(<MessageBubble message={assistantMessage} />)
+    expect(screen.getByTestId("message-bubble")).toHaveAttribute("data-role", "assistant")
+    expect(screen.getByText(ASSISTANT_NAME)).toBeInTheDocument()
+    expect(screen.getByText("10:07")).toBeInTheDocument()
   })
 
-  it("rend l'avatar emoji pour les messages utilisateur", () => {
-    const { container } = render(<MessageBubble message={userMessage} />)
-    const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveTextContent("🫵")
+  it("accepte une date sérialisée (session restaurée)", () => {
+    render(<MessageBubble message={{ ...assistantMessage, createdAt: "2024-01-01T10:07:00" as unknown as Date }} />)
+    expect(screen.getByText("10:07")).toBeInTheDocument()
   })
 
-  it("rend l'image d'avatar pour les messages assistant", () => {
-    const { container } = render(<MessageBubble message={assistantMessage} />)
-    const avatarImg = container.querySelector("[aria-hidden='true'] img")
-    expect(avatarImg).toBeInTheDocument()
-    expect(avatarImg).toHaveAttribute("src")
-  })
-
-  it("applique le gradient corail sur l'avatar assistant", () => {
-    const { container } = render(<MessageBubble message={assistantMessage} />)
-    const avatar = container.querySelector("[aria-hidden='true']")
-    expect(avatar).toHaveClass("from-coral-deep")
+  it("rend le message d'accueil comme le README du CV", () => {
+    render(<MessageBubble message={{ id: WELCOME_MESSAGE_ID, role: "assistant", content: chat.welcome, createdAt: new Date() }} />)
+    expect(screen.getByText(chat.welcomeFile)).toBeInTheDocument()
+    expect(screen.getByTestId("readme-content")).toHaveTextContent(chat.welcome)
+    expect(screen.queryByText(ASSISTANT_NAME)).not.toBeInTheDocument()
   })
 
   it("affiche la phrase de réflexion quand le message assistant est vide et en streaming", () => {
-    const emptyMessage: IMessage = { id: "3", role: "assistant", content: "", createdAt: new Date() }
-    render(<MessageBubble message={emptyMessage} isStreaming />)
+    render(<MessageBubble message={{ ...assistantMessage, content: "" }} isStreaming />)
     expect(screen.getByTestId("thinking-phrase")).toBeInTheDocument()
-  })
-
-  it("donne à la phrase de réflexion la même largeur que la largeur max des messages texte (75%)", () => {
-    const emptyMessage: IMessage = { id: "3", role: "assistant", content: "", createdAt: new Date() }
-    render(<MessageBubble message={emptyMessage} isStreaming />)
-    const thinkingWrapper = screen.getByTestId("thinking-phrase").parentElement?.parentElement
-    expect(thinkingWrapper).toHaveClass("w-[75%]")
   })
 
   it("n'affiche pas la phrase de réflexion pour un message assistant avec du contenu en streaming", () => {
@@ -96,9 +74,10 @@ describe("MessageBubble", () => {
     expect(screen.queryByTestId("thinking-phrase")).not.toBeInTheDocument()
   })
 
-  it("affiche le curseur clignotant pendant le streaming avec du contenu", () => {
+  it("affiche le curseur bloc pendant le streaming avec du contenu, en fin de dernière ligne", () => {
     render(<MessageBubble message={assistantMessage} isStreaming />)
-    expect(screen.getByTestId("streaming-cursor")).toBeInTheDocument()
+    expect(screen.getByTestId("streaming-cursor")).toHaveClass("cursor-block")
+    expect(screen.getByTestId("markdown-content").parentElement?.className).toContain(":inline")
   })
 
   it("n'affiche pas le curseur quand le streaming est terminé", () => {
@@ -107,81 +86,46 @@ describe("MessageBubble", () => {
   })
 
   it("n'affiche pas la phrase de réflexion pour un message utilisateur vide en streaming", () => {
-    const emptyUserMsg: IMessage = { id: "4", role: "user", content: "", createdAt: new Date() }
-    render(<MessageBubble message={emptyUserMsg} isStreaming />)
+    render(<MessageBubble message={{ ...userMessage, content: "" }} isStreaming />)
     expect(screen.queryByTestId("thinking-phrase")).not.toBeInTheDocument()
   })
 
-  it("affiche les sources RAG quand elles sont présentes", () => {
-    const messageWithSources: IMessage = {
-      id: "5",
-      role: "assistant",
-      content: "Voici mes compétences.",
-      createdAt: new Date(),
+  describe("sources", () => {
+    const withSources: IMessage = {
+      ...assistantMessage,
       sources: [
-        { label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" },
+        { label: "cv.pdf", source: "cv", url: "/cv-damien-pasulj.pdf" },
         { label: "LinkedIn", source: "linkedin", url: "https://www.linkedin.com/in/music-all/" },
       ],
     }
-    render(<MessageBubble message={messageWithSources} />)
-    expect(screen.getByTestId("message-sources")).toBeInTheDocument()
-    expect(screen.getByText("CV (PDF)")).toBeInTheDocument()
-    expect(screen.getByText("LinkedIn")).toBeInTheDocument()
 
-    // Sources avec url sont des liens cliquables
-    const cvLink = screen.getByText("CV (PDF)").closest("a")
-    expect(cvLink).toHaveAttribute("href", "/cv-damien-pasulj.pdf")
-    const linkedinLink = screen.getByText("LinkedIn").closest("a")
-    expect(linkedinLink).toHaveAttribute("href", "https://www.linkedin.com/in/music-all/")
-  })
+    it("liste les sources comme des noms de fichiers cliquables", () => {
+      render(<MessageBubble message={withSources} />)
+      expect(screen.getByTestId("message-sources")).toHaveTextContent(chat.sourcesDir)
+      expect(screen.getByRole("link", { name: "cv.pdf" })).toHaveAttribute("href", "/cv-damien-pasulj.pdf")
+      expect(screen.getByRole("link", { name: "LinkedIn" })).toHaveClass("file-name")
+    })
 
-  it("n'affiche pas les sources pendant le streaming", () => {
-    const messageWithSources: IMessage = {
-      id: "6",
-      role: "assistant",
-      content: "En cours...",
-      createdAt: new Date(),
-      sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }],
-    }
-    render(<MessageBubble message={messageWithSources} isStreaming />)
-    expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
-  })
+    it("n'affiche pas les sources pendant le streaming", () => {
+      render(<MessageBubble message={withSources} isStreaming />)
+      expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+    })
 
-  it("n'affiche pas les sources pour les messages utilisateur", () => {
-    const userWithSources: IMessage = {
-      id: "7",
-      role: "user",
-      content: "Question",
-      createdAt: new Date(),
-      sources: [{ label: "CV (PDF)", source: "cv", url: "/cv-damien-pasulj.pdf" }],
-    }
-    render(<MessageBubble message={userWithSources} />)
-    expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
-  })
+    it("n'affiche pas les sources pour les messages utilisateur", () => {
+      render(<MessageBubble message={{ ...userMessage, sources: withSources.sources }} />)
+      expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+    })
 
-  it("n'affiche pas les sources si le tableau est vide", () => {
-    const messageNoSources: IMessage = {
-      id: "8",
-      role: "assistant",
-      content: "Sans sources.",
-      createdAt: new Date(),
-      sources: [],
-    }
-    render(<MessageBubble message={messageNoSources} />)
-    expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
-  })
+    it("n'affiche pas les sources si le tableau est vide", () => {
+      render(<MessageBubble message={{ ...assistantMessage, sources: [] }} />)
+      expect(screen.queryByTestId("message-sources")).not.toBeInTheDocument()
+    })
 
-  it("affiche les sources sans url comme des spans non-cliquables", () => {
-    const messageWithPlainSource: IMessage = {
-      id: "9b",
-      role: "assistant",
-      content: "Contenu sans lien.",
-      createdAt: new Date(),
-      sources: [{ label: "Source interne", source: "interne" }],
-    }
-    render(<MessageBubble message={messageWithPlainSource} />)
-    const el = screen.getByText("Source interne")
-    expect(el.tagName).toBe("SPAN")
+    it("affiche les sources sans url comme du texte non cliquable", () => {
+      render(<MessageBubble message={{ ...assistantMessage, sources: [{ label: "profil.md", source: "profil" }] }} />)
+      expect(screen.getByText("profil.md").tagName).toBe("SPAN")
+      expect(screen.queryByRole("link", { name: "profil.md" })).not.toBeInTheDocument()
+    })
   })
 
   describe("rendu markdown", () => {
@@ -191,8 +135,7 @@ describe("MessageBubble", () => {
 
     it("rend le gras markdown en <strong>", () => {
       render(<MessageBubble message={assistantWith("Je maîtrise **React** et **Next.js**.")} />)
-      const strong = screen.getByText("React")
-      expect(strong.tagName).toBe("STRONG")
+      expect(screen.getByText("React").tagName).toBe("STRONG")
     })
 
     it("rend l'italique markdown en <em>", () => {
@@ -207,7 +150,7 @@ describe("MessageBubble", () => {
 
     it("rend les liens markdown en ancres ouvrant un nouvel onglet", () => {
       render(<MessageBubble message={assistantWith("Voir [mon LinkedIn](https://linkedin.com/in/music-all).")} />)
-      const link = screen.getByText("mon LinkedIn").closest("a")
+      const link = screen.getByRole("link", { name: "mon LinkedIn" })
       expect(link).toHaveAttribute("href", "https://linkedin.com/in/music-all")
       expect(link).toHaveAttribute("target", "_blank")
       expect(link).toHaveAttribute("rel", "noopener noreferrer")
@@ -225,191 +168,90 @@ describe("MessageBubble", () => {
     })
   })
 
-  describe("bouton copier", () => {
-    it("affiche le bouton copier pour un message avec du contenu", () => {
+  describe("action copier", () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it("propose de copier une réponse terminée", () => {
       render(<MessageBubble message={assistantMessage} />)
-      expect(screen.getByTestId("copy-button")).toBeInTheDocument()
-      expect(screen.getByTestId("copy-icon")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: chat.copy })).toHaveTextContent(chat.copyLabel)
     })
 
-    it("affiche le bouton copier pour un message utilisateur", () => {
+    it("ne propose pas de copier une question du visiteur", () => {
       render(<MessageBubble message={userMessage} />)
-      expect(screen.getByTestId("copy-button")).toBeInTheDocument()
+      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
     })
 
-    it("n'affiche pas le bouton copier pendant le streaming", () => {
+    it("ne propose pas de copier pendant le streaming", () => {
       render(<MessageBubble message={assistantMessage} isStreaming />)
       expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
     })
 
-    it("n'affiche pas le bouton copier si le message est vide", () => {
-      const emptyMessage: IMessage = { id: "9", role: "assistant", content: "", createdAt: new Date() }
-      render(<MessageBubble message={emptyMessage} />)
+    it("ne propose pas de copier un message vide", () => {
+      render(<MessageBubble message={{ ...assistantMessage, content: "" }} />)
       expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
     })
 
-    it("copie le contenu du message dans le presse-papiers au clic", () => {
+    it("copie le contenu, confirme pendant 2 s puis revient à l'état initial", () => {
+      vi.useFakeTimers()
       const writeText = vi.fn().mockResolvedValue(undefined)
       Object.assign(navigator, { clipboard: { writeText } })
 
       render(<MessageBubble message={assistantMessage} />)
       fireEvent.click(screen.getByTestId("copy-button"))
+
       expect(writeText).toHaveBeenCalledWith("Salut ! Je vais bien, merci.")
-    })
+      expect(screen.getByTestId("copy-button")).toHaveAccessibleName(chat.copied)
+      expect(screen.getByTestId("copy-button")).toHaveTextContent(chat.copiedLabel)
 
-    it("affiche l'icône check après copie", () => {
-      const writeText = vi.fn().mockResolvedValue(undefined)
-      Object.assign(navigator, { clipboard: { writeText } })
-
-      render(<MessageBubble message={assistantMessage} />)
-      fireEvent.click(screen.getByTestId("copy-button"))
-      expect(screen.getByTestId("check-icon")).toBeInTheDocument()
-      expect(screen.queryByTestId("copy-icon")).not.toBeInTheDocument()
-    })
-
-    it("a l'aria-label 'Copier le message' par défaut", () => {
-      render(<MessageBubble message={assistantMessage} />)
-      expect(screen.getByTestId("copy-button")).toHaveAttribute("aria-label", "Copier le message")
-    })
-
-    it("change l'aria-label en 'Copié' après copie", () => {
-      const writeText = vi.fn().mockResolvedValue(undefined)
-      Object.assign(navigator, { clipboard: { writeText } })
-
-      render(<MessageBubble message={assistantMessage} />)
-      fireEvent.click(screen.getByTestId("copy-button"))
-      expect(screen.getByTestId("copy-button")).toHaveAttribute("aria-label", "Copié")
-    })
-
-    it("rend le bouton visible quand on clique sur la bulle (mobile)", () => {
-      render(<MessageBubble message={assistantMessage} />)
-      const bubble = screen.getByTestId("message-bubble")
-      const copyButton = screen.getByTestId("copy-button")
-
-      expect(copyButton).toHaveClass("opacity-0")
-      fireEvent.click(bubble)
-      expect(copyButton).toHaveClass("opacity-100")
-    })
-
-    it("masque le bouton quand on re-clique sur la bulle (toggle)", () => {
-      render(<MessageBubble message={assistantMessage} />)
-      const bubble = screen.getByTestId("message-bubble")
-      const copyButton = screen.getByTestId("copy-button")
-
-      fireEvent.click(bubble)
-      expect(copyButton).toHaveClass("opacity-100")
-      fireEvent.click(bubble)
-      expect(copyButton).toHaveClass("opacity-0")
-    })
-
-    it("ne révèle le bouton au survol que sur les appareils à pointeur fin (évite le hover persistant sur tactile)", () => {
-      render(<MessageBubble message={assistantMessage} />)
-      const copyButton = screen.getByTestId("copy-button")
-
-      // Le hover CSS est conditionné par (hover:hover) and (pointer:fine) :
-      // sur tactile, seul l'état `tapped` contrôle la visibilité, garantissant le masquage.
-      expect(copyButton).toHaveClass("[@media(hover:hover)_and_(pointer:fine)]:group-hover/bubble:opacity-100")
-      expect(copyButton).not.toHaveClass("group-hover/bubble:opacity-100")
-    })
-
-    it("masque le bouton quand on clique en dehors de la bulle", () => {
-      render(<MessageBubble message={assistantMessage} />)
-      const bubble = screen.getByTestId("message-bubble")
-      const copyButton = screen.getByTestId("copy-button")
-
-      fireEvent.click(bubble)
-      expect(copyButton).toHaveClass("opacity-100")
-      fireEvent.pointerDown(document.body)
-      expect(copyButton).toHaveClass("opacity-0")
-    })
-
-    it("ne masque pas le bouton quand on clique sur le bouton copier", () => {
-      const writeText = vi.fn().mockResolvedValue(undefined)
-      Object.assign(navigator, { clipboard: { writeText } })
-
-      render(<MessageBubble message={assistantMessage} />)
-      const bubble = screen.getByTestId("message-bubble")
-      const copyButton = screen.getByTestId("copy-button")
-
-      fireEvent.click(bubble)
-      expect(copyButton).toHaveClass("opacity-100")
-      fireEvent.click(copyButton)
-      expect(copyButton).toHaveClass("opacity-100")
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+      expect(screen.getByTestId("copy-button")).toHaveAccessibleName(chat.copy)
     })
   })
 
-  describe("bouton réutiliser", () => {
-    it("n'affiche pas le bouton réutiliser sans la prop onReuse", () => {
+  describe("action renvoyer", () => {
+    it("n'apparaît pas sans la prop onReuse", () => {
       render(<MessageBubble message={userMessage} />)
       expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
     })
 
-    it("n'affiche pas le bouton réutiliser pour un message assistant même avec onReuse", () => {
-      const onReuse = vi.fn()
-      render(<MessageBubble message={assistantMessage} onReuse={onReuse} />)
+    it("n'apparaît pas pour un message assistant, même avec onReuse", () => {
+      render(<MessageBubble message={assistantMessage} onReuse={vi.fn()} />)
       expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
     })
 
-    it("affiche le bouton réutiliser pour un message utilisateur avec onReuse", () => {
+    it("n'apparaît pas pendant le streaming", () => {
+      render(<MessageBubble message={userMessage} onReuse={vi.fn()} isStreaming />)
+      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
+    })
+
+    it("renvoie le contenu de la question au clic", () => {
       const onReuse = vi.fn()
       render(<MessageBubble message={userMessage} onReuse={onReuse} />)
-      expect(screen.getByTestId("reuse-button")).toBeInTheDocument()
-      expect(screen.getByTestId("reuse-icon")).toBeInTheDocument()
-    })
-
-    it("n'affiche pas le bouton réutiliser pendant le streaming", () => {
-      const onReuse = vi.fn()
-      render(<MessageBubble message={userMessage} isStreaming onReuse={onReuse} />)
-      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
-    })
-
-    it("n'affiche pas le bouton réutiliser si le message est vide", () => {
-      const onReuse = vi.fn()
-      const emptyUserMsg: IMessage = { id: "10", role: "user", content: "", createdAt: new Date() }
-      render(<MessageBubble message={emptyUserMsg} onReuse={onReuse} />)
-      expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
-    })
-
-    it("appelle onReuse avec le contenu du message au clic", () => {
-      const onReuse = vi.fn()
-      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
-      fireEvent.click(screen.getByTestId("reuse-button"))
+      const button = screen.getByRole("button", { name: chat.reuse })
+      expect(button).toHaveTextContent(chat.reuseLabel)
+      fireEvent.click(button)
       expect(onReuse).toHaveBeenCalledWith("Bonjour, comment ça va ?")
     })
 
-    it("a l'aria-label 'Renvoyer ce message'", () => {
-      const onReuse = vi.fn()
-      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
-      expect(screen.getByTestId("reuse-button")).toHaveAttribute("aria-label", "Renvoyer ce message")
-    })
-
-    it("est visible quand la bulle est tappée (mobile)", () => {
-      const onReuse = vi.fn()
-      render(<MessageBubble message={userMessage} onReuse={onReuse} />)
-      const bubble = screen.getByTestId("message-bubble")
-      const reuseButton = screen.getByTestId("reuse-button")
-
-      expect(reuseButton).toHaveClass("opacity-0")
-      fireEvent.click(bubble)
-      expect(reuseButton).toHaveClass("opacity-100")
+    it("ne se révèle au survol que sur les appareils à pointeur fin (toujours visible au doigt)", () => {
+      render(<MessageBubble message={userMessage} onReuse={vi.fn()} />)
+      expect(screen.getByTestId("reuse-button").className).toContain("[@media(hover:hover)_and_(pointer:fine)]:opacity-0")
     })
   })
 
   describe("showActions", () => {
-    it("masque le bouton copier quand showActions est false", () => {
+    it("masque l'action copier quand showActions est false", () => {
       render(<MessageBubble message={assistantMessage} showActions={false} />)
       expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
     })
 
-    it("masque le bouton réutiliser quand showActions est false", () => {
-      const onReuse = vi.fn()
-      render(<MessageBubble message={userMessage} onReuse={onReuse} showActions={false} />)
+    it("masque l'action renvoyer quand showActions est false", () => {
+      render(<MessageBubble message={userMessage} onReuse={vi.fn()} showActions={false} />)
       expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
-    })
-
-    it("affiche toujours le contenu du message quand showActions est false", () => {
-      render(<MessageBubble message={assistantMessage} showActions={false} />)
-      expect(screen.getByText("Salut ! Je vais bien, merci.")).toBeInTheDocument()
     })
   })
 
@@ -417,18 +259,18 @@ describe("MessageBubble", () => {
     const errorMessage: IMessage = {
       id: "err",
       role: "assistant",
-      content: "⚠️ Une erreur est survenue. Réessaie dans un instant.",
+      content: "Une erreur est survenue. Réessaie dans un instant.",
       status: "error",
       createdAt: new Date("2024-01-01T10:00:02"),
     }
 
-    it("applique le style d'erreur à une réponse assistant en échec", () => {
+    it("remplace l'heure par « erreur » et passe le texte à l'encre", () => {
       render(<MessageBubble message={errorMessage} />)
-      expect(screen.getByTestId("message-bubble-error")).toBeInTheDocument()
-      expect(screen.getByTestId("message-bubble-error")).toHaveClass("text-destructive")
+      expect(screen.getByText(chat.errorLabel)).toBeInTheDocument()
+      expect(screen.getByTestId("message-bubble-error")).toHaveClass("text-ink")
     })
 
-    it("masque le bouton copier sur une bulle d'erreur", () => {
+    it("masque l'action copier sur une réponse en erreur", () => {
       render(<MessageBubble message={errorMessage} />)
       expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
     })

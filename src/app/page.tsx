@@ -1,16 +1,15 @@
 "use client"
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
+import { useCallback, useLayoutEffect, useRef, useState } from "react"
 import { HeroScene } from "@/components/features/hero-scene"
 import { ChatInterface } from "@/components/features/chat-interface"
-import { MessageBubble } from "@/components/features/message-bubble"
-import { ProviderStatus } from "@/components/features/provider-status"
-import { TechBadges } from "@/components/features/tech-badges"
+import { ReadmeCard } from "@/components/features/readme-card"
+import { NameBlock } from "@/components/ui/name-block"
 import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
-import { createWelcomeMessage, MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
+import { MORPH_DURATION_MS, MESSAGES_TOP_PADDING } from "@/constants/chat"
+import { GITHUB, LINKEDIN, type IProfileLink } from "@/constants/profile"
 
 type TPhase = "landing" | "opening" | "chat"
 
@@ -20,12 +19,16 @@ interface ICloneState {
   morph: boolean
 }
 
+/** Liens du pied de l'accueil : le CV d'abord, puis les profils. */
+// Le CV n'est pas proposé en lien direct : il n'apparaît que comme source
+// citée dans les réponses du chat.
+const FOOTER_LINKS: IProfileLink[] = [GITHUB, LINKEDIN]
+
 export default function Home() {
   const { t } = useLocale()
   const [phase, setPhase] = useState<TPhase>("landing")
   const [clone, setClone] = useState<ICloneState | null>(null)
-
-  const welcomeMessage = useMemo(() => createWelcomeMessage(t.chat.welcome), [t.chat.welcome])
+  const [turns, setTurns] = useState(0)
 
   const heroRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -41,14 +44,14 @@ export default function Home() {
     fallbackTimerRef.current = null
   }, [])
 
-  // Fin du morph : la bulle clone disparaît, le vrai message d'accueil prend le relais
+  // Fin du morph : le clone disparaît, le vrai message d'accueil prend le relais
   const finishMorph = useCallback(() => {
     clearFallback()
     setClone(null)
     setPhase("chat")
   }, [clearFallback])
 
-  // Clic sur la bulle d'accueil : on capture sa position avant de monter le chat
+  // Clic sur le README : on capture sa position avant de monter le chat
   const openChat = useCallback(() => {
     if (phase !== "landing") return
     trackEvent("chat_opened")
@@ -64,7 +67,7 @@ export default function Home() {
     setPhase("landing")
   }, [clearFallback])
 
-  // Une fois le chat (et son header) montés, on lance le glissement de la bulle vers le haut
+  // Une fois le chat (et son header) montés, on lance le glissement du README vers le haut
   useLayoutEffect(() => {
     if (phase !== "opening") return
 
@@ -85,77 +88,89 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, finishMorph])
 
-  const handleTurnsChange = useCallback((turns: number) => {
-    turnsRef.current = turns
+  const handleTurnsChange = useCallback((count: number) => {
+    turnsRef.current = count
+    setTurns(count)
   }, [])
 
   const showClone = phase === "opening" && clone !== null
 
   return (
     <>
-      {/* Les bulles de réplique du personnage sont masquées quand la conversation est ouverte */}
-      <HeroScene bubblesEnabled={!chatOpen} />
+      {/* Le personnage passe à droite du panneau quand la conversation s'ouvre ;
+          ses répliques se taisent pendant qu'on parle à son double. */}
+      <HeroScene bubblesEnabled={!chatOpen} layout={chatOpen ? "chat" : "landing"} />
+
+      {/* Une seule barre pour la landing et le chat, fixée en haut à droite :
+          elle reste au-dessus de la scène quand le panneau s'ouvre à gauche. */}
+      <SiteNav current="home" analyticsFrom={chatOpen ? "chat" : "landing"} className="fixed top-2 right-5 z-40 lg:top-3.5 lg:right-16" />
 
       {/* Accueil : pointer-events-none sur le conteneur pour laisser le clic-glissé
-          atteindre la scène 3D derrière ; réactivé sur les éléments interactifs. */}
-      <div aria-hidden={chatOpen} className={`pointer-events-none flex min-h-screen flex-col items-center justify-center px-4 transition-all duration-500 ease-in-out ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
-        {/* Navigation : coin supérieur droit, hors du flux central. Elle
-            s'estompe avec la landing, le header du chat prend le relais avec
-            les mêmes entrées, d'où un simple fondu croisé à l'ouverture. */}
-        <SiteNav current="home" analyticsFrom="landing" className="fixed right-4 top-4 z-40" />
+          atteindre la scène 3D ; réactivé sur les éléments interactifs. */}
+      <div aria-hidden={chatOpen} inert={chatOpen} className={`pointer-events-none relative z-10 flex min-h-dvh flex-col px-5 pt-[76px] pb-20 transition-all duration-500 ease-in-out lg:px-16 lg:pt-[136px] ${chatOpen ? "-translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+        <main className="flex w-full max-w-[644px] flex-col">
+          <NameBlock className="text-[60px] lg:text-[128px]" />
+          <p className="mt-4 text-[14px] font-medium text-ink lg:mt-7 lg:text-[22px]">{t.landing.role}</p>
 
-        <main className="flex w-full flex-col items-center gap-8 text-center">
-          {/* Accroche : police mono pour l'esprit code/LLM, terme en dégradé animé */}
-          <h1 className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            {t.landing.greeting}
-            <span className="text-gradient-animated">{t.landing.greetingHighlight}</span>
-          </h1>
-
-          {/* Bulle d'accueil = premier message de la conversation, cliquable */}
-          <button type="button" onClick={openChat} aria-label={t.landing.startConversationAria} className="group pointer-events-auto flex w-full max-w-3xl cursor-pointer flex-col gap-2 px-3 text-left sm:px-4">
-            <div ref={heroRef} className={`animate-hero-float transition-transform duration-300 group-hover:-translate-y-1 ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
-              <MessageBubble message={welcomeMessage} showActions={false} />
+          {/* Le README est le premier message de la conversation : un clic l'ouvre */}
+          <button type="button" onClick={openChat} aria-label={t.landing.startConversationAria} className="group pointer-events-auto mt-6 flex w-full cursor-pointer flex-col text-left lg:mt-12">
+            <div ref={heroRef} className={`w-full transition-colors ${phase === "landing" ? "opacity-100" : "opacity-0"}`}>
+              <ReadmeCard content={t.chat.welcome} className="group-hover:border-teal-ink" />
             </div>
-            <p className="pl-11 text-sm text-zinc-500 transition-colors group-hover:text-coral">
-              {t.landing.startConversation}
-              <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
-            </p>
+            <span className="flex h-12 w-full items-center justify-between border-x border-b border-rule bg-paper px-4 text-[14px] font-medium text-teal-ink transition-colors group-hover:border-teal-ink lg:px-5 lg:text-[15px]">
+              <span>
+                <span aria-hidden="true" className="mr-[1ch] inline-block transition-transform duration-200 group-hover:translate-x-1">
+                  →
+                </span>
+                {t.landing.startConversation}
+              </span>
+              <span aria-hidden="true" className="hidden text-body lg:inline">
+                ↲
+              </span>
+            </span>
           </button>
-
-          {/* Étiquettes des technos maîtrisées (avec logos + « voir X + ») */}
-          <TechBadges />
-
-          {/* Lien discret vers la page about */}
-          <Link href="/about" className="pointer-events-auto font-mono text-xs text-zinc-600 transition-colors duration-300 hover:text-coral">
-            {t.landing.aboutLink}
-            <span className="ml-1 inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
-          </Link>
         </main>
+
+        <footer className="pointer-events-auto fixed inset-x-0 bottom-0 flex items-baseline justify-between gap-6 bg-paper px-5 py-3 text-[12px] lg:inset-x-16 lg:bottom-6 lg:bg-transparent lg:px-0 lg:py-0 lg:text-[13px]">
+          <p className="flex flex-wrap items-baseline gap-x-7 gap-y-1">
+            {FOOTER_LINKS.map((link) => (
+              <span key={link.href}>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent("profile_link_clicked", { link: link.label })}
+                  className="file-name py-2 hover:text-ink"
+                >
+                  {link.label}
+                </a>
+              </span>
+            ))}
+          </p>
+          <p className="hidden text-[12px] text-body lg:block">{t.landing.orbitHint}</p>
+        </footer>
       </div>
 
-      {/* Chat : fondu pur : la bulle d'accueil assure le mouvement via le morph */}
-      <div aria-hidden={!chatOpen} className={`fixed inset-0 flex flex-col overflow-x-hidden transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-        {/* Header */}
-        <header ref={headerRef} className="border-b border-white/10 bg-background/60 px-4 py-3 backdrop-blur-md">
-          <SiteNav
-            current="home"
-            analyticsFrom="chat"
-            className="mx-auto max-w-3xl"
-            brand={
-              <button onClick={closeChat} className="bg-clip-text text-sm font-semibold text-white">
-                Damien Pasulj
-              </button>
-            }
-          >
-            <ProviderStatus />
-          </SiteNav>
-        </header>
+      {/* Conversation : un panneau papier à gauche, la scène reste visible à droite */}
+      <div aria-hidden={!chatOpen} inert={!chatOpen} className={`pointer-events-none fixed inset-0 flex transition-opacity duration-500 ease-out ${chatOpen ? "opacity-100" : "opacity-0"}`}>
+        <section aria-label={t.chat.conversationDir} className={`flex h-full w-full flex-col border-rule bg-paper lg:w-[58.333%] lg:border-r ${chatOpen ? "pointer-events-auto" : ""}`}>
+          <header ref={headerRef} className="flex h-[60px] shrink-0 items-center justify-between border-b border-rule px-5 lg:h-[72px] lg:pr-12 lg:pl-16">
+            <button type="button" onClick={closeChat} className="cursor-pointer py-3 text-[16px] font-bold tracking-[-0.03em] text-ink lg:text-[18px]">
+              damien pasulj
+              <span aria-hidden="true" className="ml-[3px] inline-block size-[5px] bg-dot lg:size-1.5" />
+            </button>
+            <p className="hidden text-[13px] lg:block">
+              <span className="font-medium text-ink">{t.chat.conversationDir}</span>
+              {" "}
+              <span className="text-coral-ink">{t.chat.messageCount(turns)}</span>
+            </p>
+          </header>
 
-        {/* Zone de chat */}
-        {chatOpen && <ChatInterface messagesVisible={phase === "chat"} onTurnsChange={handleTurnsChange} />}
+          {chatOpen && <ChatInterface messagesVisible={phase === "chat"} onTurnsChange={handleTurnsChange} />}
+        </section>
       </div>
 
-      {/* Bulle clone qui glisse de la landing vers le haut du chat */}
+      {/* README clone qui glisse de la landing vers le haut du chat */}
       {showClone && clone && (
         <div
           data-testid="welcome-clone"
@@ -172,7 +187,7 @@ export default function Home() {
             transition: clone.morph ? `transform ${MORPH_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)` : "none",
           }}
         >
-          <MessageBubble message={welcomeMessage} showActions={false} />
+          <ReadmeCard content={t.chat.welcome} />
         </div>
       )}
     </>

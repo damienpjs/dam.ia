@@ -49,28 +49,41 @@ afterEach(() => {
 const setup = () => userEvent.setup({ delay: null })
 
 describe("ChatInterface", () => {
-  it("affiche le message de bienvenue de l'assistant au chargement", () => {
+  it("affiche le message d'accueil, présenté comme le README, au chargement", () => {
     render(<ChatInterface />)
-    expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
-    // "Product Builder" est interprété en markdown et rendu en gras
-    expect(screen.getByText("Product Builder").tagName).toBe("STRONG")
+    expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.fr.chat.welcome)
+    expect(screen.getByText(DICTIONARIES.fr.chat.welcomeFile)).toBeInTheDocument()
   })
 
-  it("affiche le message de bienvenue dans une bulle assistant (bg-card)", () => {
-    const { container } = render(<ChatInterface />)
-    const bubble = container.querySelector(".bg-card")
-    expect(bubble).toBeInTheDocument()
-    expect(bubble).toHaveTextContent(/Product Builder & enthousiaste IA/i)
+  it("présente les suggestions comme un dossier, avec leur décompte", () => {
+    render(<ChatInterface />)
+    const suggestions = screen.getByTestId("suggestions")
+    expect(suggestions).toHaveTextContent(DICTIONARIES.fr.chat.suggestionsDir)
+    expect(suggestions).toHaveTextContent(DICTIONARIES.fr.common.itemCount(6))
   })
 
   it("affiche la liste des messages par défaut (messagesVisible)", () => {
-    const { container } = render(<ChatInterface />)
-    expect(container.querySelector(".opacity-100.max-w-3xl")).not.toBeNull()
+    render(<ChatInterface />)
+    expect(screen.getByTestId("readme-content").closest(".flex.flex-col.gap-8")).toHaveClass("opacity-100")
   })
 
   it("masque la liste des messages quand messagesVisible est false", () => {
-    const { container } = render(<ChatInterface messagesVisible={false} />)
-    expect(container.querySelector(".opacity-0.max-w-3xl")).not.toBeNull()
+    render(<ChatInterface messagesVisible={false} />)
+    expect(screen.getByTestId("readme-content").closest(".flex.flex-col.gap-8")).toHaveClass("opacity-0")
+  })
+
+  it("ramène le champ à une ligne après l'envoi d'un message long", async () => {
+    const user = setup()
+    render(<ChatInterface />)
+    const textarea = screen.getByLabelText(/message à envoyer/i) as HTMLTextAreaElement
+
+    await user.type(textarea, "Une question")
+    textarea.style.height = "48px"
+    await user.click(screen.getByRole("button", { name: DICTIONARIES.fr.chat.sendAria }))
+
+    await waitFor(() => {
+      expect(textarea.style.height).toBe("")
+    })
   })
 
   it("rend le textarea de saisie", () => {
@@ -659,7 +672,7 @@ describe("ChatInterface", () => {
       render(<ChatInterface />)
 
       expect(screen.getByTestId("session-loader")).toBeInTheDocument()
-      expect(screen.queryByText(/Product Builder & enthousiaste IA/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId("readme-content")).not.toBeInTheDocument()
       expect(screen.queryByTestId("suggestions")).not.toBeInTheDocument()
     })
 
@@ -754,7 +767,7 @@ describe("ChatInterface", () => {
   describe("Réinitialisation de la conversation", () => {
     it("n'affiche pas le bouton de réinitialisation tant qu'aucun message n'a été envoyé", () => {
       render(<ChatInterface />)
-      expect(screen.queryByRole("button", { name: /réinitialiser la conversation/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /effacer la conversation/i })).not.toBeInTheDocument()
     })
 
     it("affiche le bouton de réinitialisation après l'envoi d'un message", async () => {
@@ -765,7 +778,7 @@ describe("ChatInterface", () => {
 
       await waitFor(
         () => {
-          expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
+          expect(screen.getByRole("button", { name: /effacer la conversation/i })).toBeInTheDocument()
         },
         { timeout: 2000 },
       )
@@ -784,7 +797,7 @@ describe("ChatInterface", () => {
         { timeout: 2000 },
       )
 
-      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: /effacer la conversation/i }))
 
       // La modale de confirmation s'affiche
       expect(screen.getByText("Réinitialiser la conversation ?")).toBeInTheDocument()
@@ -812,12 +825,12 @@ describe("ChatInterface", () => {
         { timeout: 2000 },
       )
 
-      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: /effacer la conversation/i }))
       await user.click(screen.getByRole("button", { name: "Réinitialiser" }))
 
       expect(screen.queryByText("Bonjour")).not.toBeInTheDocument()
       expect(screen.queryByText("Réponse mockée de l'assistant.")).not.toBeInTheDocument()
-      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/Product Builder & enthousiaste IA/i)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.fr.chat.welcome)
       expect(screen.getAllByTestId("message-bubble")).toHaveLength(1)
     })
 
@@ -839,7 +852,7 @@ describe("ChatInterface", () => {
         { timeout: 2000 },
       )
 
-      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: /effacer la conversation/i }))
       await user.click(screen.getByRole("button", { name: "Réinitialiser" }))
 
       expect(localStorage.getItem("dam_ia_chat_session_id")).toBeNull()
@@ -861,12 +874,12 @@ describe("ChatInterface", () => {
 
       await waitFor(
         () => {
-          expect(screen.getByRole("button", { name: /réinitialiser la conversation/i })).toBeInTheDocument()
+          expect(screen.getByRole("button", { name: /effacer la conversation/i })).toBeInTheDocument()
         },
         { timeout: 2000 },
       )
 
-      await user.click(screen.getByRole("button", { name: /réinitialiser la conversation/i }))
+      await user.click(screen.getByRole("button", { name: /effacer la conversation/i }))
       await user.click(screen.getByRole("button", { name: "Réinitialiser" }))
 
       // Toutes les suggestions sont de nouveau visibles
@@ -924,8 +937,8 @@ describe("ChatInterface", () => {
       renderWithLocale(<ChatInterface />, "en")
       const { chat } = DICTIONARIES.en
 
-      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/AI enthusiast/i)
-      expect(screen.getByText(chat.suggestionsLabel)).toBeInTheDocument()
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(chat.welcome)
+      expect(screen.getByText(chat.suggestionsDir)).toBeInTheDocument()
       expect(screen.getByText(chat.suggestions.skills)).toBeInTheDocument()
       expect(screen.getByPlaceholderText(chat.inputPlaceholder)).toBeInTheDocument()
       expect(screen.getByRole("button", { name: chat.sendAria })).toBeInTheDocument()
@@ -975,11 +988,11 @@ describe("ChatInterface", () => {
         "fr",
       )
 
-      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/enthousiaste IA/i)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.fr.chat.welcome)
 
       await user.click(screen.getByText("EN"))
 
-      expect(screen.getByTestId("markdown-content")).toHaveTextContent(/AI enthusiast/i)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.en.chat.welcome)
     })
 
     it("ne réaffiche pas une suggestion déjà utilisée après un changement de langue", () => {

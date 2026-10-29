@@ -25,11 +25,16 @@ describe("ThinkingPhrase", () => {
     expect(screen.getByLabelText("Damien réfléchit")).toBeInTheDocument()
   })
 
-  it("affiche trois points animés (sautillants)", () => {
-    const { container } = render(<ThinkingPhrase />)
-    const dots = container.querySelectorAll(".animate-thinking-dot")
-    expect(dots).toHaveLength(3)
-    expect(dots[0]).toHaveTextContent(".")
+  it("termine la phrase par un curseur bloc, décoratif", () => {
+    render(<ThinkingPhrase />)
+    const cursor = screen.getByTestId("thinking-cursor")
+    expect(cursor).toHaveClass("cursor-block")
+    expect(cursor).toHaveAttribute("aria-hidden", "true")
+  })
+
+  it("s'annonce comme un statut aux lecteurs d'écran", () => {
+    render(<ThinkingPhrase />)
+    expect(screen.getByRole("status", { name: DICTIONARIES.fr.chat.thinkingAria })).toBeInTheDocument()
   })
 
   it("commence sans aucune lettre puis tape la phrase caractère par caractère", () => {

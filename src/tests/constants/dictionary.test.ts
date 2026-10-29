@@ -61,28 +61,48 @@ describe("constants/dictionary", () => {
     }
   })
 
-  it("compose le décompte des technos masquées", () => {
-    expect(DICTIONARIES.fr.landing.showMoreTechs(3)).toContain("3")
-    expect(DICTIONARIES.en.landing.showMoreTechs(3)).toContain("3")
+  it("compose les tailles de fichiers, en octets puis en kilo-octets", () => {
+    expect(DICTIONARIES.fr.common.fileSize(431)).toBe("(431 o)")
+    expect(DICTIONARIES.fr.common.fileSize(307_425)).toBe("(300 Ko)")
+    expect(DICTIONARIES.en.common.fileSize(431)).toBe("(431 B)")
+    expect(DICTIONARIES.en.common.fileSize(307_425)).toBe("(300 KB)")
   })
 
-  it("marque une seule expérience comme poste actuel dans chaque langue", () => {
-    for (const locale of LOCALES) {
-      const current = DICTIONARIES[locale].about.timeline.filter((entry) => entry.current)
-      expect(current).toHaveLength(1)
-      expect(current[0].org).toBe("Apizee")
-    }
+  it("accorde les décomptes d'éléments et de messages", () => {
+    expect(DICTIONARIES.fr.common.itemCount(1)).toBe("(1 élément)")
+    expect(DICTIONARIES.fr.common.itemCount(3)).toBe("(3 éléments)")
+    expect(DICTIONARIES.en.common.itemCount(1)).toBe("(1 item)")
+    expect(DICTIONARIES.en.common.itemCount(3)).toBe("(3 items)")
+    expect(DICTIONARIES.fr.chat.messageCount(1)).toBe("(1 message)")
+    expect(DICTIONARIES.en.chat.messageCount(4)).toBe("(4 messages)")
   })
 
   it("garde le même parcours (périodes et entreprises) d'une langue à l'autre", () => {
-    const orgs = (locale: TLocale) => DICTIONARIES[locale].about.timeline.map((entry) => entry.org)
+    const orgs = (locale: TLocale) => DICTIONARIES[locale].about.experience.map((entry) => `${entry.org} ${entry.period.slice(0, 4)}`)
     expect(orgs("en")).toEqual(orgs("fr"))
-    expect(DICTIONARIES.en.about.timeline).toHaveLength(DICTIONARIES.fr.about.timeline.length)
+    const projects = (locale: TLocale) => DICTIONARIES[locale].about.projects.map((project) => project.href)
+    expect(projects("en")).toEqual(projects("fr"))
+  })
+
+  it("garde le même nombre de tâches et de fichiers hors écran d'une langue à l'autre", () => {
+    expect(DICTIONARIES.en.about.todoDone).toHaveLength(DICTIONARIES.fr.about.todoDone.length)
+    expect(DICTIONARIES.en.about.offscreen).toHaveLength(DICTIONARIES.fr.about.offscreen.length)
   })
 
   it("traduit réellement le contenu (les textes diffèrent d'une langue à l'autre)", () => {
     expect(DICTIONARIES.en.chat.welcome).not.toBe(DICTIONARIES.fr.chat.welcome)
-    expect(DICTIONARIES.en.about.intro).not.toBe(DICTIONARIES.fr.about.intro)
-    expect(DICTIONARIES.en.chat.providerLabels.mock).not.toBe(DICTIONARIES.fr.chat.providerLabels.mock)
+    expect(DICTIONARIES.en.about.readme).not.toBe(DICTIONARIES.fr.about.readme)
+    expect(DICTIONARIES.en.common.navAbout).not.toBe(DICTIONARIES.fr.common.navAbout)
+  })
+
+  it("inclut le libellé visible de chaque action dans son nom accessible (WCAG 2.5.3)", () => {
+    for (const locale of LOCALES) {
+      const { chat } = DICTIONARIES[locale]
+      const visible = (label: string) => label.replace(/[^\p{L}\s]/gu, "").trim().toLowerCase()
+      expect(chat.copy.toLowerCase()).toContain(visible(chat.copyLabel))
+      expect(chat.reuse.toLowerCase()).toContain(visible(chat.reuseLabel))
+      expect(chat.reset.toLowerCase()).toContain(visible(chat.resetLabel))
+      expect(chat.sendAria.toLowerCase()).toContain(visible(chat.send))
+    }
   })
 })

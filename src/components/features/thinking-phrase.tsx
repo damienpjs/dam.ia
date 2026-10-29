@@ -11,9 +11,9 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Placeholder de « réflexion » : une phrase aléatoire à la sauce « Damien réfléchit… »
- * tapée lettre par lettre, suivie de trois points qui sautillent (animation CSS).
- * Remplace l'ancien skeleton pendant que l'IA prépare sa réponse.
+ * Placeholder de « réflexion » : une phrase aléatoire à la sauce « Damien réfléchit »
+ * tapée lettre par lettre, suivie d'un curseur bloc qui clignote, comme un
+ * terminal qui attend sa sortie.
  */
 export function ThinkingPhrase() {
   const { t } = useLocale()
@@ -43,14 +43,9 @@ export function ThinkingPhrase() {
   }, [phrase, reduced])
 
   return (
-    <div data-testid="thinking-phrase" className="flex items-baseline text-sm leading-relaxed text-muted-foreground" aria-label={t.chat.thinkingAria}>
+    <div data-testid="thinking-phrase" role="status" className="text-body" aria-label={t.chat.thinkingAria}>
       <span aria-hidden="true">{shown}</span>
-      {/* Délais de cascade gérés en CSS via :nth-child (cf. globals.css) */}
-      <span aria-hidden="true" className="ml-0.5 inline-flex">
-        <span className="animate-thinking-dot">.</span>
-        <span className="animate-thinking-dot">.</span>
-        <span className="animate-thinking-dot">.</span>
-      </span>
+      <span data-testid="thinking-cursor" aria-hidden="true" className="cursor-block" />
     </div>
   )
 }

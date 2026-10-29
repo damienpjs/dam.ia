@@ -21,6 +21,8 @@ export type TAnalyticsEvent =
   | "chat_reset"
   | "about_link_clicked"
   | "about_cta_clicked"
+  | "chat_link_clicked"
+  | "profile_link_clicked"
   | "locale_changed"
 
 /**

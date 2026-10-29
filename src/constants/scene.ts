@@ -27,7 +27,7 @@ export const MODEL_FORWARD_OFFSET = 0
 
 // ── Déambulation aléatoire ───────────────────────────────────────────────
 /** Rayon de la zone (sur le sol) dans laquelle le personnage se balade. */
-export const WANDER_RADIUS = 3
+export const WANDER_RADIUS = 2.2
 /** Vitesse de marche, en unités/seconde. */
 export const WALK_SPEED = 0.85
 /** Vitesse d'orientation vers la cible (facteur de lerp angulaire/seconde). */
@@ -41,7 +41,9 @@ export const IDLE_MAX_S = 5.5
 export const FADE_S = 0.35
 
 // ── Caméra & contrôles (clic-glissé + zoom) ──────────────────────────────
-export const CAMERA_START: [number, number, number] = [4.2, 2.3, 5.4]
+/** Position de départ : même angle qu'avant, rapprochée (×0,82) pour que le
+ *  personnage garde de la présence une fois décalé sur le côté. */
+export const CAMERA_START: [number, number, number] = [3.44, 2.06, 4.43]
 export const CAMERA_FOV = 42
 /** Cible de l'orbite : à hauteur de buste du personnage. */
 export const CONTROLS_TARGET: [number, number, number] = [0, 0.95, 0]
@@ -51,26 +53,48 @@ export const MAX_DISTANCE = 9
 export const MIN_POLAR = 0.2
 export const MAX_POLAR = Math.PI / 2 - 0.04
 
-// ── Couleurs de la scène (chemise tropicale + vibe CRT rétro) ────────────
-export const SCENE_BG = "#15211c" // teal-charbon légèrement verdi (moniteur cathodique)
-export const FOG_NEAR = 11
-export const FOG_FAR = 30
-export const GRID_CELL_COLOR = "#356b50" // vert sombre (phosphore)
-export const GRID_SECTION_COLOR = "#74c08a" // vert CRT plus clair, lignes principales
-export const KEY_LIGHT = "#abffe2" // couleur statique de repli (mouvement réduit) : vert phosphore
+// ── Cadrage selon la mise en page ────────────────────────────────────────
 /**
- * La key light oscille en boucle entre une teinte chaude et une teinte froide,
- * en écho au dégradé animé du prénom « Damien » dans le titre. Fondu sinusoïdal,
- * sans à-coups, calé sur la même cadence (4 s) que l'animation CSS du titre.
+ * Décalage du cadrage (`camera.setViewOffset`) : déplace le personnage dans
+ * l'écran sans toucher à l'orbite. `x` et `y` sont des fractions de la largeur
+ * et de la hauteur (positif : vers la droite, vers le bas), `zoom` agit sur la
+ * focale. Sur desktop, l'interface tient dans la moitié gauche : le personnage
+ * vit à droite. Sur mobile, le texte occupe le haut : il descend.
  */
-export const KEY_LIGHT_WARM = "#ffd6ab" // pêche chaude (nostalgie)
-export const KEY_LIGHT_COOL = "#abffe2" // vert phosphore froid (CRT)
-/** Durée d'un aller-retour complet chaud → froid → chaud, en secondes. */
-export const KEY_LIGHT_OSC_PERIOD_S = 4
-export const RIM_LIGHT = "#79c2bc" // teal (chemise)
-export const FILL_LIGHT = "#b9a6ef" // lavande douce (fleurs)
-/** Vert phosphore d'un vieux moniteur cathodique : ambiance/hémisphère. */
-export const CRT_GLOW = "#88e3b4"
+export interface IViewOffset {
+  x: number
+  y: number
+  zoom: number
+}
+
+/** Mise en page de l'accueil qui pilote le cadrage. */
+export type TSceneLayout = "landing" | "chat"
+
+export const VIEW_OFFSET_WIDE: Record<TSceneLayout, IViewOffset> = {
+  landing: { x: 0.17, y: 0.03, zoom: 1 },
+  chat: { x: 0.24, y: 0.06, zoom: 0.86 },
+}
+export const VIEW_OFFSET_NARROW: IViewOffset = { x: 0.03, y: 0.35, zoom: 0.58 }
+/** Largeur (px) à partir de laquelle le cadrage « desktop » s'applique (breakpoint `lg`). */
+export const WIDE_LAYOUT_MIN_WIDTH = 1024
+/** Vitesse du glissement d'un cadrage à l'autre (facteur de lerp par seconde). */
+export const VIEW_OFFSET_EASE = 4
+
+// ── Couleurs de la scène (papier du CV) ──────────────────────────────────
+// Le canvas est transparent : le fond est le papier du site lui-même, ce qui
+// garantit un raccord exact avec les panneaux et laisse passer le grain.
+export const FOG_COLOR = "#eef0ec" // papier
+export const FOG_NEAR = 9
+export const FOG_FAR = 24
+export const GRID_CELL_COLOR = "#cdd4d1" // filets clairs, à peine plus foncés que le papier
+export const GRID_SECTION_COLOR = "#98aaa5" // lignes principales, gris-vert du CV
+export const HEMI_SKY = "#ffffff"
+export const HEMI_GROUND = "#c3ccc8" // filet du CV : rebond doux et froid sous le personnage
+export const KEY_LIGHT = "#fff1e0" // blanc légèrement chaud
+export const RIM_LIGHT = "#84c7c1" // teal de la charte (et de la chemise)
+export const FILL_LIGHT = "#efa07a" // corail de la charte, en contre-jour
+export const SHADOW_COLOR = "#0b1110" // encre
+export const SHADOW_OPACITY = 0.32
 
 // ── Glitch CRT (post-processing GPU, déclenchement sporadique) ────────────
 /**

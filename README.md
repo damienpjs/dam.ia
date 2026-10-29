@@ -83,12 +83,17 @@ and its face and arms follow the conversation.
   [`gestures.ts`](src/lib/character/gestures.ts)) are wrist targets solved by
   two-bone IK on top of the clip, each with a hand shape (`HAND_*` clips in the
   model). Every channel (wrist target, elbow, IK weight, forearm twist, finger
-  shape, head turn) follows its goal through a second-order spring with its own
-  tempo ([`dynamics.ts`](src/lib/character/dynamics.ts)): arcs, a small
+  shape, wrist bend, head turn) follows its goal through a second-order spring
+  with its own tempo ([`dynamics.ts`](src/lib/character/dynamics.ts)): a small
   overshoot, fingers settling after the wrist, the hand trailing a fast wrist.
-  A hand held away from the body is pushed out of per-bone capsules; a hand that
-  rests on it (chin, hips) follows a target measured on the real meshes
-  ([`character-rig.ts`](src/components/features/character-rig.ts)).
+  Between two poses the hand travels on an arc in front of the body, and the
+  springs ride their anchor (head, chest, hips), so a hand at rest follows the
+  idle breathing without lag. On the way the hand is pushed out of per-bone
+  capsules; arriving on the body (chin, hips) it follows a target measured on
+  the real meshes, and the chin pose lays the index on a point of the head
+  frame, so the contact holds whatever the arm does
+  ([`character-rig.ts`](src/components/features/character-rig.ts)). While
+  thinking the head keeps its own pose instead of turning to the camera.
 - **Model.** The portfolio head (Hunyuan export: texture rebaked from clean
   views, eyes removed from the texture, shape keys) and a generated pair of
   hands on the stylised male body, outfit, rig and clips of Ship or Die, with

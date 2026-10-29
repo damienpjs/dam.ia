@@ -2,7 +2,7 @@ import * as THREE from "three"
 import { FACE_FRAGMENT_BODY, FACE_FRAGMENT_HEADER, FACE_VERTEX_BODY, FACE_VERTEX_HEADER, initialFaceUniforms } from "@/lib/character/face-shader"
 import { FACE_MORPHS, type IHeadOffset } from "@/lib/character/moods"
 import type { IFaceFrame } from "@/lib/character/face-controller"
-import { GESTURE_POSES, HAND_SHAPES, type IHandTarget, type TAnchor, type TGesture, type THandShape, type TVec3 } from "@/lib/character/gestures"
+import { GESTURE_POSES, HAND_SHAPES, type IHandTarget, type ITouch, type TAnchor, type TGesture, type THandShape, type TVec3 } from "@/lib/character/gestures"
 import { SecondOrder, SPRINGS } from "@/lib/character/dynamics"
 
 /**
@@ -291,10 +291,52 @@ export function solveArm(arm: IArm, target: THREE.Vector3, pole: THREE.Vector3, 
   aimBone(arm.lower, vB, vC, wrist, weight)
   if (twist && arm.twist) rollAboutForearm(arm, arm.twist, twist * weight)
   else if (twist) rollAboutForearm(arm, arm.lower, twist * weight * TWIST_AT_ELBOW)
+  if (twist) {
+    // l'os de torsion n'est pas exactement sur l'axe coude-poignet : sa rotation
+    // décale un peu la main, qu'on ramène sur la cible
+    arm.lower.getWorldPosition(vB)
+    arm.hand.getWorldPosition(vC)
+    aimBone(arm.lower, vB, vC, wrist, weight)
+  }
   // le clip laisse pendre la main ; bras levé, elle doit prolonger l'avant-bras
   arm.hand.quaternion.slerp(arm.handRest, weight * HAND_STRAIGHTEN)
   arm.hand.updateMatrixWorld(true)
   if (twist && !arm.twist) rollAboutForearm(arm, arm.hand, twist * weight * (1 - TWIST_AT_ELBOW))
+}
+
+const vAcross = new THREE.Vector3()
+const vNormal = new THREE.Vector3()
+const qBend = new THREE.Quaternion()
+
+/**
+ * Plie le poignet dans le repère de la main, mesuré sur le squelette :
+ * `flex` (rad) autour de l'axe index→auriculaire, positif vers la paume ;
+ * `deviation` (rad) dans le plan de la paume, positif vers le pouce.
+ * Indépendant des axes locaux des os, donc identique pour les deux mains.
+ */
+export function bendWrist(arm: IArm, side: "Left" | "Right", flex: number, deviation: number): void {
+  const index = arm.fingers.get(`${side}HandIndex1`)
+  const pinky = arm.fingers.get(`${side}HandPinky1`)
+  const knuckle = arm.fingers.get(`${side}HandMiddle1`)
+  const tip = arm.fingers.get(`${side}HandMiddle3`)
+  if (!index || !pinky || !knuckle || !tip || (Math.abs(flex) < 1e-5 && Math.abs(deviation) < 1e-5)) return
+  arm.lower.getWorldPosition(vB)
+  arm.hand.getWorldPosition(vC)
+  const along = vTmp.copy(vC).sub(vB).normalize()
+  index.getWorldPosition(vAcross)
+  pinky.getWorldPosition(vNormal)
+  vAcross.sub(vNormal)
+  vAcross.addScaledVector(along, -vAcross.dot(along)).normalize()
+  // normale côté paume : les doigts s'y replient, même relâchés
+  vNormal.copy(along).cross(vAcross)
+  tip.getWorldPosition(vWanted)
+  knuckle.getWorldPosition(vP)
+  const palmSign = Math.sign(vWanted.sub(vP).dot(vNormal)) || 1
+  vNormal.multiplyScalar(palmSign)
+  // flexion : la direction de la main tourne de `along` vers la paume
+  rotateWorld(arm.hand, qBend.setFromAxisAngle(vWanted.copy(along).cross(vNormal).normalize(), flex))
+  // déviation : vers le côté du pouce (l'index)
+  rotateWorld(arm.hand, qBend.setFromAxisAngle(vWanted.copy(along).cross(vAcross).normalize(), deviation))
 }
 
 /** Mélange une forme de main sur la pose courante des doigts. */
@@ -382,20 +424,54 @@ function anchorBone(rig: ICharacterRig, anchor: TAnchor): THREE.Bone {
 const anchorWorld = new THREE.Vector3()
 const anchorQ = new THREE.Quaternion()
 
-/** Cible d'une main en monde : ancrée sur la tête (orientation comprise) ou sur le corps (lacet du personnage). */
-export function handTargetWorld(rig: ICharacterRig, root: THREE.Object3D, hand: IHandTarget, beat: TVec3 | undefined, beatAmount: number, scale: number, out: THREE.Vector3): THREE.Vector3 {
-  const bone = anchorBone(rig, hand.anchor)
+/** Point exprimé dans le repère d'une ancre (m, personnage de 1,70 m), en monde. */
+function anchorPointWorld(rig: ICharacterRig, root: THREE.Object3D, anchor: TAnchor, offset: THREE.Vector3, scale: number, out: THREE.Vector3): THREE.Vector3 {
+  const bone = anchorBone(rig, anchor)
   bone.getWorldPosition(anchorWorld)
-  out.set(hand.offset[0], hand.offset[1], hand.offset[2])
-  if (beat) out.addScaledVector(vTmp.set(beat[0], beat[1], beat[2]), beatAmount)
-  out.multiplyScalar(scale)
-  if (hand.anchor === "head") {
+  out.copy(offset).multiplyScalar(scale)
+  if (anchor === "head") {
     // repère de la tête, mesuré au repos : on n'applique que sa rotation depuis le repos
     bone.getWorldQuaternion(anchorQ)
     out.applyQuaternion(anchorQ.multiply(rig.headRestInverse))
   } else out.applyAxisAngle(UP, root.rotation.y)
   return out.add(anchorWorld)
 }
+
+/** Cible d'une main en monde : ancrée sur la tête (orientation comprise) ou sur le corps (lacet du personnage). */
+export function handTargetWorld(rig: ICharacterRig, root: THREE.Object3D, hand: IHandTarget, beat: TVec3 | undefined, beatAmount: number, scale: number, out: THREE.Vector3): THREE.Vector3 {
+  vOffset.set(hand.offset[0], hand.offset[1], hand.offset[2])
+  if (beat) vOffset.addScaledVector(vTmp.set(beat[0], beat[1], beat[2]), beatAmount)
+  return anchorPointWorld(rig, root, hand.anchor, vOffset, scale, out)
+}
+
+const vOffset = new THREE.Vector3()
+const touchGoal = new THREE.Vector3()
+const touchFrom = new THREE.Vector3()
+const touchTo = new THREE.Vector3()
+
+/**
+ * Oriente la main autour du poignet pour poser la phalange de `touch` sur son
+ * point (rotation minimale) : le contact ne dépend plus de l'avant-bras.
+ */
+export function touchWith(rig: ICharacterRig, root: THREE.Object3D, arm: IArm, side: "Left" | "Right", anchor: TAnchor, touch: ITouch, weight: number, scale: number): void {
+  const bone = arm.fingers.get(`${side}Hand${touch.finger}`)
+  if (!bone || weight <= 0.001) return
+  anchorPointWorld(rig, root, anchor, vOffset.set(...touch.offset), scale, touchGoal)
+  arm.hand.getWorldPosition(touchFrom)
+  bone.getWorldPosition(touchTo)
+  aimBone(arm.hand, touchFrom, touchTo, touchGoal, weight)
+}
+
+/**
+ * Arc de trajectoire : à mi-chemin d'une cible à l'autre, la main passe devant
+ * le corps d'au plus cette part de la distance à parcourir. Un geste ne glisse
+ * jamais en ligne droite sur la poitrine.
+ */
+export const ARC = 0.22
+/** Distance à la cible (m) en deçà de laquelle la main s'oriente progressivement vers son point de contact. */
+export const TOUCH_REACH = 0.12
+/** Près d'une cible de contact (m, personnage de 1,70 m), les capsules ne repoussent plus la main. */
+export const CONTACT_ZONE = 0.07
 
 /** Pas d'inertie du poignet au-delà de cet angle (rad). */
 const DRAG_MAX = 0.3
@@ -407,9 +483,16 @@ interface IArmState {
   pole: SecondOrder
   weight: SecondOrder
   twist: SecondOrder
+  wrist: SecondOrder
   shapes: Record<THandShape, SecondOrder>
   contact: boolean
   started: boolean
+  /** Cible suivie, pour repérer un changement de geste. */
+  aim: IHandTarget | undefined
+  /** Distance à parcourir depuis le dernier changement (m). */
+  span: number
+  /** Cible de l'image précédente : le ressort suit le déplacement de son ancre. */
+  lastGoal: THREE.Vector3
 }
 
 const clipQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()]
@@ -421,6 +504,7 @@ const springPole = new THREE.Vector3()
 const vel = new THREE.Vector3()
 const forearmDir = new THREE.Vector3()
 const qDrag = new THREE.Quaternion()
+const arcGoal = new THREE.Vector3()
 
 /**
  * Gestes des bras, animés : chaque canal (cible du poignet, coude, poids,
@@ -438,9 +522,13 @@ export class GestureAnimator {
       pole: new SecondOrder(SPRINGS.pole, [0, -1, 0]),
       weight: new SecondOrder(SPRINGS.weight, [0]),
       twist: new SecondOrder(SPRINGS.twist, [0]),
+      wrist: new SecondOrder(SPRINGS.wrist, [0, 0]),
       shapes: Object.fromEntries(HAND_SHAPES.map((s) => [s, new SecondOrder(SPRINGS.fingers, [0])])) as Record<THandShape, SecondOrder>,
       contact: false,
       started: false,
+      aim: undefined,
+      span: 0,
+      lastGoal: new THREE.Vector3(),
     })
     this.arms = { right: make(), left: make() }
   }
@@ -470,10 +558,26 @@ export class GestureAnimator {
         st.pos.retune(contact ? SPRINGS.handContact : SPRINGS.hand)
         st.contact = contact
       }
-      springTarget.fromArray(st.pos.update(dt, goal.toArray()))
+      // arc : la consigne passe devant le corps, d'autant plus qu'on est loin des deux bouts
+      // même geste : le ressort est porté par son ancre (tête, buste, bassin) ; la main posée
+      // au menton suit la respiration et la tête sans retard, seul le changement de cible est animé
+      if (target && target === st.aim) st.pos.shift(vTmp.copy(goal).sub(st.lastGoal).toArray())
+      st.lastGoal.copy(goal)
+      springTarget.fromArray(st.pos.y)
+      if (target !== st.aim) {
+        st.aim = target
+        st.span = springTarget.distanceTo(goal)
+      }
+      const left = springTarget.distanceTo(goal)
+      const progress = st.span > 1e-4 ? THREE.MathUtils.clamp(1 - left / st.span, 0, 1) : 1
+      // carré du sinus : nul et plat aux deux bouts, la main se pose exactement sur sa cible
+      const bulge = Math.sin(Math.PI * progress) ** 2 * ARC * st.span
+      vTmp.set(Math.sin(root.rotation.y), 0, Math.cos(root.rotation.y)).multiplyScalar(bulge)
+      springTarget.fromArray(st.pos.update(dt, arcGoal.copy(goal).add(vTmp).toArray()))
       springPole.fromArray(st.pole.update(dt, goalPole.toArray()))
       const weight = THREE.MathUtils.clamp(st.weight.update(dt, [target ? 1 : 0])[0], 0, 1)
       const twist = st.twist.update(dt, [target?.twist ?? 0])[0]
+      const [flex, deviation] = st.wrist.update(dt, target?.wrist ?? [0, 0])
       for (const shape of HAND_SHAPES) {
         const w = THREE.MathUtils.clamp(st.shapes[shape].update(dt, [target?.hand === shape ? 1 : 0])[0], 0, 1)
         applyHandShape(rig, arm, shape, w)
@@ -490,6 +594,12 @@ export class GestureAnimator {
           arm.upper.updateMatrixWorld(true)
         }
         solveArm(arm, springTarget, springPole, weight, twist)
+        bendWrist(arm, sideName, flex * weight, deviation * weight)
+        // le contact ne s'oriente qu'à l'arrivée : en route, la main suit l'avant-bras
+        if (target?.touch) {
+          const arrival = THREE.MathUtils.clamp(1 - springTarget.distanceTo(goal) / (TOUCH_REACH * scale), 0, 1)
+          touchWith(rig, root, arm, sideName, target.anchor, target.touch, weight * arrival, scale)
+        }
         // inertie : la main traîne derrière le poignet qui accélère
         vel.fromArray(st.pos.v)
         arm.lower.getWorldPosition(vB)
@@ -501,10 +611,10 @@ export class GestureAnimator {
           const angle = Math.min(DRAG_MAX, speed * DRAG_GAIN) * weight
           rotateWorld(arm.hand, qDrag.setFromAxisAngle(vTmp.normalize().cross(forearmDir).normalize(), angle))
         }
-        // only while a gesture holds the hand away from the body: a hand that comes to
-        // rest on it follows a target measured on the real meshes (the capsules are too
-        // coarse there), and the way back to the clip ends in a pose already clear of it
-        const push = rig.colliders.length && target && !target.contact ? armPenetration(rig, arm, sideName, scale) : null
+        // en route, toujours ; arrivée près d'un contact (visage, hanche) ou du clip, la cible
+        // mesurée sur les vrais maillages prime : les capsules y sont trop grossières
+        const arriving = springTarget.distanceTo(goal) < CONTACT_ZONE * scale
+        const push = rig.colliders.length && !(arriving && (!target || target.contact)) ? armPenetration(rig, arm, sideName, scale) : null
         if (!push) break
         springTarget.add(push)
       }

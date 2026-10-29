@@ -51,6 +51,17 @@ describe("SecondOrder", () => {
     expect(s.update(1 / 60, [3])[0]).toBeCloseTo(3, 6)
   })
 
+  it("suit un repère qui bouge sans retard ni vitesse parasite", () => {
+    const s = new SecondOrder({ f: 1.2, zeta: 1, r: 0 }, [0, 0])
+    run(s, [1, 0], 4)
+    // la consigne et le ressort glissent ensemble : rien ne bouge en relatif
+    s.shift([0.5, -0.2])
+    expect(s.y[0]).toBeCloseTo(1.5, 3)
+    expect(s.y[1]).toBeCloseTo(-0.2, 6)
+    expect(s.update(1 / 60, [1.5, -0.2])[0]).toBeCloseTo(1.5, 3)
+    expect(Math.abs(s.v[0])).toBeLessThan(1e-3)
+  })
+
   it("change de tempo sans perdre sa position", () => {
     const s = new SecondOrder({ f: 0.5, zeta: 1, r: 0 }, [0])
     run(s, [1], 0.3)

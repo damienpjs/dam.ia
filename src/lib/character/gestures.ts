@@ -26,6 +26,15 @@ export const HAND_SHAPES = ["open", "talk", "fist", "chin", "hip"] as const
 
 export type THandShape = (typeof HAND_SHAPES)[number]
 
+/** Phalange du .glb, sans le côté : « Index2 » est la phalange du milieu de l'index. */
+export type TFingerBone = `${"Thumb" | "Index" | "Middle" | "Ring" | "Pinky"}${1 | 2 | 3}`
+
+/** Point de contact : la phalange `finger` vient se poser sur `offset`, dans le repère de l'ancre. */
+export interface ITouch {
+  finger: TFingerBone
+  offset: TVec3
+}
+
 export interface IHandTarget {
   /**
    * Ancre de la cible. « head » suit la tête (rotation comprise) : une main
@@ -39,10 +48,17 @@ export interface IHandTarget {
   pole: TVec3
   /** Rotation de l'avant-bras sur son axe (rad) : oriente la paume. */
   twist?: number
+  /** Pli du poignet (rad) : flexion vers la paume, déviation vers le pouce. */
+  wrist?: [number, number]
   /** Forme de la main pendant le geste ; sans elle, celle du clip. */
   hand?: THandShape
   /** La main vient toucher le corps : approche sans dépassement. */
   contact?: boolean
+  /**
+   * Oriente la main pour poser une phalange sur un point de l'ancre. Sans lui,
+   * l'orientation suit l'avant-bras, qui bouge avec l'idle : le contact varierait.
+   */
+  touch?: ITouch
 }
 
 export interface IGesturePose {
@@ -70,8 +86,10 @@ const AKIMBO_RIGHT: IHandTarget = { anchor: "hips", offset: [-0.2, 0.07, -0.03],
 export const GESTURE_POSES: Record<TGesture, IGesturePose> = {
   none: {},
   talk: { right: TALK_RIGHT, beat: [0, 0.05, 0.03] },
-  // main au menton : index le long de la mâchoire, avant-bras presque vertical (cible mesurée sur le maillage)
-  think: { right: { anchor: "head", offset: [-0.03, -0.11, 0.16], pole: [-0.25, -0.8, 0.5], twist: 1.2, hand: "chin", contact: true } },
+  // main au menton : le coude s'écarte devant l'épaule pour que l'avant-bras passe
+  // devant la poitrine, la paume tournée vers le cou, le menton posé sur l'index replié
+  // (cible mesurée sur le maillage : 0,5 à 2 mm entre l'index et le menton)
+  think: { right: { anchor: "head", offset: [-0.0259, -0.0988, 0.2121], pole: [-0.6, -0.6, 0.5], twist: 0.5, wrist: [0.1, 0.35], hand: "chin", contact: true, touch: { finger: "Index2", offset: [0.0373, -0.0035, 0.1481] } } },
   shrug: { right: SHRUG_RIGHT, left: mirror(SHRUG_RIGHT) },
   open: { right: OPEN_RIGHT, left: mirror(OPEN_RIGHT), beat: [0, 0.03, 0.02] },
   akimbo: { right: AKIMBO_RIGHT, left: mirror(AKIMBO_RIGHT) },
@@ -85,4 +103,14 @@ export function gestureFor(activity: TActivity, mood: TMood): TGesture {
   if (mood === "sorry") return "shrug"
   if (mood === "proud") return "akimbo"
   return "talk"
+}
+
+/**
+ * Part du regard vers la caméra selon l'activité. En réfléchissant, la tête
+ * garde sa propre pose (regard en l'air, de côté) : la main posée au menton la
+ * suit, et une tête qui tournerait vers la caméra entraînerait le bras à travers
+ * la poitrine.
+ */
+export function cameraLookFor(activity: TActivity): number {
+  return activity === "thinking" ? 0 : 1
 }

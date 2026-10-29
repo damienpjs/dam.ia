@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { GESTURES, GESTURE_POSES, HAND_SHAPES, gestureFor, mirror } from "@/lib/character/gestures"
+import { GESTURES, GESTURE_POSES, HAND_SHAPES, cameraLookFor, gestureFor, mirror } from "@/lib/character/gestures"
 
 describe("lib/character/gestures", () => {
   it("décrit chaque geste par des cibles de main complètes", () => {
@@ -52,5 +52,20 @@ describe("lib/character/gestures", () => {
     expect(gestureFor("listening", "proud")).toBe("akimbo")
     expect(gestureFor("listening", "joy")).toBe("none")
     expect(gestureFor("idle", "neutral")).toBe("none")
+  })
+
+  it("détourne la tête de la caméra en réfléchissant, pas ailleurs", () => {
+    expect(cameraLookFor("thinking")).toBe(0)
+    for (const a of ["idle", "listening", "talking"] as const) expect(cameraLookFor(a)).toBe(1)
+  })
+
+  it("pose la main au menton par un point de contact et un poignet plié", () => {
+    const think = GESTURE_POSES.think.right!
+    expect(think.touch?.finger).toBe("Index2")
+    expect(think.wrist).toHaveLength(2)
+    // le point de contact est à portée de la main : à une longueur de main du poignet
+    const reach = Math.hypot(...think.offset.map((v, i) => v - think.touch!.offset[i]))
+    expect(reach).toBeGreaterThan(0.1)
+    expect(reach).toBeLessThan(0.16)
   })
 })

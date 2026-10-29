@@ -54,6 +54,18 @@ export class SecondOrder {
     }
   }
 
+  /**
+   * Déplace tout le ressort (position et consigne précédente) de `delta` :
+   * il suit un repère qui bouge sans prendre de retard, et sa vitesse propre
+   * n'en est pas affectée.
+   */
+  shift(delta: readonly number[]): void {
+    for (let i = 0; i < this.y.length; i++) {
+      this.y[i] += delta[i]
+      this.xPrev[i] += delta[i]
+    }
+  }
+
   /** Change de tempo sans perdre la position ni la vitesse. */
   retune(params: ISpringParams): void {
     this.k = constants(params)
@@ -95,6 +107,8 @@ export const SPRINGS = {
   pole: { f: 1.4, zeta: 0.85, r: 0 },
   /** Rotation de l'avant-bras : en retard sur la main (chevauchement). */
   twist: { f: 1.1, zeta: 0.7, r: 0 },
+  /** Pli du poignet : suit l'avant-bras avec un léger retard. */
+  wrist: { f: 1.2, zeta: 0.8, r: 0 },
   /** Forme de la main : les doigts se posent après le poignet. */
   fingers: { f: 0.95, zeta: 0.85, r: 0 },
   /** Tête : suit le regard avec un temps de retard. */

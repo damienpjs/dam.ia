@@ -61,7 +61,7 @@ import { homeEase, isAwayFromHome, isHomeReached, type TVec3 } from "@/lib/scene
 import { SceneResetButton } from "@/components/features/scene-reset-button"
 import { FaceController } from "@/lib/character/face-controller"
 import { readCharacterCues } from "@/lib/character/character-cues"
-import { gestureFor } from "@/lib/character/gestures"
+import { cameraLookFor, gestureFor } from "@/lib/character/gestures"
 import { applyFace, createCharacterRig, GestureAnimator, HeadAnimator } from "@/components/features/character-rig"
 import { cn } from "@/lib/utils"
 
@@ -179,7 +179,7 @@ function Character({ bubblesEnabled, bubbleLines, presenting }: ICharacterProps)
     applyFace(rig, frame)
     const g = root.current
     g.updateMatrixWorld(true)
-    const look = presenting && settled ? 1 : 0
+    const look = presenting && settled ? cameraLookFor(face.getActivity()) : 0
     lookWeight.current += (look - lookWeight.current) * Math.min(1, dt * 3)
     head.update(rig, g, camera, frame.head, lookWeight.current, dt)
     const active = presenting && settled ? gestureFor(face.getActivity(), face.getMood()) : "none"

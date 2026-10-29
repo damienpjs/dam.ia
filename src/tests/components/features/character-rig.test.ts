@@ -1,15 +1,18 @@
 import * as THREE from "three"
 import { describe, expect, it } from "vitest"
 import {
+  CONTACT_ZONE,
   GestureAnimator,
   HeadAnimator,
   TWIST_AT_ELBOW,
   applyHandShape,
   armPenetration,
+  bendWrist,
   createCharacterRig,
   handTargetWorld,
   pushOut,
   solveArm,
+  touchWith,
   type ICharacterRig,
 } from "@/components/features/character-rig"
 import { GESTURE_POSES } from "@/lib/character/gestures"
@@ -195,6 +198,71 @@ describe("applyHandShape", () => {
   })
 })
 
+describe("bendWrist", () => {
+  /** Main droite le long de -X ; l'index est du côté +Z, les doigts se replient vers +Y (la paume). */
+  function curledHand() {
+    const { root, animations } = makeCharacter()
+    const rig = createCharacterRig(root, animations)!
+    rig.arms.right.fingers.get("RightHandMiddle2")!.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.8)
+    root.updateMatrixWorld(true)
+    const arm = rig.arms.right
+    const dir = () => arm.fingers.get("RightHandMiddle1")!.getWorldPosition(new THREE.Vector3()).sub(arm.hand.getWorldPosition(new THREE.Vector3())).normalize()
+    return { root, arm, dir }
+  }
+
+  it("plie la main vers la paume, de l'angle demandé", () => {
+    const { arm, dir } = curledHand()
+    bendWrist(arm, "Right", 0.5, 0)
+    const d = dir()
+    expect(d.y).toBeCloseTo(Math.sin(0.5), 3)
+    expect(Math.abs(d.z)).toBeLessThan(1e-3)
+  })
+
+  it("dévie la main vers le pouce dans le plan de la paume", () => {
+    const { arm, dir } = curledHand()
+    bendWrist(arm, "Right", 0, 0.3)
+    const d = dir()
+    expect(d.z).toBeCloseTo(Math.sin(0.3), 3)
+    expect(Math.abs(d.y)).toBeLessThan(1e-3)
+  })
+
+  it("trouve la paume du bon côté et ne fait rien sans pli ou sans doigts", () => {
+    const { arm, dir } = curledHand()
+    // doigts repliés de l'autre côté : la flexion change de sens
+    arm.fingers.get("RightHandMiddle2")!.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.8)
+    arm.hand.updateMatrixWorld(true)
+    bendWrist(arm, "Right", 0.5, 0)
+    expect(dir().y).toBeCloseTo(-Math.sin(0.5), 3)
+    const before = arm.hand.quaternion.clone()
+    bendWrist(arm, "Right", 0, 0)
+    bendWrist({ ...arm, fingers: new Map() }, "Right", 0.5, 0.5)
+    expect(arm.hand.quaternion.equals(before)).toBe(true)
+  })
+})
+
+describe("touchWith", () => {
+  it("tourne la main pour poser la phalange sur son point, sans bouger le poignet", () => {
+    const { root, animations } = makeCharacter()
+    const rig = createCharacterRig(root, animations)!
+    const arm = rig.arms.right
+    const wrist = arm.hand.getWorldPosition(new THREE.Vector3())
+    const bone = arm.fingers.get("RightHandIndex2")!
+    const reach = bone.getWorldPosition(new THREE.Vector3()).distanceTo(wrist)
+    // un point à la même distance du poignet, au-dessus, dans le repère du buste
+    const chest = rig.bones.chest.getWorldPosition(new THREE.Vector3())
+    const point = wrist.clone().add(new THREE.Vector3(0, reach, 0))
+    const offset = point.clone().sub(chest).toArray() as [number, number, number]
+    touchWith(rig, root, arm, "Right", "chest", { finger: "Index2", offset }, 1, 1)
+    expect(bone.getWorldPosition(new THREE.Vector3()).distanceTo(point)).toBeLessThan(1e-3)
+    expect(arm.hand.getWorldPosition(new THREE.Vector3()).distanceTo(wrist)).toBeLessThan(1e-6)
+    // phalange absente ou poids nul : rien ne change
+    const before = arm.hand.quaternion.clone()
+    touchWith(rig, root, arm, "Right", "chest", { finger: "Index2", offset: [0, 0, 0] }, 0, 1)
+    touchWith(rig, root, { ...arm, fingers: new Map() }, "Right", "chest", { finger: "Index2", offset: [0, 0, 0] }, 1, 1)
+    expect(arm.hand.quaternion.equals(before)).toBe(true)
+  })
+})
+
 describe("collisions", () => {
   it("sort un point d'une capsule jusqu'à sa surface, et laisse un point dehors", () => {
     const { root, animations } = makeCharacter()
@@ -297,6 +365,65 @@ describe("GestureAnimator", () => {
       gestures.update(rig, root, "talk", 0, 1 / 60)
     }
     expect(rig.arms.right.hand.getWorldPosition(new THREE.Vector3()).distanceTo(target)).toBeGreaterThan(0.05)
+  })
+})
+
+describe("GestureAnimator, trajectoires", () => {
+  it("passe en arc devant le corps entre deux cibles", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const reset = restPose(root)
+    const gestures = new GestureAnimator()
+    const start = rig.arms.right.hand.getWorldPosition(new THREE.Vector3())
+    const end = handTargetWorld(rig, root, GESTURE_POSES.open.right!, undefined, 0, 1, new THREE.Vector3())
+    const line = new THREE.Line3(start, end)
+    let ahead = 0
+    for (let i = 0; i < 120; i++) {
+      reset()
+      gestures.update(rig, root, "open", 0, 1 / 60)
+      const w = rig.arms.right.hand.getWorldPosition(new THREE.Vector3())
+      ahead = Math.max(ahead, w.z - line.closestPointToPoint(w, true, new THREE.Vector3()).z)
+    }
+    expect(ahead).toBeGreaterThan(0.02)
+  })
+
+  it("laisse une main de contact se poser malgré une capsule, mais l'écarte du corps en route", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const reset = restPose(root)
+    const target = handTargetWorld(rig, root, GESTURE_POSES.akimbo.right!, undefined, 0, 1, new THREE.Vector3())
+    const hips = rig.bones.hips
+    const local = hips.worldToLocal(target.clone())
+    // capsule plus large que la zone de contact, centrée sur la cible
+    const r = CONTACT_ZONE * 1.5
+    rig.colliders.push({ bone: hips, a: local.clone().add(new THREE.Vector3(0, -0.02, 0)), b: local.clone().add(new THREE.Vector3(0, 0.02, 0)), rx: r, rz: r })
+    const gestures = new GestureAnimator()
+    let closest = Infinity
+    for (let i = 0; i < 300; i++) {
+      reset()
+      gestures.update(rig, root, "akimbo", 0, 1 / 60)
+      const d = rig.arms.right.hand.getWorldPosition(new THREE.Vector3()).distanceTo(target)
+      if (i < 20) closest = Math.min(closest, d)
+    }
+    // en route, la capsule la tient à distance ; arrivée, la cible mesurée l'emporte
+    expect(closest).toBeGreaterThan(CONTACT_ZONE)
+    expect(rig.arms.right.hand.getWorldPosition(new THREE.Vector3()).distanceTo(target)).toBeLessThan(0.01)
+  })
+
+  it("plie le poignet du geste qui le demande", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const reset = restPose(root)
+    const gestures = new GestureAnimator()
+    for (let i = 0; i < 240; i++) {
+      reset()
+      gestures.update(rig, root, "think", 0, 1 / 60)
+    }
+    const arm = rig.arms.right
+    const fore = arm.hand.getWorldPosition(new THREE.Vector3()).sub(arm.lower.getWorldPosition(new THREE.Vector3())).normalize()
+    const hand = arm.fingers.get("RightHandMiddle1")!.getWorldPosition(new THREE.Vector3()).sub(arm.hand.getWorldPosition(new THREE.Vector3())).normalize()
+    const [flex, dev] = GESTURE_POSES.think.right!.wrist!
+    expect(fore.angleTo(hand)).toBeGreaterThan(0.6 * Math.hypot(flex, dev))
   })
 })
 

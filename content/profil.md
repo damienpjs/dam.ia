@@ -12,6 +12,7 @@ sourceLabel: "CV (PDF)"
 
 - **Nom** : Damien Pasulj
 - **Poste** : Lead Tech JavaScript (React · TypeScript · Next.js)
+- **Positionnement** : Harness Engineer et IA enablement (skills, guardrails et workflow agentique intégrés au flux de développement de l'équipe chez Apizee)
 - **Date de naissance** : 27 janvier 1992
 - **Nationalité** : Français
 - **Localisation** : Amélie-les-Bains, Pyrénées-Orientales (66), full remote

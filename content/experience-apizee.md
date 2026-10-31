@@ -21,6 +21,8 @@ sourceLabel: "CV (PDF)"
 - Lead technique du cœur de produit : architecture front-end, définition des bonnes pratiques et revues de code pour une équipe de 3 développeurs
 - Mise en place de pipelines GitLab CI/CD : lint, tests, déploiements automatisés
 - Accompagnement et montée en compétences de l'équipe (pairing, standards documentés)
+- Harness Engineering : conception d'un workflow agentique GitLab CI/Jira dans lequel un agent de code trie, implémente puis challenge les tickets, de Jira jusqu'à la merge request
+- IA enablement : intégration de skills (Claude Code, MCP) et de guardrails dans la stack pour faire adopter l'IA par l'équipe de développement
 
 ## Stack technique
 

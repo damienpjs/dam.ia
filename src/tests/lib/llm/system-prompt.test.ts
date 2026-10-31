@@ -35,9 +35,16 @@ describe("SYSTEM_PROMPT", () => {
     expect(PERSONA).toContain("Lead Tech JS")
   })
 
-  it("met en avant le positionnement Product Builder & enthousiaste IA", () => {
-    expect(PERSONA).toContain("Product Builder")
-    expect(PERSONA).toContain("enthousiaste IA")
+  it("met en avant le positionnement Harness Engineer et IA enablement", () => {
+    expect(PERSONA).toContain("Harness Engineer")
+    expect(PERSONA).toContain("IA enablement")
+    expect(PERSONA).toContain("workflow agentique")
+  })
+
+  it("interdit les anciens termes fourre-tout", () => {
+    expect(PERSONA).toContain("N'emploie jamais les expressions « Product Builder » ni « enthousiaste IA »")
+    expect(PERSONA).not.toContain("Product Builder &")
+    expect(PERSONA).not.toContain("Un Product Builder")
   })
 
   it("interdit de prendre le visiteur pour Damien ou de commenter son propre rôle", () => {

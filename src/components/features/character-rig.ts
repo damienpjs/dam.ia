@@ -28,8 +28,10 @@ export interface IFaceUniforms {
 interface IArm {
   upper: THREE.Bone
   lower: THREE.Bone
-  /** Os de torsion de l'avant-bras (du milieu au poignet), parent de la main ; absent sur un ancien modèle. */
+  /** Os de torsion de l'avant-bras (jusqu'au poignet), parent de la main ; absent sur un ancien modèle. */
   twist: THREE.Bone | null
+  /** Os de torsion intermédiaire (du tiers aux deux tiers de l'avant-bras), parent de `twist` ; absent sur un ancien modèle. */
+  twist1: THREE.Bone | null
   hand: THREE.Bone
   /** Rotation de repos de la main : alignée sur l'avant-bras. */
   handRest: THREE.Quaternion
@@ -130,6 +132,7 @@ export function createCharacterRig(root: THREE.Object3D, animations: THREE.Anima
     upper: bones[`${side}Arm`],
     lower: bones[`${side}ForeArm`],
     twist: bones[`${side}ForeArmTwist`] ?? null,
+    twist1: bones[`${side}ForeArmTwist1`] ?? null,
     hand: bones[`${side}Hand`],
     handRest: bones[`${side}Hand`].quaternion.clone(),
     fingers: new Map(Object.entries(bones).filter(([name]) => FINGER.test(name) && name.startsWith(side))),
@@ -182,6 +185,43 @@ function rotateWorld(bone: THREE.Bone, delta: THREE.Quaternion, weight = 1): voi
   bone.updateMatrixWorld(true)
 }
 
+// ---------------------------------------------------------------- pose du clip
+
+/**
+ * Pose du clip sous les corrections procédurales (tête, bras, doigts).
+ *
+ * Le mixer de three.js ne réécrit un os que lorsque la valeur de son clip
+ * change : sur une piste constante (deux clés égales, fréquent pour la torsion
+ * de l'avant-bras ou les doigts au repos), la correction de l'image précédente
+ * resterait en place et la suivante s'y ajouterait, jusqu'à vriller
+ * l'avant-bras. Avant les corrections, un os que le mixer n'a pas réécrit
+ * reprend la pose du clip mémorisée ; après, on retient ce qui a été écrit.
+ */
+export class ClipPoseGuard {
+  private readonly clip = new Map<THREE.Bone, THREE.Quaternion>()
+  private readonly written = new Map<THREE.Bone, THREE.Quaternion>()
+
+  /** Avant les corrections : rend leur pose de clip aux os que le mixer a laissés tels quels. */
+  restore(bones: Iterable<THREE.Bone>): void {
+    for (const bone of bones) {
+      const written = this.written.get(bone)
+      let clip = this.clip.get(bone)
+      if (written && clip && bone.quaternion.equals(written)) bone.quaternion.copy(clip)
+      if (!clip) this.clip.set(bone, (clip = new THREE.Quaternion()))
+      clip.copy(bone.quaternion)
+    }
+  }
+
+  /** Après les corrections : retient la rotation écrite sur chaque os. */
+  record(bones: Iterable<THREE.Bone>): void {
+    for (const bone of bones) {
+      let written = this.written.get(bone)
+      if (!written) this.written.set(bone, (written = new THREE.Quaternion()))
+      written.copy(bone.quaternion)
+    }
+  }
+}
+
 // ---------------------------------------------------------------- tête
 
 const camLocal = new THREE.Vector3()
@@ -205,8 +245,12 @@ const NECK_SHARE = 0.38
  */
 export class HeadAnimator {
   private readonly spring = new SecondOrder(SPRINGS.head, [0, 0, 0])
+  private readonly guard = new ClipPoseGuard()
 
   update(rig: ICharacterRig, root: THREE.Object3D, camera: THREE.Camera, offset: IHeadOffset, lookWeight: number, dt: number): void {
+    const bones = [rig.bones.neck, rig.bones.head]
+    this.guard.restore(bones)
+    rig.bones.neck.updateMatrixWorld(true)
     rig.bones.head.getWorldPosition(headWorld)
     camLocal.copy(camera.position).sub(headWorld).applyAxisAngle(UP, -root.rotation.y)
     const clamp = (v: number, m: number) => Math.max(-m, Math.min(m, v))
@@ -226,6 +270,7 @@ export class HeadAnimator {
       qRoll.setFromAxisAngle(axisZ, roll * share)
       rotateWorld(bone, tmpQ.copy(qYaw).multiply(qPitch).multiply(qRoll))
     }
+    this.guard.record(bones)
   }
 }
 
@@ -265,8 +310,9 @@ function rollAboutForearm(arm: IArm, bone: THREE.Bone, angle: number): void {
 /**
  * Résout un bras pour amener le poignet sur `target`, coude vers `pole`
  * (repère monde), puis oriente la paume (`twist`, rad, autour de l'avant-bras).
- * Avec un os de torsion, il porte toute la rotation, répartie sur la peau du
- * coude au poignet ; sinon elle est partagée entre coude et poignet.
+ * Avec deux os de torsion, elle est partagée en trois tiers entre l'avant-bras
+ * (sur son axe), Twist1 et Twist ; avec un seul, il la porte toute ; sans os de
+ * torsion, elle est partagée entre coude et poignet.
  */
 export function solveArm(arm: IArm, target: THREE.Vector3, pole: THREE.Vector3, weight: number, twist = 0): void {
   if (weight <= 0.001) return
@@ -289,7 +335,11 @@ export function solveArm(arm: IArm, target: THREE.Vector3, pole: THREE.Vector3, 
   arm.lower.getWorldPosition(vB)
   arm.hand.getWorldPosition(vC)
   aimBone(arm.lower, vB, vC, wrist, weight)
-  if (twist && arm.twist) rollAboutForearm(arm, arm.twist, twist * weight)
+  if (twist && arm.twist && arm.twist1) {
+    // trois pas égaux (avant-bras sur son axe, Twist1, Twist) : le skinning linéaire
+    // ne pince chaque mélange que de 1 - cos(angle / 6), au lieu de 1 - cos(angle / 2)
+    for (const bone of [arm.lower, arm.twist1, arm.twist]) rollAboutForearm(arm, bone, (twist * weight) / 3)
+  } else if (twist && arm.twist) rollAboutForearm(arm, arm.twist, twist * weight)
   else if (twist) rollAboutForearm(arm, arm.lower, twist * weight * TWIST_AT_ELBOW)
   if (twist) {
     // l'os de torsion n'est pas exactement sur l'axe coude-poignet : sa rotation
@@ -495,7 +545,7 @@ interface IArmState {
   lastGoal: THREE.Vector3
 }
 
-const clipQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()]
+const clipQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()]
 const wristClip = new THREE.Vector3()
 const goal = new THREE.Vector3()
 const goalPole = new THREE.Vector3()
@@ -515,6 +565,7 @@ const arcGoal = new THREE.Vector3()
  */
 export class GestureAnimator {
   private readonly arms: Record<"right" | "left", IArmState>
+  private readonly guard = new ClipPoseGuard()
 
   constructor() {
     const make = (): IArmState => ({
@@ -534,6 +585,8 @@ export class GestureAnimator {
   }
 
   update(rig: ICharacterRig, root: THREE.Object3D, gesture: TGesture, beat: number, dt: number, scale = 1): void {
+    const bones = armBones(rig)
+    this.guard.restore(bones)
     rig.bones.hips.updateMatrixWorld(true)
     const pose = GESTURE_POSES[gesture]
     for (const side of ["right", "left"] as const) {
@@ -584,7 +637,7 @@ export class GestureAnimator {
       }
       if (weight <= 0.001) continue
 
-      const chain = [arm.upper, arm.lower, arm.twist ?? arm.lower, arm.hand]
+      const chain = [arm.upper, arm.lower, arm.twist1 ?? arm.lower, arm.twist ?? arm.lower, arm.hand]
       chain.forEach((bone, i) => clipQ[i].copy(bone.quaternion))
       const sideName = side === "right" ? "Right" : "Left"
       // jusqu'à trois passes : si le bras entre dans le corps, on décale la cible d'autant
@@ -619,5 +672,23 @@ export class GestureAnimator {
         springTarget.add(push)
       }
     }
+    this.guard.record(bones)
   }
+}
+
+const armBonesOf = new WeakMap<ICharacterRig, THREE.Bone[]>()
+
+/** Os des deux bras que les gestes peuvent modifier : épaule à main, torsion et phalanges. */
+function armBones(rig: ICharacterRig): THREE.Bone[] {
+  let out = armBonesOf.get(rig)
+  if (!out) {
+    out = []
+    for (const arm of [rig.arms.right, rig.arms.left]) {
+      out.push(arm.upper, arm.lower, arm.hand, ...arm.fingers.values())
+      if (arm.twist1) out.push(arm.twist1)
+      if (arm.twist) out.push(arm.twist)
+    }
+    armBonesOf.set(rig, out)
+  }
+  return out
 }

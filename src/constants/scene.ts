@@ -28,8 +28,11 @@ export const MODEL_FORWARD_OFFSET = 0
 // ── Déambulation aléatoire ───────────────────────────────────────────────
 /** Rayon de la zone (sur le sol) dans laquelle le personnage se balade. */
 export const WANDER_RADIUS = 2.2
-/** Vitesse de marche, en unités/seconde. */
-export const WALK_SPEED = 0.85
+/**
+ * Vitesse de marche, en unités/seconde. Calée sur la foulée du clip WALKING
+ * (1,32 m par cycle de 1,04 s) : plus lente, les pieds glissent sur le sol.
+ */
+export const WALK_SPEED = 1.27
 /** Vitesse d'orientation vers la cible (facteur de lerp angulaire/seconde). */
 export const TURN_SPEED = 7
 /** Distance en deçà de laquelle la cible est considérée atteinte. */

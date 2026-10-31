@@ -25,15 +25,18 @@ export interface IEyeShape {
   halfDown: number
 }
 
-/** Mesurés sur la feuille de visage (1024 px pour 0,26 m), yeux peints d'origine. */
+/**
+ * Feuille de visage de 0,26 m de côté, centrée à 1,51 m. Centrés sur les orbites de la
+ * tête v4, en amande comme les yeux de la v3 : plus larges que hauts, le bas plus plat.
+ */
 export const EYES: { left: IEyeShape; right: IEyeShape } = {
   // gauche du personnage = droite de l'image
-  left: { center: [0.6348, 0.6602], halfWidth: 0.0733, halfUp: 0.0498, halfDown: 0.0505 },
-  right: { center: [0.3486, 0.6602], halfWidth: 0.0723, halfUp: 0.0498, halfDown: 0.0505 },
+  left: { center: [0.6758, 0.7087], halfWidth: 0.08, halfUp: 0.052, halfDown: 0.04 },
+  right: { center: [0.3242, 0.7087], halfWidth: 0.08, halfUp: 0.052, halfDown: 0.04 },
 }
 
 /** Ligne de la bouche peinte : centre et demi-largeur dans la feuille de visage. */
-export const MOUTH = { center: [0.5, 0.384] as [number, number], halfWidth: 0.098 }
+export const MOUTH = { center: [0.5, 0.3813] as [number, number], halfWidth: 0.1119 }
 
 // Couleurs relevées sur les yeux peints d'origine : iris brun foncé,
 // grande pupille floue, cerne extérieur plus sombre.

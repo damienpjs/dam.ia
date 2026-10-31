@@ -2,6 +2,7 @@ import * as THREE from "three"
 import { describe, expect, it } from "vitest"
 import {
   CONTACT_ZONE,
+  ClipPoseGuard,
   GestureAnimator,
   HeadAnimator,
   TWIST_AT_ELBOW,
@@ -19,29 +20,41 @@ import { GESTURE_POSES } from "@/lib/character/gestures"
 
 type TArm = Parameters<typeof solveArm>[0]
 
-/** Bras droit tendu le long de -X, comme le T-pose du rig : épaule, coude, (torsion), poignet, bout des doigts. */
-function makeArm(withTwist = false) {
+/**
+ * Bras droit tendu le long de -X, comme le T-pose du rig : épaule, coude,
+ * (torsion intermédiaire), (torsion), poignet, bout des doigts.
+ */
+function makeArm(withTwist = false, withTwist1 = false) {
   const root = new THREE.Bone()
   const upper = new THREE.Bone()
   const lower = new THREE.Bone()
+  const twist1 = withTwist && withTwist1 ? new THREE.Bone() : null
   const twist = withTwist ? new THREE.Bone() : null
   const hand = new THREE.Bone()
   const tip = new THREE.Bone()
   lower.position.set(-0.19, 0, 0)
-  if (twist) {
+  if (twist1 && twist) {
+    twist1.position.set(-0.066, 0, 0)
+    twist.position.set(-0.067, 0, 0)
+    hand.position.set(-0.067, 0, 0)
+  } else if (twist) {
     twist.position.set(-0.1, 0, 0)
     hand.position.set(-0.1, 0, 0)
   } else hand.position.set(-0.2, 0, 0)
   tip.position.set(-0.08, 0, 0)
   root.add(upper)
   upper.add(lower)
-  if (twist) {
+  if (twist1 && twist) {
+    lower.add(twist1)
+    twist1.add(twist)
+    twist.add(hand)
+  } else if (twist) {
     lower.add(twist)
     twist.add(hand)
   } else lower.add(hand)
   hand.add(tip)
   root.updateMatrixWorld(true)
-  const arm: TArm = { upper, lower, twist, hand, handRest: hand.quaternion.clone(), fingers: new Map() }
+  const arm: TArm = { upper, lower, twist, twist1, hand, handRest: hand.quaternion.clone(), fingers: new Map() }
   return { arm, root, tip }
 }
 
@@ -129,6 +142,14 @@ describe("solveArm", () => {
     solveArm(arm, new THREE.Vector3(-0.39, 0, 0), new THREE.Vector3(0, -1, 0), 1, 1.2)
     expect(rollOf(arm.twist!)).toBeCloseTo(-1.2, 2)
     expect(Math.abs(rollOf(arm.lower))).toBeLessThan(1e-3)
+  })
+
+  it("avec deux os de torsion, répartit la rotation de la paume en trois tiers", () => {
+    const { arm } = makeArm(true, true)
+    solveArm(arm, new THREE.Vector3(-0.39, 0, 0), new THREE.Vector3(0, -1, 0), 1, 1.5)
+    expect(rollOf(arm.lower)).toBeCloseTo(-0.5, 2)
+    expect(rollOf(arm.twist1!)).toBeCloseTo(-0.5, 2)
+    expect(rollOf(arm.twist!)).toBeCloseTo(-0.5, 2)
   })
 
   it("tourne la main de toute la torsion demandée, dans le prolongement de l'avant-bras", () => {
@@ -415,9 +436,16 @@ describe("GestureAnimator, trajectoires", () => {
     const rig = createCharacterRig(root, animations)!
     const reset = restPose(root)
     const gestures = new GestureAnimator()
-    for (let i = 0; i < 240; i++) {
-      reset()
-      gestures.update(rig, root, "think", 0, 1 / 60)
+    // la flexion seule : arrivé au contact, touchWith réoriente la main vers son point
+    const think = GESTURE_POSES.think.right!
+    GESTURE_POSES.think.right = { ...think, touch: undefined }
+    try {
+      for (let i = 0; i < 240; i++) {
+        reset()
+        gestures.update(rig, root, "think", 0, 1 / 60)
+      }
+    } finally {
+      GESTURE_POSES.think.right = think
     }
     const arm = rig.arms.right
     const fore = arm.hand.getWorldPosition(new THREE.Vector3()).sub(arm.lower.getWorldPosition(new THREE.Vector3())).normalize()
@@ -449,5 +477,57 @@ describe("HeadAnimator", () => {
     reset()
     still.update(rig, root, camera, { yaw: 0, pitch: 0, roll: 0 }, 0, 1 / 60)
     expect(forward().x).toBeCloseTo(0, 6)
+  })
+})
+
+describe("ClipPoseGuard", () => {
+  it("rend la pose du clip à un os que le mixer n'a pas réécrit, et garde une nouvelle valeur du clip", () => {
+    const bone = new THREE.Bone()
+    const clip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.4)
+    const guard = new ClipPoseGuard()
+    bone.quaternion.copy(clip)
+    guard.restore([bone])
+    bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.8))
+    guard.record([bone])
+    // piste constante : le mixer laisse la correction en place
+    guard.restore([bone])
+    expect(bone.quaternion.angleTo(clip)).toBeLessThan(1e-6)
+    // piste animée : le mixer a écrit une autre valeur, elle est gardée
+    guard.record([bone])
+    const next = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.3)
+    bone.quaternion.copy(next)
+    guard.restore([bone])
+    expect(bone.quaternion.angleTo(next)).toBeLessThan(1e-6)
+  })
+
+  it("sur un clip constant, un geste ne cumule pas d'une image à l'autre et rend la pose du clip", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const gestures = new GestureAnimator()
+    const angles: number[] = []
+    // aucun reset : le mixer ne réécrit pas les os d'une piste constante
+    for (let i = 0; i < 240; i++) {
+      gestures.update(rig, root, "talk", 0, 1 / 60)
+      if (i === 179 || i === 239) angles.push(rig.arms.right.lower.quaternion.angleTo(new THREE.Quaternion()))
+    }
+    expect(Math.abs(angles[1] - angles[0])).toBeLessThan(1e-3)
+    for (let i = 0; i < 300; i++) gestures.update(rig, root, "none", 0, 1 / 60)
+    expect(rig.arms.right.upper.quaternion.angleTo(new THREE.Quaternion())).toBeLessThan(1e-3)
+    expect(rig.arms.right.lower.quaternion.angleTo(new THREE.Quaternion())).toBeLessThan(1e-3)
+  })
+
+  it("sur un clip constant, la tête suit le regard sans tourner sur elle-même", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const head = new HeadAnimator()
+    const camera = new THREE.PerspectiveCamera()
+    camera.position.set(1, 1.5, 2)
+    const at: THREE.Quaternion[] = []
+    for (let i = 0; i < 400; i++) {
+      head.update(rig, root, camera, { pitch: 0, yaw: 0, roll: 0 }, 1, 1 / 60)
+      if (i === 299 || i === 399) at.push(rig.bones.head.quaternion.clone())
+    }
+    expect(at[0].angleTo(at[1])).toBeLessThan(1e-3)
+    expect(rig.bones.head.quaternion.angleTo(new THREE.Quaternion())).toBeLessThan(1)
   })
 })

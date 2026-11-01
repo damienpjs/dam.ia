@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { GroqProvider } from "@/lib/llm/groq-provider"
 import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
-import { GROQ_API_URL, GROQ_MODEL, GROQ_TIMEOUT_MS, LLM_MAX_OUTPUT_TOKENS, LLM_TEMPERATURE } from "@/constants/llm"
+import { GROQ_API_URL, GROQ_MODEL, GROQ_REASONING_EFFORT, GROQ_TIMEOUT_MS, LLM_MAX_OUTPUT_TOKENS, LLM_TEMPERATURE } from "@/constants/llm"
 
 /**
  * Construit une ligne SSE `data:` à partir d'un delta de contenu.
@@ -108,6 +108,7 @@ describe("GroqProvider", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
     expect(body.model).toBe(GROQ_MODEL)
+    expect(body.reasoning_effort).toBe(GROQ_REASONING_EFFORT)
     expect(body.stream).toBe(true)
     expect(body.messages[0].role).toBe("system")
     expect(body.messages[1]).toEqual({ role: "user", content: "Quelles sont tes compétences ?" })
@@ -147,13 +148,13 @@ describe("GroqProvider", () => {
   it("permet de surcharger le modèle", async () => {
     mockFetch.mockResolvedValue(makeStreamResponse([sseChunk("ok")]))
 
-    const provider = new GroqProvider("fake-key", "llama-3.1-8b-instant")
+    const provider = new GroqProvider("fake-key", "openai/gpt-oss-20b")
     for await (const _text of provider.streamResponse("test")) {
       // consume stream
     }
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.model).toBe("llama-3.1-8b-instant")
+    expect(body.model).toBe("openai/gpt-oss-20b")
   })
 
   it("lance une QuotaExceededError sur un statut 429", async () => {

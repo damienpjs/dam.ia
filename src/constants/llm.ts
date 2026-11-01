@@ -23,8 +23,15 @@ export const GEMINI_THINKING_BUDGET = 0
 // Timeout par défaut pour les requêtes Groq (en ms)
 export const GROQ_TIMEOUT_MS = 30_000
 
-// Modèle Groq utilisé pour le fallback (API OpenAI-compatible)
-export const GROQ_MODEL = "llama-3.3-70b-versatile"
+// Modèle Groq utilisé pour le fallback (API OpenAI-compatible).
+// `llama-3.3-70b-versatile` a été retiré par Groq (404) : le fallback ne
+// répondait plus dès que le quota gratuit Gemini (20 requêtes/jour) était épuisé.
+export const GROQ_MODEL = "openai/gpt-oss-120b"
+
+// gpt-oss raisonne avant de répondre. Le raisonnement arrive dans un champ à part
+// (`delta.reasoning`, jamais affiché) mais ses tokens sont décomptés de
+// `max_tokens` : « low » le garde court pour laisser le budget à la réponse.
+export const GROQ_REASONING_EFFORT = "low"
 
 // Endpoint Groq compatible OpenAI (chat completions en streaming SSE)
 export const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"

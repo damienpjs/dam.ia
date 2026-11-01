@@ -29,9 +29,12 @@ export const FOLLOW_UP_MAX_WORDS = 8
 // tours : assez pour résoudre un pronom, assez court pour rester rapide et cadré.
 export const CONDENSE_HISTORY_MESSAGES = 4
 
-// Modèle utilisé pour la réécriture. Le plus petit et le plus rapide de Groq :
-// la tâche est mécanique (résoudre une référence), pas besoin de plus gros.
-export const CONDENSE_MODEL = "llama-3.1-8b-instant"
+// Modèle utilisé pour la réécriture. La tâche est mécanique (résoudre une
+// référence) : on choisit le plus rapide des modèles Groq disponibles.
+// `llama-3.1-8b-instant`, retiré par Groq, renvoyait 404 : on retombait en
+// permanence sur la concaténation heuristique. Qwen3.8 ne raisonne pas par défaut
+// (sortie directe, ~120 ms), là où gpt-oss consomme des tokens de raisonnement.
+export const CONDENSE_MODEL = "qwen/qwen3.8-27b"
 
 // La réécriture s'intercale avant la recherche vectorielle, donc avant le premier
 // token affiché : un timeout serré vaut mieux qu'une attente visible. En cas de

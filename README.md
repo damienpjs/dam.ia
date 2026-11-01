@@ -224,7 +224,7 @@ Two safeguards address this:
   before the vector search, a follow-up is rewritten into a **standalone**
   question ("quel est le backend du projet hodl-on-a-minute ?"). A cheap heuristic
   gates the work (short message, or an anaphora marker), then a small Groq model
-  (`llama-3.1-8b-instant`, temperature 0) does the rewrite. Degradation is
+  (`qwen/qwen3.8-27b`, temperature 0) does the rewrite. Degradation is
   layered: no history or an already-standalone question costs nothing, and a
   missing key, an error, a timeout or a suspicious output falls back to plain
   concatenation with the previous question. The rewrite feeds the **search only**;
@@ -299,8 +299,10 @@ Copy `.env.example` to `.env`, then fill in the keys.
 When both the Gemini **and** Groq keys are present, requests use a **Gemini →
 Groq** fallback chain: if Gemini returns a transient error, quota exceeded
 (HTTP 429) **or** model overloaded / temporarily unavailable (HTTP 503), before
-a single token has been streamed, the system switches over to Groq in real time,
-which has an independent free quota. Every new request restarts the chain at
+a single token has been streamed, the system switches over to Groq (`openai/gpt-oss-120b`) in real time,
+which has an independent free quota. On the free tiers, Gemini 2.5 Flash allows
+20 requests per day and Groq 8,000 tokens per minute, so the fallback sustains
+roughly one answer per minute once Gemini is exhausted. Every new request restarts the chain at
 Gemini, so returning to the primary provider is automatic as soon as it becomes
 available again. If both providers are down, a fallback answer (`MockProvider`)
 is served with a wait message.

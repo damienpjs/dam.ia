@@ -400,9 +400,20 @@ automated spam:
   characters, feedback comment to `MAX_FEEDBACK_COMMENT_LENGTH` (2000), and the
   buffered body size capped via `experimental.proxyClientMaxBodySize` (64 kB) in
   `next.config.ts`.
-- **Prompt injection detection**: messages are analyzed
-  ([`src/lib/sanitize-message.ts`](src/lib/sanitize-message.ts)) and tagged
-  `[INJECTION DETECTED]` before being sent to the LLM.
+- **Prompt injection defense**, in three layers
+  ([`src/lib/sanitize-message.ts`](src/lib/sanitize-message.ts)):
+  - the visitor message is wrapped in a `<message_visiteur>` tag (any
+    look-alike typed by the visitor is stripped) and followed by a reminder
+    that its content is data, never instructions;
+  - known patterns (instruction override, role change, prompt extraction,
+    spoofed internal notes, inverted or self-deprecating rewrites of the
+    profile, dictated sentences) are matched on a normalized copy (NFKC, no
+    accents, no zero-width characters) and raise an `[ALERTE SÉCURITÉ]` note
+    placed outside the tag. The message itself is stored as typed;
+  - the system prompt ([`src/constants/llm.ts`](src/constants/llm.ts)) sets
+    the trust hierarchy and forbids any false or disparaging first-person
+    statement, whatever the framing. This layer is what catches the phrasings
+    the patterns miss.
 
 > All SQL queries go through Drizzle ORM (parameterized): no SQL injection. Keys
 > and `DATABASE_URL` live in `.env` (gitignored).

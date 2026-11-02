@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import { PERSONA } from "@/constants/llm"
 import { buildSystemPrompt } from "@/lib/llm/system-prompt"
 import { MOOD_DIRECTIVE } from "@/lib/llm/mood-tag"
+import { ageOn } from "@/lib/age"
 
 describe("buildSystemPrompt", () => {
   it("combine la date du jour avec le persona", () => {
@@ -55,6 +56,14 @@ describe("SYSTEM_PROMPT", () => {
 
   it("présente le personnage 3D comme son propre visage", () => {
     expect(PERSONA).toContain("Le personnage 3D affiché à côté de la conversation, c'est toi")
+  })
+
+  it("répond à la question de l'âge avec l'âge révolu au 27 janvier 1992", () => {
+    const age = ageOn(new Date(1992, 0, 27))
+
+    expect(PERSONA).toContain(`tu es né le 27 janvier 1992, donc tu as ${age} ans`)
+    expect(PERSONA).toContain(`réponds directement que tu as ${age} ans (né le 27 janvier 1992)`)
+    expect(PERSONA).toContain("ce n'est pas un sujet tabou")
   })
 
   it("mentionne les technologies clés", () => {

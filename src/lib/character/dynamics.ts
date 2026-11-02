@@ -109,6 +109,13 @@ export const SPRINGS = {
   twist: { f: 1.1, zeta: 0.7, r: 0 },
   /** Pli du poignet : suit l'avant-bras avec un léger retard. */
   wrist: { f: 1.2, zeta: 0.8, r: 0 },
+  /**
+   * Sortie des capsules du corps : rapide, sans dépassement. Appliquée d'un coup,
+   * elle ferait sauter la main de plusieurs centimètres en une image.
+   */
+  push: { f: 4, zeta: 1, r: 0 },
+  /** Orientation de la main vers son point de contact, relâchée quand le geste change : la main quitte le menton sans pivoter d'un coup. */
+  touch: { f: 2, zeta: 1, r: 0 },
   /** Forme de la main : les doigts se posent après le poignet. */
   fingers: { f: 0.95, zeta: 0.85, r: 0 },
   /** Tête : suit le regard avec un temps de retard. */

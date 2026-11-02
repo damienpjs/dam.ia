@@ -62,6 +62,16 @@ describe("SecondOrder", () => {
     expect(Math.abs(s.v[0])).toBeLessThan(1e-3)
   })
 
+  it("suit une valeur imposée en gardant sa vitesse, puis repart de là sans à-coup", () => {
+    const s = new SecondOrder({ f: 1, zeta: 1, r: 0 }, [0])
+    for (let i = 1; i <= 10; i++) s.track([i * 0.01], 1 / 60)
+    expect(s.y[0]).toBeCloseTo(0.1, 9)
+    expect(s.v[0]).toBeCloseTo(0.6, 6)
+    // repris par la dynamique, il continue sur sa lancée au lieu de repartir de l'arrêt
+    s.update(1 / 60, [0.1])
+    expect(s.y[0]).toBeGreaterThan(0.105)
+  })
+
   it("change de tempo sans perdre sa position", () => {
     const s = new SecondOrder({ f: 0.5, zeta: 1, r: 0 }, [0])
     run(s, [1], 0.3)
@@ -78,6 +88,6 @@ describe("SecondOrder", () => {
       expect(p.zeta).toBeGreaterThan(0)
     }
     expect(SPRINGS.fingers.f).toBeLessThan(SPRINGS.hand.f)
-    expect(SPRINGS.handContact.zeta).toBeGreaterThanOrEqual(1)
+    expect(SPRINGS.reach.zeta).toBeGreaterThanOrEqual(1)
   })
 })

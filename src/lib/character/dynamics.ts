@@ -55,6 +55,18 @@ export class SecondOrder {
   }
 
   /**
+   * Suit une valeur imposée de l'extérieur (`dt` après la précédente) en gardant sa
+   * vitesse : repris ensuite par `update`, le ressort repart sans à-coup.
+   */
+  track(value: readonly number[], dt: number): void {
+    for (let i = 0; i < this.y.length; i++) {
+      this.v[i] = dt > 0 ? (value[i] - this.y[i]) / dt : 0
+      this.y[i] = value[i]
+      this.xPrev[i] = value[i]
+    }
+  }
+
+  /**
    * Déplace tout le ressort (position et consigne précédente) de `delta` :
    * il suit un repère qui bouge sans prendre de retard, et sa vitesse propre
    * n'en est pas affectée.
@@ -99,8 +111,11 @@ export const SPRINGS = {
    * la consigne saute d'une cible à l'autre, et un saut fait réagir ce terme d'un coup.
    */
   hand: { f: 1.5, zeta: 0.62, r: 0 },
-  /** Cible du poignet quand la main vient toucher le visage ou la hanche : pas de dépassement. */
-  handContact: { f: 1.4, zeta: 1, r: 0 },
+  /**
+   * Approche d'un contact (visage, hanche) : une seule progression mène poignet,
+   * coude, rotation, pli du poignet et doigts, sans dépassement.
+   */
+  reach: { f: 1.3, zeta: 1, r: 0 },
   /** Poids de l'IK : entre et sort sans rebond. */
   weight: { f: 1.3, zeta: 1, r: 0 },
   /** Direction du coude. */

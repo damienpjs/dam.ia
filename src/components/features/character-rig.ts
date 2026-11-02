@@ -535,6 +535,12 @@ interface IArmState {
   twist: SecondOrder
   wrist: SecondOrder
   shapes: Record<THandShape, SecondOrder>
+  /** Sortie des capsules appliquée au poignet, lissée. */
+  push: SecondOrder
+  /** Poids de l'orientation vers le point de contact, relâché en douceur. */
+  touch: SecondOrder
+  /** Dernière cible à point de contact, gardée le temps de relâcher son orientation. */
+  touchAim: IHandTarget | undefined
   contact: boolean
   started: boolean
   /** Cible suivie, pour repérer un changement de geste. */
@@ -555,6 +561,10 @@ const vel = new THREE.Vector3()
 const forearmDir = new THREE.Vector3()
 const qDrag = new THREE.Quaternion()
 const arcGoal = new THREE.Vector3()
+const wristGoal = new THREE.Vector3()
+const pushGoal = new THREE.Vector3()
+const pushNow = new THREE.Vector3()
+const solvedWith = new THREE.Vector3()
 
 /**
  * Gestes des bras, animés : chaque canal (cible du poignet, coude, poids,
@@ -575,6 +585,9 @@ export class GestureAnimator {
       twist: new SecondOrder(SPRINGS.twist, [0]),
       wrist: new SecondOrder(SPRINGS.wrist, [0, 0]),
       shapes: Object.fromEntries(HAND_SHAPES.map((s) => [s, new SecondOrder(SPRINGS.fingers, [0])])) as Record<THandShape, SecondOrder>,
+      push: new SecondOrder(SPRINGS.push, [0, 0, 0]),
+      touch: new SecondOrder(SPRINGS.touch, [0]),
+      touchAim: undefined,
       contact: false,
       started: false,
       aim: undefined,
@@ -635,24 +648,27 @@ export class GestureAnimator {
         const w = THREE.MathUtils.clamp(st.shapes[shape].update(dt, [target?.hand === shape ? 1 : 0])[0], 0, 1)
         applyHandShape(rig, arm, shape, w)
       }
-      if (weight <= 0.001) continue
+      if (weight <= 0.001) {
+        st.push.reset([0, 0, 0])
+        st.touch.reset([0])
+        continue
+      }
 
       const chain = [arm.upper, arm.lower, arm.twist1 ?? arm.lower, arm.twist ?? arm.lower, arm.hand]
       chain.forEach((bone, i) => clipQ[i].copy(bone.quaternion))
       const sideName = side === "right" ? "Right" : "Left"
-      // jusqu'à trois passes : si le bras entre dans le corps, on décale la cible d'autant
-      for (let pass = 0; pass < 3; pass++) {
-        if (pass > 0) {
-          chain.forEach((bone, i) => bone.quaternion.copy(clipQ[i]))
-          arm.upper.updateMatrixWorld(true)
-        }
-        solveArm(arm, springTarget, springPole, weight, twist)
+      // le contact ne s'oriente qu'à l'arrivée : en route, la main suit l'avant-bras ;
+      // au changement de geste, l'orientation se relâche au lieu de sauter
+      if (target?.touch) {
+        st.touchAim = target
+        st.touch.reset([THREE.MathUtils.clamp(1 - springTarget.distanceTo(goal) / (TOUCH_REACH * scale), 0, 1)])
+      } else st.touch.update(dt, [0])
+      const touchWeight = weight * st.touch.y[0]
+      const place = (offset: THREE.Vector3) => {
+        solvedWith.copy(offset)
+        solveArm(arm, wristGoal.copy(springTarget).add(offset), springPole, weight, twist)
         bendWrist(arm, sideName, flex * weight, deviation * weight)
-        // le contact ne s'oriente qu'à l'arrivée : en route, la main suit l'avant-bras
-        if (target?.touch) {
-          const arrival = THREE.MathUtils.clamp(1 - springTarget.distanceTo(goal) / (TOUCH_REACH * scale), 0, 1)
-          touchWith(rig, root, arm, sideName, target.anchor, target.touch, weight * arrival, scale)
-        }
+        if (st.touchAim?.touch) touchWith(rig, root, arm, sideName, st.touchAim.anchor, st.touchAim.touch, touchWeight, scale)
         // inertie : la main traîne derrière le poignet qui accélère
         vel.fromArray(st.pos.v)
         arm.lower.getWorldPosition(vB)
@@ -664,12 +680,30 @@ export class GestureAnimator {
           const angle = Math.min(DRAG_MAX, speed * DRAG_GAIN) * weight
           rotateWorld(arm.hand, qDrag.setFromAxisAngle(vTmp.normalize().cross(forearmDir).normalize(), angle))
         }
-        // en route, toujours ; arrivée près d'un contact (visage, hanche) ou du clip, la cible
-        // mesurée sur les vrais maillages prime : les capsules y sont trop grossières
-        const arriving = springTarget.distanceTo(goal) < CONTACT_ZONE * scale
-        const push = rig.colliders.length && !(arriving && (!target || target.contact)) ? armPenetration(rig, arm, sideName, scale) : null
+      }
+      const restore = () => {
+        chain.forEach((bone, i) => bone.quaternion.copy(clipQ[i]))
+        arm.upper.updateMatrixWorld(true)
+      }
+      // en route, toujours ; arrivée près d'un contact (visage, hanche) ou du clip, la cible
+      // mesurée sur les vrais maillages prime : les capsules y sont trop grossières
+      const arriving = springTarget.distanceTo(goal) < CONTACT_ZONE * scale
+      const collide = rig.colliders.length > 0 && !(arriving && (!target || target.contact))
+      // jusqu'à trois passes : si le bras entre dans le corps, on décale la cible d'autant
+      pushGoal.set(0, 0, 0)
+      for (let pass = 0; pass < 3; pass++) {
+        if (pass > 0) restore()
+        place(pushGoal)
+        const push = collide ? armPenetration(rig, arm, sideName, scale) : null
         if (!push) break
-        springTarget.add(push)
+        pushGoal.add(push)
+      }
+      // décalage appliqué par un ressort : quand la main quitte le menton (dans la capsule
+      // de la tête) ou entre dans la zone de contact, il ne s'allume ni ne s'éteint d'un coup
+      pushNow.fromArray(st.push.update(dt, pushGoal.toArray()))
+      if (pushNow.distanceTo(solvedWith) > 1e-5) {
+        restore()
+        place(pushNow)
       }
     }
     this.guard.record(bones)

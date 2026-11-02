@@ -73,7 +73,7 @@ export interface IDictionary {
     orbitHint: string
   }
   chat: {
-    /** Message d'accueil (README.md), jamais persisté : il suit la langue courante. */
+    /** Message d'accueil (README.md), jamais persisté : il suit la langue courante. Seul le gras markdown (`**…**`) y est rendu. */
     welcome: string
     /** Nom du fichier d'accueil. */
     welcomeFile: string
@@ -169,7 +169,7 @@ const FR: IDictionary = {
     orbitHint: "clic-glissé : tourner · molette : zoom",
   },
   chat: {
-    welcome: "👋 Harness engineer, avec un vrai Lead Tech JS sous le capot. Quelques années de route au compteur, alors on peut parler de mon parcours, mes projets ou mes passions... 👀",
+    welcome: "👋 **Harness Engineer**, avec un vrai **Lead Tech JS** sous le capot. Quelques années de route au compteur, alors on peut parler de mon parcours, mes projets ou mes passions... 👀",
     welcomeFile: "README.md",
     conversationDir: "conversation/",
     messageCount: (count) => `(${count} message${count > 1 ? "s" : ""})`,
@@ -319,7 +319,7 @@ const EN: IDictionary = {
     orbitHint: "drag: orbit · scroll: zoom",
   },
   chat: {
-    welcome: "👋 Harness engineer, with a real JS Tech Lead under the hood. We can talk about my background, my projects, my hobbies or my passions 👀",
+    welcome: "👋 **Harness Engineer**, with a real **JS Tech Lead** under the hood. We can talk about my background, my projects, my hobbies or my passions 👀",
     welcomeFile: "README.md",
     conversationDir: "chat/",
     messageCount: (count) => `(${count} message${count > 1 ? "s" : ""})`,

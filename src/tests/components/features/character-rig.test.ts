@@ -431,6 +431,67 @@ describe("GestureAnimator, trajectoires", () => {
     expect(rig.arms.right.hand.getWorldPosition(new THREE.Vector3()).distanceTo(target)).toBeLessThan(0.01)
   })
 
+  it("quitte un contact posé dans une capsule sans sauter hors du corps", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const reset = restPose(root)
+    const target = handTargetWorld(rig, root, GESTURE_POSES.akimbo.right!, undefined, 0, 1, new THREE.Vector3())
+    const hips = rig.bones.hips
+    const local = hips.worldToLocal(target.clone())
+    const r = CONTACT_ZONE * 1.5
+    rig.colliders.push({ bone: hips, a: local.clone().add(new THREE.Vector3(0, -0.02, 0)), b: local.clone().add(new THREE.Vector3(0, 0.02, 0)), rx: r, rz: r })
+    const gestures = new GestureAnimator()
+    for (let i = 0; i < 300; i++) {
+      reset()
+      gestures.update(rig, root, "akimbo", 0, 1 / 60)
+    }
+    // la main posée au fond de la capsule repart vers un geste sans contact : la
+    // capsule la repousse, mais en quelques images, pas d'un bond
+    const prev = rig.arms.right.hand.getWorldPosition(new THREE.Vector3())
+    let step = 0
+    for (let i = 0; i < 30; i++) {
+      reset()
+      gestures.update(rig, root, "talk", 0, 1 / 60)
+      const w = rig.arms.right.hand.getWorldPosition(new THREE.Vector3())
+      step = Math.max(step, w.distanceTo(prev))
+      prev.copy(w)
+    }
+    // sortie appliquée d'un coup : 13 cm en une image ; lissée : le pas du ressort, 3,5 cm
+    expect(step).toBeLessThan(0.05)
+  })
+
+  it("relâche peu à peu l'orientation vers le point de contact quand le geste change", () => {
+    const { root, animations } = makeCharacter({ colliders: [] })
+    const rig = createCharacterRig(root, animations)!
+    const reset = restPose(root)
+    const gestures = new GestureAnimator()
+    const hand = rig.arms.right.hand
+    const turn = () => hand.getWorldQuaternion(new THREE.Quaternion())
+    for (let i = 0; i < 300; i++) {
+      reset()
+      gestures.update(rig, root, "think", 0, 1 / 60)
+    }
+    // même geste sans point de contact : seul l'effet de touchWith différencie les deux
+    const think = GESTURE_POSES.think.right!
+    const settled = turn()
+    let first = 0
+    GESTURE_POSES.think.right = { ...think, touch: undefined }
+    try {
+      reset()
+      gestures.update(rig, root, "think", 0, 1 / 60)
+      first = turn().angleTo(settled)
+      for (let i = 0; i < 120; i++) {
+        reset()
+        gestures.update(rig, root, "think", 0, 1 / 60)
+      }
+    } finally {
+      GESTURE_POSES.think.right = think
+    }
+    const total = turn().angleTo(settled)
+    expect(total).toBeGreaterThan(0.1)
+    expect(first).toBeLessThan(total / 5)
+  })
+
   it("plie le poignet du geste qui le demande", () => {
     const { root, animations } = makeCharacter({ colliders: [] })
     const rig = createCharacterRig(root, animations)!

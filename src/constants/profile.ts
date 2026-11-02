@@ -11,7 +11,7 @@ export interface IProfileLink {
 }
 
 /** Nom du double IA, en tête de chacune de ses réponses dans la conversation. */
-export const ASSISTANT_NAME = "damien.ia"
+export const ASSISTANT_NAME = "damien"
 
 export const EMAIL: IProfileLink = {
   label: "dagobert1992@gmail.com",

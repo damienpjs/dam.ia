@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
@@ -31,7 +30,7 @@ interface IMessageBubbleProps {
   message: IMessage
   isStreaming?: boolean
   onReuse?: (content: string) => void
-  /** Affiche les actions (copier, renvoyer). */
+  /** Affiche l'action renvoyer sous une question du visiteur. */
   showActions?: boolean
 }
 
@@ -69,7 +68,7 @@ function MarkdownMessage({ content }: { content: string }) {
   )
 }
 
-/** Petite action textuelle sous un message (copier, renvoyer). */
+/** Petite action textuelle sous un message (renvoyer). */
 const ACTION_CLASS = "cursor-pointer py-1 text-[13px] text-body transition-colors hover:text-teal-ink"
 
 /**
@@ -81,7 +80,6 @@ const ACTION_CLASS = "cursor-pointer py-1 text-[13px] text-body transition-color
  */
 export function MessageBubble({ message, isStreaming = false, onReuse, showActions = true }: IMessageBubbleProps) {
   const { t, locale } = useLocale()
-  const [copied, setCopied] = useState(false)
 
   if (message.id === WELCOME_MESSAGE_ID) {
     return (
@@ -99,13 +97,6 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
   const showCursor = !isUser && isStreaming && !isEmpty
   const showSources = !isUser && !isStreaming && message.sources && message.sources.length > 0
   const canAct = showActions && !isStreaming && !isEmpty && !isError
-
-  function handleCopy() {
-    trackEvent("chat_message_copied", { role: message.role })
-    navigator.clipboard.writeText(message.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   function handleReuse() {
     trackEvent("chat_message_reused")
@@ -172,14 +163,6 @@ export function MessageBubble({ message, isStreaming = false, onReuse, showActio
               </span>
             ),
           )}
-        </p>
-      )}
-
-      {canAct && (
-        <p className="flex gap-5">
-          <button data-testid="copy-button" type="button" onClick={handleCopy} aria-label={copied ? t.chat.copied : t.chat.copy} className={cn(ACTION_CLASS, copied && "text-teal-ink")}>
-            {copied ? t.chat.copiedLabel : t.chat.copyLabel}
-          </button>
         </p>
       )}
     </article>

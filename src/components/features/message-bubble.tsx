@@ -76,7 +76,7 @@ const ACTION_CLASS = "cursor-pointer py-1 text-[13px] text-body transition-color
  *
  * Trois rendus, dans l'esprit du CV : le message d'accueil est un README.md,
  * une question du visiteur une ligne de terminal préfixée « > », une réponse
- * un bloc signé « damien.ia » avec son heure (ou « erreur ») en corail.
+ * un bloc signé « damien » avec son heure (ou « erreur ») en corail.
  */
 export function MessageBubble({ message, isStreaming = false, onReuse, showActions = true }: IMessageBubbleProps) {
   const { t, locale } = useLocale()

@@ -20,6 +20,6 @@ describe("constants/profile", () => {
   })
 
   it("nomme le double IA comme un fichier", () => {
-    expect(ASSISTANT_NAME).toBe("damien.ia")
+    expect(ASSISTANT_NAME).toBe("damien")
   })
 })

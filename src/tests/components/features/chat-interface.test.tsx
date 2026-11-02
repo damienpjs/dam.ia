@@ -8,6 +8,7 @@ import { SUGGESTIONS_STORAGE_KEY } from "@/constants/chat"
 import { DICTIONARIES, SUGGESTION_IDS } from "@/constants/dictionary"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { LanguageSwitcher } from "@/components/ui/language-switcher"
+import { plainText } from "@/tests/helpers/markdown"
 
 // Mock streamChat pour simuler le streaming
 vi.mock("@/lib/stream-chat", () => ({
@@ -51,7 +52,7 @@ const setup = () => userEvent.setup({ delay: null })
 describe("ChatInterface", () => {
   it("affiche le message d'accueil, présenté comme le README, au chargement", () => {
     render(<ChatInterface />)
-    expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.fr.chat.welcome)
+    expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(DICTIONARIES.fr.chat.welcome))
     expect(screen.getByText(DICTIONARIES.fr.chat.welcomeFile)).toBeInTheDocument()
   })
 
@@ -830,7 +831,7 @@ describe("ChatInterface", () => {
 
       expect(screen.queryByText("Bonjour")).not.toBeInTheDocument()
       expect(screen.queryByText("Réponse mockée de l'assistant.")).not.toBeInTheDocument()
-      expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.fr.chat.welcome)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(DICTIONARIES.fr.chat.welcome))
       expect(screen.getAllByTestId("message-bubble")).toHaveLength(1)
     })
 
@@ -937,7 +938,7 @@ describe("ChatInterface", () => {
       renderWithLocale(<ChatInterface />, "en")
       const { chat } = DICTIONARIES.en
 
-      expect(screen.getByTestId("readme-content")).toHaveTextContent(chat.welcome)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(chat.welcome))
       expect(screen.getByText(chat.suggestionsDir)).toBeInTheDocument()
       expect(screen.getByText(chat.suggestions.skills)).toBeInTheDocument()
       expect(screen.getByPlaceholderText(chat.inputPlaceholder)).toBeInTheDocument()
@@ -988,11 +989,11 @@ describe("ChatInterface", () => {
         "fr",
       )
 
-      expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.fr.chat.welcome)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(DICTIONARIES.fr.chat.welcome))
 
       await user.click(screen.getByText("EN"))
 
-      expect(screen.getByTestId("readme-content")).toHaveTextContent(DICTIONARIES.en.chat.welcome)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(DICTIONARIES.en.chat.welcome))
     })
 
     it("ne réaffiche pas une suggestion déjà utilisée après un changement de langue", () => {

@@ -5,6 +5,7 @@ import Home from "@/app/page"
 import { renderWithLocale } from "@/tests/helpers/locale"
 import { DICTIONARIES } from "@/constants/dictionary"
 import { CV, GITHUB, LINKEDIN } from "@/constants/profile"
+import { plainText } from "@/tests/helpers/markdown"
 
 const heroScene = vi.fn()
 
@@ -59,7 +60,7 @@ describe("Page d'accueil (/)", () => {
     render(<Home />)
     const readme = within(openButton())
     expect(readme.getByText(chat.welcomeFile)).toBeInTheDocument()
-    expect(readme.getByTestId("readme-content")).toHaveTextContent(chat.welcome)
+    expect(readme.getByTestId("readme-content")).toHaveTextContent(plainText(chat.welcome))
     expect(readme.getByText(/\(\d+ o\)/)).toBeInTheDocument()
   })
 
@@ -135,7 +136,7 @@ describe("Page d'accueil (/)", () => {
 
     // Pendant le morph : le clone est présent et la liste des messages est masquée
     const clone = screen.getByTestId("welcome-clone")
-    expect(clone).toHaveTextContent(chat.welcome)
+    expect(clone).toHaveTextContent(plainText(chat.welcome))
     expect(screen.getByTestId("chat-interface")).toHaveAttribute("data-messages-visible", "false")
 
     // Fin de la transition : le clone disparaît, les messages deviennent visibles
@@ -170,7 +171,7 @@ describe("Page d'accueil (/)", () => {
       const en = DICTIONARIES.en
       expect(screen.getByText(en.landing.role)).toBeInTheDocument()
       expect(screen.getByRole("button", { name: en.landing.startConversationAria })).toHaveTextContent(en.landing.startConversation)
-      expect(screen.getByTestId("readme-content")).toHaveTextContent(en.chat.welcome)
+      expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(en.chat.welcome))
       expect(screen.getByText(en.landing.orbitHint)).toBeInTheDocument()
     })
 

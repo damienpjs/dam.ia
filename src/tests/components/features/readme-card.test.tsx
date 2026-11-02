@@ -17,6 +17,16 @@ describe("ReadmeCard", () => {
     expect(screen.getByText("(24 o)")).toBeInTheDocument()
   })
 
+  it("rend le gras markdown et compte sa syntaxe dans le poids", () => {
+    render(<ReadmeCard content="**Lead** <b>x</b>" />)
+    const content = screen.getByTestId("readme-content")
+    expect(content.querySelector("strong")).toHaveTextContent("Lead")
+    expect(content.querySelector("b")).toBeNull()
+    expect(content).toHaveTextContent("Lead <b>x</b>")
+    // « **Lead** <b>x</b> » : 17 octets, astérisques comprises
+    expect(screen.getByText("(17 o)")).toBeInTheDocument()
+  })
+
   it("garde un fond papier pour rester lisible au-dessus de la scène 3D", () => {
     render(<ReadmeCard content="a" />)
     expect(screen.getByTestId("file-box")).toHaveClass("bg-paper")

@@ -4,6 +4,7 @@ import { MessageBubble, type IMessage } from "@/components/features/message-bubb
 import { WELCOME_MESSAGE_ID } from "@/constants/chat"
 import { ASSISTANT_NAME } from "@/constants/profile"
 import { DICTIONARIES } from "@/constants/dictionary"
+import { plainText } from "@/tests/helpers/markdown"
 
 const trackEvent = vi.fn()
 
@@ -60,7 +61,7 @@ describe("MessageBubble", () => {
   it("rend le message d'accueil comme le README du CV", () => {
     render(<MessageBubble message={{ id: WELCOME_MESSAGE_ID, role: "assistant", content: chat.welcome, createdAt: new Date() }} />)
     expect(screen.getByText(chat.welcomeFile)).toBeInTheDocument()
-    expect(screen.getByTestId("readme-content")).toHaveTextContent(chat.welcome)
+    expect(screen.getByTestId("readme-content")).toHaveTextContent(plainText(chat.welcome))
     expect(screen.queryByText(ASSISTANT_NAME)).not.toBeInTheDocument()
   })
 

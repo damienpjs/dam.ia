@@ -1,12 +1,13 @@
 "use client"
 
+import Markdown from "react-markdown"
 import { FileBox } from "@/components/ui/file-box"
 import { useLocale } from "@/lib/locale-context"
 import { byteLength } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 interface IReadmeCardProps {
-  /** Texte du message d'accueil. */
+  /** Texte du message d'accueil, en markdown dont seul le gras est rendu. */
   content: string
   className?: string
 }
@@ -16,14 +17,20 @@ interface IReadmeCardProps {
  * la landing (dans le bouton d'ouverture), dans le clone qui glisse à
  * l'ouverture et en tête de la conversation : le passage de l'un à l'autre
  * reste donc continu.
+ *
+ * Comme un vrai README.md, le texte est du markdown et son poids affiché
+ * compte la syntaxe. Seul le gras est rendu : le reste (paragraphe, liens,
+ * HTML) est déballé en texte brut.
  */
 export function ReadmeCard({ content, className }: IReadmeCardProps) {
   const { t } = useLocale()
 
   return (
     <FileBox name={t.chat.welcomeFile} meta={t.common.fileSize(byteLength(content))} className={cn("bg-paper", className)}>
-      <p data-testid="readme-content" className="text-[14px] leading-[1.55] text-ink lg:text-[16px] lg:leading-[1.6]">
-        {content}
+      <p data-testid="readme-content" className="text-[14px] leading-[1.55] text-ink lg:text-[16px] lg:leading-[1.6] [&_strong]:font-bold">
+        <Markdown allowedElements={["strong"]} unwrapDisallowed>
+          {content}
+        </Markdown>
       </p>
     </FileBox>
   )

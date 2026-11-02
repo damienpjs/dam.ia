@@ -23,16 +23,30 @@ describe("SiteNav", () => {
     expect(screen.getByRole("navigation", { name: common.navLabel })).toBeInTheDocument()
   })
 
-  it("propose le dossier « à-propos/ » depuis l'accueil", () => {
+  it("propose « projets/ » et « à-propos/ » depuis l'accueil", () => {
     render(<SiteNav current="home" />)
+    expect(screen.getByRole("link", { name: common.navProjects })).toHaveAttribute("href", "/projects")
     expect(screen.getByRole("link", { name: common.navAbout })).toHaveAttribute("href", "/about")
     expect(screen.queryByRole("link", { name: common.navChat })).not.toBeInTheDocument()
   })
 
-  it("propose le dossier « conversation/ » depuis « à propos »", () => {
+  it("propose « conversation/ » et « projets/ » depuis « à propos »", () => {
     render(<SiteNav current="about" />)
     expect(screen.getByRole("link", { name: common.navChat })).toHaveAttribute("href", "/")
+    expect(screen.getByRole("link", { name: common.navProjects })).toHaveAttribute("href", "/projects")
     expect(screen.queryByRole("link", { name: common.navAbout })).not.toBeInTheDocument()
+  })
+
+  it("propose « conversation/ » et « à-propos/ » depuis « projets »", () => {
+    render(<SiteNav current="projects" />)
+    expect(screen.getByRole("link", { name: common.navChat })).toHaveAttribute("href", "/")
+    expect(screen.getByRole("link", { name: common.navAbout })).toHaveAttribute("href", "/about")
+    expect(screen.queryByRole("link", { name: common.navProjects })).not.toBeInTheDocument()
+  })
+
+  it("range les dossiers dans un ordre fixe : projets, puis à propos", () => {
+    render(<SiteNav current="home" />)
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([common.navProjects, common.navAbout])
   })
 
   it("embarque le sélecteur de langue sur les deux routes", () => {
@@ -102,5 +116,14 @@ describe("SiteNav : mesure d'audience", () => {
     await user.click(screen.getByRole("link", { name: common.navChat }))
 
     expect(trackEvent).toHaveBeenCalledWith("chat_link_clicked", { from: "about" })
+  })
+
+  it("consigne le clic vers « projets » depuis l'accueil", async () => {
+    const user = userEvent.setup()
+    render(<SiteNav current="home" />)
+
+    await user.click(screen.getByRole("link", { name: common.navProjects }))
+
+    expect(trackEvent).toHaveBeenCalledWith("projects_link_clicked", { from: "landing" })
   })
 })

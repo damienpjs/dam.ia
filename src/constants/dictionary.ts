@@ -34,6 +34,38 @@ export interface IProjectFile {
   text: string
 }
 
+/** Capture d'un projet, affichée en bannière 2:1 sur la page « projets ». */
+export interface IProjectBanner {
+  /** Chemin sous `public/`. */
+  src: string
+  /** Nom de fichier affiché dans la légende, traduit comme les autres. */
+  file: string
+  width: number
+  height: number
+  /** Poids réel du fichier, vérifié par les tests contre `public/`. */
+  bytes: number
+  alt: string
+  caption: string
+}
+
+/** Un projet présenté en détail sur la page « projets ». */
+export interface IProjectShowcase {
+  /** Ancre de la fiche, stable d'une langue à l'autre. */
+  id: string
+  /** Adresse affichée en en-tête, sans protocole. */
+  file: string
+  href: string
+  name: string
+  tags: string
+  summary: string
+  bullets: string[]
+  stack: string[]
+  /** Libellé du lien d'action vers `href`. */
+  action: string
+  /** Sans bannière, la fiche passe directement au texte. */
+  banner?: IProjectBanner
+}
+
 /**
  * Identifiants stables des suggestions de questions.
  *
@@ -55,8 +87,10 @@ export interface IDictionary {
     navLabel: string
     /** Lien de navigation vers la page « à propos ». */
     navAbout: string
-    /** Lien de navigation vers la conversation, depuis « à propos ». */
+    /** Lien de navigation vers la conversation, depuis « à propos » et « projets ». */
     navChat: string
+    /** Lien de navigation vers la page « projets ». */
+    navProjects: string
     /** Retour à l'accueil, depuis « à propos ». */
     navHome: string
     /** Taille d'un fichier, entre parenthèses : « (431 o) », « (300 Ko) ». */
@@ -140,6 +174,17 @@ export interface IDictionary {
     ctaQuestion: string
     ctaLink: string
   }
+  projects: {
+    /** Titre en bloc de la page, en minuscules comme le nom. */
+    title: string
+    readme: string
+    indexFile: string
+    projectsDir: string
+    stackFile: string
+    entries: IProjectShowcase[]
+    ctaQuestion: string
+    ctaLink: string
+  }
 }
 
 /** « 431 o » sous 1 Ko, « 300 Ko » au-delà (unité selon la langue). */
@@ -154,6 +199,7 @@ const FR: IDictionary = {
     navLabel: "Navigation",
     navAbout: "à-propos/",
     navChat: "conversation/",
+    navProjects: "projets/",
     navHome: "← accueil",
     fileSize: (bytes) => formatFileSize(bytes, "o", "Ko"),
     itemCount: (count) => `(${count} élément${count > 1 ? "s" : ""})`,
@@ -291,6 +337,59 @@ const FR: IDictionary = {
     ctaQuestion: "Envie d’en savoir plus sur mon parcours, mes projets ou mes passions ?",
     ctaLink: "discute avec mon double IA",
   },
+  projects: {
+    title: "projets",
+    readme: "Deux projets menés de bout en bout, en dehors du travail : un jeu en ligne qui tranche à la seconde près, et une app mobile que j’ouvre tous les jours. Pour le reste, demande à mon double.",
+    indexFile: "index.txt",
+    projectsDir: "projets/",
+    stackFile: "stack.txt",
+    entries: [
+      {
+        id: "hodl-on-a-minute",
+        file: "hodl-on-a-minute.vercel.app",
+        href: "https://hodl-on-a-minute.vercel.app",
+        name: "hodl-on-a-minute",
+        tags: "jeu en ligne",
+        summary: "Prédiction du bitcoin à 60 secondes, en ligne : on parie sur la direction du cours, la position se résout une minute plus tard.",
+        bullets: [
+          "le client n’envoie qu’une direction ; prix, horodatage et résultat sont produits côté serveur",
+          "un seul pari en cours à la fois, garanti par des écritures conditionnelles DynamoDB testées contre une vraie base en Docker",
+          "résolution idempotente",
+          "identité par cookie signé HMAC, aucun compte à créer",
+          "IAM au moindre privilège : chaque fonction n’a que ses droits DynamoDB",
+        ],
+        stack: ["Next.js", "React 19", "DynamoDB", "Vercel", "Docker"],
+        action: "jouer une minute",
+        banner: {
+          src: "/projects/hodl-on-a-minute.png",
+          file: "capture-live.png",
+          width: 2880,
+          height: 1440,
+          bytes: 96552,
+          alt: "Écran d’accueil de hodl-on-a-minute : le cours BTC/USD en direct en très grand, et en bas le score, le bouton Up et le bouton Down.",
+          caption: "cours BTC/USD en direct",
+        },
+      },
+      {
+        id: "komfy",
+        file: "github.com/damienpjs/Komfy",
+        href: "https://github.com/damienpjs/Komfy",
+        name: "Komfy",
+        tags: "IA générative, mobile",
+        summary: "Télécommande mobile de mon instance ComfyUI, utilisée au quotidien. Chaque workflow importé génère son formulaire.",
+        bullets: [
+          "file d’attente temps réel en WebSocket",
+          "import et édition des workflows ComfyUI",
+          "galerie des générations",
+          "réseau Tailscale uniquement : l’instance n’est jamais exposée publiquement",
+        ],
+        stack: ["React Native", "Expo", "TypeScript, 20 000 lignes", "WebSocket", "Tailscale"],
+        action: "lire le code",
+      },
+    ],
+    ctaQuestion: "Une question sur ces projets, un choix technique, un compromis ?",
+    ctaLink: "discute avec mon double IA",
+  },
 }
 
 const EN: IDictionary = {
@@ -300,6 +399,7 @@ const EN: IDictionary = {
     navLabel: "Navigation",
     navAbout: "about/",
     navChat: "chat/",
+    navProjects: "projects/",
     navHome: "← home",
     fileSize: (bytes) => formatFileSize(bytes, "B", "KB"),
     itemCount: (count) => `(${count} item${count > 1 ? "s" : ""})`,
@@ -435,6 +535,59 @@ const EN: IDictionary = {
     offscreenDir: "off-screen/",
     offscreen: ["calisthenics.txt", "running.txt", "diy.txt", "philosophy.txt"],
     ctaQuestion: "Want to know more about my background, my projects or my passions?",
+    ctaLink: "chat with my AI double",
+  },
+  projects: {
+    title: "projects",
+    readme: "Two side projects built end to end: a web game that settles to the second, and a mobile app I open every day. For anything else, ask my double.",
+    indexFile: "index.txt",
+    projectsDir: "projects/",
+    stackFile: "stack.txt",
+    entries: [
+      {
+        id: "hodl-on-a-minute",
+        file: "hodl-on-a-minute.vercel.app",
+        href: "https://hodl-on-a-minute.vercel.app",
+        name: "hodl-on-a-minute",
+        tags: "web game",
+        summary: "Live 60-second bitcoin prediction game: you bet on the price direction, and the position settles one minute later.",
+        bullets: [
+          "the client only sends a direction; price, timestamp and result are produced server-side",
+          "one open bet at a time, enforced by DynamoDB conditional writes tested against a real database in Docker",
+          "idempotent settlement",
+          "identity through an HMAC-signed cookie, no account to create",
+          "least-privilege IAM: each function only gets the DynamoDB rights it needs",
+        ],
+        stack: ["Next.js", "React 19", "DynamoDB", "Vercel", "Docker"],
+        action: "play for a minute",
+        banner: {
+          src: "/projects/hodl-on-a-minute.png",
+          file: "live-capture.png",
+          width: 2880,
+          height: 1440,
+          bytes: 96552,
+          alt: "hodl-on-a-minute home screen: the live BTC/USD price in very large type, with the score, the Up button and the Down button below.",
+          caption: "live BTC/USD price",
+        },
+      },
+      {
+        id: "komfy",
+        file: "github.com/damienpjs/Komfy",
+        href: "https://github.com/damienpjs/Komfy",
+        name: "Komfy",
+        tags: "generative AI, mobile",
+        summary: "Mobile remote for my own ComfyUI instance, used daily. Each imported workflow generates its own form.",
+        bullets: [
+          "real-time queue over WebSocket",
+          "import and edit ComfyUI workflows",
+          "gallery of generations",
+          "Tailscale-only network: the instance is never exposed publicly",
+        ],
+        stack: ["React Native", "Expo", "TypeScript, 20,000 lines", "WebSocket", "Tailscale"],
+        action: "read the code",
+      },
+    ],
+    ctaQuestion: "A question about these projects, a technical choice, a trade-off?",
     ctaLink: "chat with my AI double",
   },
 }

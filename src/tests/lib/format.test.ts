@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { byteLength, formatClock } from "@/lib/format"
+import { byteLength, formatClock, sizeOf } from "@/lib/format"
 
 describe("lib/format", () => {
   describe("byteLength", () => {
@@ -14,6 +14,17 @@ describe("lib/format", () => {
 
     it("renvoie 0 pour une chaîne vide", () => {
       expect(byteLength("")).toBe(0)
+    })
+  })
+
+  describe("sizeOf", () => {
+    it("additionne le poids de tous les textes d'un fichier", () => {
+      expect(sizeOf("README", "é")).toBe(8)
+    })
+
+    it("ignore les parties absentes", () => {
+      expect(sizeOf("README", undefined, "")).toBe(6)
+      expect(sizeOf()).toBe(0)
     })
   })
 

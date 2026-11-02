@@ -36,6 +36,24 @@ describe("PERSONAL_FACTS", () => {
     expect(salary?.fact).not.toMatch(/\d/)
   })
 
+  it("répond au manga ou anime préféré avec la pique sur les weebs et les quatre titres", () => {
+    const manga = PERSONAL_FACTS.find(({ topic }) => topic.startsWith("Manga"))
+    expect(manga?.answer).toContain("pas un weeb")
+    for (const title of ["SNK", "Death Note", "Berserk", "Cyberpunk:Edgerunners"]) {
+      expect(manga?.fact).toContain(title)
+      expect(manga?.answer).toContain(title)
+    }
+  })
+
+  it("fournit des mots-clés normalisés pour chaque fait", () => {
+    for (const { topic, keywords } of PERSONAL_FACTS) {
+      expect(keywords.length, topic).toBeGreaterThan(0)
+      for (const keyword of keywords) {
+        expect(keyword, topic).toBe(keyword.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""))
+      }
+    }
+  })
+
   it("n'emploie jamais de tiret cadratin", () => {
     expect(ALL_TEXT).not.toContain(String.fromCharCode(0x2014))
   })

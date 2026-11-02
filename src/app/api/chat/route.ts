@@ -7,10 +7,11 @@ import { condenseQuery } from "@/lib/rag/condense-query"
 import { createSession, saveMessage, getSessionMessages } from "@/lib/db/chat-service"
 import type { ISessionMessage } from "@/lib/db/chat-service"
 import { buildConversationHistory } from "@/lib/llm/conversation-history"
+import { matchesPersonalFact } from "@/lib/llm/personal-facts"
 import { findRepeatedQuestion } from "@/lib/llm/repeated-question"
 import { createMoodFilter } from "@/lib/llm/mood-tag"
 import type { TMood } from "@/lib/character/moods"
-import type { IConversationMessage } from "@/lib/llm/types"
+import { STREAM_RESTART, type IConversationMessage } from "@/lib/llm/types"
 import type { ISearchResult } from "@/lib/rag/types"
 import { DEFAULT_LOCALE, isLocale, type TLocale } from "@/constants/i18n"
 
@@ -44,6 +45,8 @@ type TStreamChunk = {
   messageId?: string
   status?: "ok" | "error"
   mood?: TMood
+  /** Le texte reçu jusque-là est abandonné : la réponse repart de zéro. */
+  reset?: boolean
 }
 
 /**
@@ -169,7 +172,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         console.log(`[RAG] ✅ ${ragResults.length} chunks trouvés (scores: ${ragResults.map((r) => `${(r.score * 100).toFixed(0)}%`).join(", ")})`)
         const ragContext = formatRAGContext(ragResults)
         enrichedMessage = `${ragContext}\n\n${enrichedMessage}`
-        sources = formatSources(ragResults)
+        // Une question sur la fiche perso est répondue depuis le system prompt : les
+        // chunks ne sont que du bruit de proximité, on ne les cite pas.
+        sources = matchesPersonalFact(sanitized) ? [] : formatSources(ragResults)
       } else {
         // Sous le seuil de pertinence : on répond sans contexte plutôt qu'avec du
         // bruit. C'est un cas nominal, pas une anomalie.
@@ -220,15 +225,23 @@ export async function POST(request: NextRequest): Promise<Response> {
         try {
           // La balise d'humeur de tête est retirée du texte (affiché et
           // persisté) et transmise à part au personnage 3D.
-          const moodFilter = createMoodFilter()
+          let moodFilter = createMoodFilter()
           const forward = ({ text, mood }: { text: string; mood?: TMood }) => {
             if (mood) controller.enqueue(encoder.encode(encodeChunk({ content: "", done: false, mood })))
             if (!text) return
             fullResponse += text
             controller.enqueue(encoder.encode(encodeChunk({ content: text, done: false })))
           }
-          for await (const text of provider.streamResponse(enrichedMessage, history)) {
-            forward(moodFilter.push(text))
+          for await (const part of provider.streamResponse(enrichedMessage, history)) {
+            if (part === STREAM_RESTART) {
+              // Le provider a lâché en cours de route et un autre reprend depuis le début :
+              // on repart d'un texte et d'un filtre d'humeur vierges.
+              fullResponse = ""
+              moodFilter = createMoodFilter()
+              controller.enqueue(encoder.encode(encodeChunk({ content: "", done: false, reset: true })))
+              continue
+            }
+            forward(moodFilter.push(part))
           }
           forward({ text: moodFilter.flush() })
 
@@ -256,6 +269,10 @@ export async function POST(request: NextRequest): Promise<Response> {
           // Le fallback quota est une vraie réponse utile → "ok" ; une erreur technique → "error".
           let status: "ok" | "error" = "error"
           let fallbackResponse = ""
+
+          // Un texte coupé net suivi du message d'erreur dans la même phrase : on jette
+          // le début tronqué, comme ce qui est persisté ci-dessous.
+          if (fullResponse) controller.enqueue(encoder.encode(encodeChunk({ content: "", done: false, reset: true })))
 
           // Une réponse de repli s'excuse, le visage aussi.
           controller.enqueue(encoder.encode(encodeChunk({ content: "", done: false, mood: "sorry" })))

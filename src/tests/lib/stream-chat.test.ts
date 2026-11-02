@@ -114,6 +114,33 @@ describe("streamChat", () => {
     expect(onChunk.mock.calls.map((c) => c[0]).join("")).toBe("Oui")
   })
 
+  it("signale via onReset que le texte reçu jusque-là est abandonné", async () => {
+    const chunks: TStreamChunk[] = [
+      { content: "Le ", done: false },
+      { content: "", done: false, reset: true },
+      { content: "Texte complet", done: false },
+      { content: "", done: true },
+    ]
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    const onReset = vi.fn()
+    const onChunk = vi.fn()
+    await streamChat("test", { onChunk, onReset })
+
+    expect(onReset).toHaveBeenCalledTimes(1)
+    expect(onChunk.mock.calls.map((c) => c[0])).toEqual(["Le ", "Texte complet"])
+  })
+
+  it("ignore un reset sans callback onReset", async () => {
+    const chunks: TStreamChunk[] = [
+      { content: "", done: false, reset: true },
+      { content: "", done: true },
+    ]
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(chunks)))
+
+    await expect(streamChat("test", { onChunk: vi.fn() })).resolves.toBeUndefined()
+  })
+
   it("ignore une humeur inconnue", async () => {
     const chunks: TStreamChunk[] = [
       { content: "", done: false, mood: "furious" },

@@ -302,7 +302,12 @@ Groq** fallback chain: if Gemini returns a transient error, quota exceeded
 a single token has been streamed, the system switches over to Groq (`openai/gpt-oss-120b`) in real time,
 which has an independent free quota. On the free tiers, Gemini 2.5 Flash allows
 20 requests per day and Groq 8,000 tokens per minute, so the fallback sustains
-roughly one answer per minute once Gemini is exhausted. Every new request restarts the chain at
+roughly one answer per minute once Gemini is exhausted. If Gemini fails after
+the answer has started (any error, a dropped connection included), Groq restarts
+the answer from scratch: the server sends a `reset` chunk and the client clears
+the truncated text instead of showing it glued to the new one. When no provider
+is left to take over, the truncated text is cleared the same way before the
+error message. Every new request restarts the chain at
 Gemini, so returning to the primary provider is automatic as soon as it becomes
 available again. If both providers are down, a fallback answer (`MockProvider`)
 is served with a wait message.

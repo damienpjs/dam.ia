@@ -24,6 +24,8 @@ export type TStreamChunk = {
   status?: TMessageStatus
   /** Humeur annoncée par le LLM en tête de réponse (balise retirée côté serveur). */
   mood?: string
+  /** Le texte reçu jusque-là est abandonné : la réponse repart de zéro. */
+  reset?: boolean
 }
 
 /**
@@ -45,6 +47,8 @@ export interface IStreamChatOptions {
   onChunk: (content: string) => void
   /** Humeur de la réponse, reçue avant ses premières lettres. */
   onMood?: (mood: TMood) => void
+  /** Le serveur abandonne le texte reçu jusque-là (reprise sur un autre provider, ou repli d'erreur). */
+  onReset?: () => void
   /** Callback appelé quand le stream est terminé */
   onComplete?: (result: IStreamResult) => void
   /** Callback appelé en cas d'erreur */
@@ -76,7 +80,7 @@ export interface IStreamChatOptions {
  * ```
  */
 export async function streamChat(message: string, options: IStreamChatOptions): Promise<void> {
-  const { onChunk, onMood, onComplete, onError, signal, sessionId, locale } = options
+  const { onChunk, onMood, onReset, onComplete, onError, signal, sessionId, locale } = options
 
   try {
     const response = await fetch("/api/chat", {
@@ -113,6 +117,9 @@ export async function streamChat(message: string, options: IStreamChatOptions): 
           if (chunk.sessionId) result.sessionId = chunk.sessionId
           if (chunk.messageId) result.messageId = chunk.messageId
           if (chunk.status) result.status = chunk.status
+        }
+        if (chunk.reset) {
+          onReset?.()
         }
         if (chunk.mood && isMood(chunk.mood)) {
           onMood?.(chunk.mood)

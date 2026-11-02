@@ -196,6 +196,10 @@ export function ChatInterface({ messagesVisible = true, onTurnsChange }: IChatIn
         sessionId: sessionIdRef.current,
         locale,
         onMood: setCharacterMood,
+        onReset: () => {
+          started = false
+          setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: "" } : msg)))
+        },
         onChunk: (char) => {
           if (!started) {
             started = true

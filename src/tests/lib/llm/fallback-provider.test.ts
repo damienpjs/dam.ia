@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { FallbackProvider } from "@/lib/llm/fallback-provider"
 import { QuotaExceededError, ServiceUnavailableError } from "@/lib/llm/errors"
-import type { ILLMProvider } from "@/lib/llm/types"
+import { STREAM_RESTART, type ILLMProvider } from "@/lib/llm/types"
 
 /**
  * Provider de test qui émet des morceaux puis, optionnellement, lève une erreur.
@@ -22,7 +22,8 @@ function fakeProvider(chunks: string[], throwAfter?: Error): ILLMProvider {
 async function collect(provider: ILLMProvider, message = "test"): Promise<string> {
   let result = ""
   for await (const text of provider.streamResponse(message)) {
-    result += text
+    // Une reprise jette le début tronqué, comme le fait le client.
+    result = text === STREAM_RESTART ? "" : result + text
   }
   return result
 }
@@ -42,10 +43,25 @@ describe("FallbackProvider", () => {
     expect(await collect(fallback)).toBe("secours")
   })
 
-  it("propage l'erreur si un token a déjà été émis (pas de bascule à mi-flux)", async () => {
+  it("reprend à zéro sur le suivant quand un token a déjà été émis, avec un marqueur de reprise", async () => {
     const fallback = new FallbackProvider([fakeProvider(["déjà "], new QuotaExceededError()), fakeProvider(["secours"])])
+    const parts: unknown[] = []
+    for await (const part of fallback.streamResponse("test")) parts.push(part)
 
-    await expect(collect(fallback)).rejects.toThrow(QuotaExceededError)
+    expect(parts).toEqual(["déjà ", STREAM_RESTART, "secours"])
+    expect(await collect(fallback)).toBe("secours")
+  })
+
+  it("reprend aussi après une coupure quelconque en plein flux", async () => {
+    const fallback = new FallbackProvider([fakeProvider(["Le "], new Error("connexion coupée")), fakeProvider(["texte complet"])])
+
+    expect(await collect(fallback)).toBe("texte complet")
+  })
+
+  it("propage l'erreur si le dernier provider casse en plein flux", async () => {
+    const fallback = new FallbackProvider([fakeProvider([], new QuotaExceededError()), fakeProvider(["début"], new Error("coupé"))])
+
+    await expect(collect(fallback)).rejects.toThrow("coupé")
   })
 
   it("bascule sur le suivant quand le premier est indisponible (503) avant tout token", async () => {
@@ -53,10 +69,10 @@ describe("FallbackProvider", () => {
     expect(await collect(fallback)).toBe("secours")
   })
 
-  it("propage la ServiceUnavailableError si un token a déjà été émis", async () => {
+  it("reprend sur le suivant après une 503 en plein flux", async () => {
     const fallback = new FallbackProvider([fakeProvider(["déjà "], new ServiceUnavailableError()), fakeProvider(["secours"])])
 
-    await expect(collect(fallback)).rejects.toThrow(ServiceUnavailableError)
+    expect(await collect(fallback)).toBe("secours")
   })
 
   it("propage immédiatement une erreur non liée au quota ou à la disponibilité", async () => {

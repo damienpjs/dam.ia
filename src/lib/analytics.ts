@@ -21,6 +21,9 @@ export type TAnalyticsEvent =
   | "about_link_clicked"
   | "about_cta_clicked"
   | "chat_link_clicked"
+  | "projects_link_clicked"
+  | "projects_cta_clicked"
+  | "project_link_clicked"
   | "profile_link_clicked"
   | "locale_changed"
 

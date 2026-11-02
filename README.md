@@ -100,6 +100,20 @@ and its face and arms follow the conversation.
   finger and forearm twist bones. Arms and hands share the head's skin tone.
   Built by the scripts in [`scripts/character/`](scripts/character/README.md).
 
+## Projects page
+
+`/projects` showcases two side projects, **hodl-on-a-minute** and **Komfy**,
+in the same "folder of files" layout as the about page. Each project is one
+file: address and size, then a 2:1 banner across the whole box, then summary,
+key points, `stack.txt` and an action link. Entries live in
+`projects.entries` of the dictionary; a project without `banner` goes straight
+to its text.
+
+Banners are served from [`public/projects/`](public/projects/) (2400 × 1200 or
+larger, 2:1). The caption shows the real file size, and a test checks it
+against the file in `public/`, so replacing an image means updating `bytes`.
+The hodl-on-a-minute banner is a 2880 × 1440 capture of the live site.
+
 ## Installation
 
 ```bash
@@ -140,6 +154,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 src/
   app/                # Next.js pages (App Router)
     about/            # "À propos" page
+    projects/         # "Projets" page (hodl-on-a-minute, Komfy)
     fonts/            # IBM Plex Mono subsets (next/font/local) + licence
     api/
       chat/           # Chat endpoint + session read (/api/chat/session/[sessionId])
@@ -149,7 +164,8 @@ src/
     sitemap.ts        # sitemap.xml
   components/
     features/         # Domain components (HeroScene, ChatInterface, MessageBubble,
-                      # ReadmeCard, ThinkingPhrase, AboutContent) and the
+                      # ReadmeCard, ThinkingPhrase, AboutContent,
+                      # ProjectsContent) and the
                       # character rig (face shader patch, head look, arm IK)
     ui/               # Generic components (Button, ConfirmDialog, DirLabel,
                       # FileBox, LanguageSwitcher, NameBlock, SiteNav, Tooltip)
@@ -239,7 +255,8 @@ Two safeguards address this:
 ## Languages (FR / EN)
 
 The whole interface is bilingual. A `FR / EN` toggle sits in the top-right corner
-of the landing page, in the chat header and in the "À propos" navigation; the
+of the landing page, in the chat header and in the "À propos" and "Projets"
+navigation; the
 selected language is stored in `localStorage` (`dam_ia_locale`) and restored on
 the next visit.
 
@@ -260,9 +277,9 @@ site whose SEO metadata stays in French.
 - [`src/components/ui/language-switcher.tsx`](src/components/ui/language-switcher.tsx):
   the toggle itself.
 - [`src/components/ui/site-nav.tsx`](src/components/ui/site-nav.tsx): the
-  navigation bar shared by the chat header and the about page. It carries the
-  language toggle, any context-specific slot (LLM status) and the link to
-  `/about`, hidden when that page is already the current one.
+  navigation bar shared by the chat header, the about page and the projects
+  page. It carries the language toggle and the links to `/` (chat), `/projects`
+  and `/about`, minus the current page.
 
 Proper nouns (technologies, companies, schools) are never translated. Suggested
 questions are persisted by **identifier** rather than by label, so switching

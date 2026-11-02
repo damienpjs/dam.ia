@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest"
+import { statSync } from "node:fs"
+import { join } from "node:path"
 import { DICTIONARIES, SUGGESTION_IDS, getDictionary, type IDictionary } from "@/constants/dictionary"
 import { DEFAULT_LOCALE, LOCALES, type TLocale } from "@/constants/i18n"
 
@@ -82,6 +84,20 @@ describe("constants/dictionary", () => {
     expect(orgs("en")).toEqual(orgs("fr"))
     const projects = (locale: TLocale) => DICTIONARIES[locale].about.projects.map((project) => project.href)
     expect(projects("en")).toEqual(projects("fr"))
+  })
+
+  it("garde les mêmes projets, dans le même ordre, d'une langue à l'autre", () => {
+    const entries = (locale: TLocale) => DICTIONARIES[locale].projects.entries.map((project) => [project.id, project.href, project.bullets.length, project.stack.length, project.banner?.src])
+    expect(entries("en")).toEqual(entries("fr"))
+  })
+
+  it("annonce le poids réel de chaque bannière, telle que servie depuis public/", () => {
+    for (const locale of LOCALES) {
+      for (const { banner } of DICTIONARIES[locale].projects.entries) {
+        if (!banner) continue
+        expect(statSync(join(process.cwd(), "public", banner.src)).size, banner.src).toBe(banner.bytes)
+      }
+    }
   })
 
   it("garde le même nombre de tâches et de fichiers hors écran d'une langue à l'autre", () => {

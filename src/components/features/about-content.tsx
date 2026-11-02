@@ -8,7 +8,7 @@ import { NameBlock } from "@/components/ui/name-block"
 import { SiteNav } from "@/components/ui/site-nav"
 import { useLocale } from "@/lib/locale-context"
 import { trackEvent } from "@/lib/analytics"
-import { byteLength } from "@/lib/format"
+import { byteLength, sizeOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { EMAIL, GITHUB, LINKEDIN } from "@/constants/profile"
 import type { IExperienceFile, IProjectFile } from "@/constants/dictionary"
@@ -24,11 +24,6 @@ export function framePhoto(frame: HTMLElement | null): void {
 
 /** Grille de 12 colonnes du CV, repliée en une colonne sur mobile. */
 const GRID = "grid grid-cols-1 gap-y-3 lg:grid-cols-12 lg:gap-x-6 lg:gap-y-5"
-
-/** Poids affiché d'un fichier, calculé sur tout ce qu'il contient. */
-function sizeOf(...parts: Array<string | undefined>): number {
-  return byteLength(parts.filter(Boolean).join(""))
-}
 
 interface IExperienceBoxProps {
   entry: IExperienceFile

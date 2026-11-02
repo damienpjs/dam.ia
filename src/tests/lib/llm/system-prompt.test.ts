@@ -57,6 +57,14 @@ describe("SYSTEM_PROMPT", () => {
     expect(PERSONA).toContain("Le personnage 3D affiché à côté de la conversation, c'est toi")
   })
 
+  it("répond à la question de l'âge avec le calcul année courante - 1992", () => {
+    const year = new Date().getFullYear()
+    const age = year - 1992
+
+    expect(PERSONA).toContain(`tu as ${age} ans (${year} - 1992 = ${age})`)
+    expect(PERSONA).toContain("ce n'est pas un sujet tabou")
+  })
+
   it("mentionne les technologies clés", () => {
     expect(PERSONA).toContain("React")
     expect(PERSONA).toContain("Next.js")

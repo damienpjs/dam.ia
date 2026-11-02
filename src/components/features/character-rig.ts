@@ -520,7 +520,14 @@ export function touchWith(rig: ICharacterRig, root: THREE.Object3D, arm: IArm, s
 export const ARC = 0.22
 /** Distance à la cible (m) en deçà de laquelle la main s'oriente progressivement vers son point de contact. */
 export const TOUCH_REACH = 0.12
-/** Près d'une cible de contact (m, personnage de 1,70 m), les capsules ne repoussent plus la main. */
+/**
+ * Part de l'approche d'un contact à partir de laquelle la main s'oriente vers son
+ * point : elle se tourne en montant, sans pivoter une fois arrivée.
+ */
+export const TOUCH_FROM = 0.4
+/** Avance du pli du coude sur la rotation du bras pendant l'approche d'un contact (exposant, 1 : au même rythme). */
+const FOLD_FIRST = 2
+/** Près de la pose du clip, au retour d'un geste (m, personnage de 1,70 m), les capsules ne repoussent plus la main. */
 export const CONTACT_ZONE = 0.07
 
 /** Pas d'inertie du poignet au-delà de cet angle (rad). */
@@ -541,7 +548,10 @@ interface IArmState {
   touch: SecondOrder
   /** Dernière cible à point de contact, gardée le temps de relâcher son orientation. */
   touchAim: IHandTarget | undefined
-  contact: boolean
+  /** Progression de l'approche d'un contact, de 0 (départ) à 1 (main posée). */
+  reach: SecondOrder
+  /** Approche d'un contact en cours, ou undefined pour un geste libre. */
+  approach: IApproach | undefined
   started: boolean
   /** Cible suivie, pour repérer un changement de geste. */
   aim: IHandTarget | undefined
@@ -549,6 +559,72 @@ interface IArmState {
   span: number
   /** Cible de l'image précédente : le ressort suit le déplacement de son ancre. */
   lastGoal: THREE.Vector3
+}
+
+/**
+ * Approche d'un contact (main au menton, sur la hanche) : départ figé dans le
+ * repère du personnage, relatif à l'épaule, pour chaque canal du geste.
+ */
+interface IApproach {
+  /** Poignet de départ, depuis l'épaule. */
+  wrist: THREE.Vector3
+  /** Coude visé au départ, depuis l'épaule. */
+  pole: THREE.Vector3
+  weight: number
+  twist: number
+  bend: [number, number]
+  shapes: Record<THandShape, number>
+}
+
+/**
+ * Début de l'approche du poignet vers une cible de contact. Le geste reprend le
+ * bras là où il est : poignet et coude du clip quand aucun geste ne le tient,
+ * ceux du geste en cours sinon, mélangés selon son poids.
+ */
+function startApproach(st: IArmState, arm: IArm, root: THREE.Object3D, wristClip: THREE.Vector3, held: THREE.Vector3): IApproach {
+  const yaw = root.rotation.y
+  const weight = THREE.MathUtils.clamp(st.weight.y[0], 0, 1)
+  arm.upper.getWorldPosition(vA)
+  arm.lower.getWorldPosition(vB)
+  st.reach.reset([0])
+  return {
+    wrist: wristClip.clone().lerp(held, weight).sub(vA).applyAxisAngle(UP, -yaw),
+    pole: vB.clone().lerp(vTmp.fromArray(st.pole.y), weight).sub(vA).applyAxisAngle(UP, -yaw),
+    weight,
+    twist: st.twist.y[0],
+    bend: [st.wrist.y[0], st.wrist.y[1]],
+    shapes: Object.fromEntries(HAND_SHAPES.map((s) => [s, THREE.MathUtils.clamp(st.shapes[s].y[0], 0, 1)])) as Record<THandShape, number>,
+  }
+}
+
+const pathFrom = new THREE.Vector3()
+const pathTo = new THREE.Vector3()
+const qPath = new THREE.Quaternion()
+const qStep = new THREE.Quaternion()
+
+/**
+ * Poignet de l'approche à la progression `p` : autour de l'épaule, la direction
+ * tourne pendant que la distance raccourcit. Le coude se plie dès le départ et
+ * la main monte au plus court ; une ligne droite ou un arc devant le corps
+ * tendraient d'abord le bras vers l'avant.
+ */
+function approachPoint(a: IApproach, arm: IArm, root: THREE.Object3D, goal: THREE.Vector3, p: number, out: THREE.Vector3): THREE.Vector3 {
+  const yaw = root.rotation.y
+  arm.upper.getWorldPosition(vA)
+  pathTo.copy(goal).sub(vA).applyAxisAngle(UP, -yaw)
+  // le coude se plie avant que le bras ne se lève : l'avant-bras ne part pas vers l'avant
+  const reach = THREE.MathUtils.lerp(a.wrist.length(), pathTo.length(), 1 - (1 - p) ** FOLD_FIRST)
+  pathFrom.copy(a.wrist).normalize()
+  qStep.identity().slerp(qPath.setFromUnitVectors(pathFrom, pathTo.normalize()), p)
+  return out.copy(pathFrom).applyQuaternion(qStep).multiplyScalar(reach).applyAxisAngle(UP, yaw).add(vA)
+}
+
+/** Coude visé pendant l'approche : du coude de départ à celui du geste, au même rythme que le poignet. */
+function approachPole(a: IApproach, arm: IArm, root: THREE.Object3D, goalPole: THREE.Vector3, p: number, out: THREE.Vector3): THREE.Vector3 {
+  const yaw = root.rotation.y
+  arm.upper.getWorldPosition(vA)
+  pathTo.copy(goalPole).sub(vA).applyAxisAngle(UP, -yaw)
+  return out.copy(a.pole).lerp(pathTo, p).applyAxisAngle(UP, yaw).add(vA)
 }
 
 const clipQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()]
@@ -588,7 +664,8 @@ export class GestureAnimator {
       push: new SecondOrder(SPRINGS.push, [0, 0, 0]),
       touch: new SecondOrder(SPRINGS.touch, [0]),
       touchAim: undefined,
-      contact: false,
+      reach: new SecondOrder(SPRINGS.reach, [0]),
+      approach: undefined,
       started: false,
       aim: undefined,
       span: 0,
@@ -619,12 +696,6 @@ export class GestureAnimator {
         goal.copy(wristClip)
         goalPole.fromArray(st.pole.y)
       }
-      const contact = !!target?.contact
-      if (contact !== st.contact) {
-        st.pos.retune(contact ? SPRINGS.handContact : SPRINGS.hand)
-        st.contact = contact
-      }
-      // arc : la consigne passe devant le corps, d'autant plus qu'on est loin des deux bouts
       // même geste : le ressort est porté par son ancre (tête, buste, bassin) ; la main posée
       // au menton suit la respiration et la tête sans retard, seul le changement de cible est animé
       if (target && target === st.aim) st.pos.shift(vTmp.copy(goal).sub(st.lastGoal).toArray())
@@ -633,20 +704,54 @@ export class GestureAnimator {
       if (target !== st.aim) {
         st.aim = target
         st.span = springTarget.distanceTo(goal)
+        st.approach = target?.contact ? startApproach(st, arm, root, wristClip, springTarget) : undefined
       }
-      const left = springTarget.distanceTo(goal)
-      const progress = st.span > 1e-4 ? THREE.MathUtils.clamp(1 - left / st.span, 0, 1) : 1
-      // carré du sinus : nul et plat aux deux bouts, la main se pose exactement sur sa cible
-      const bulge = Math.sin(Math.PI * progress) ** 2 * ARC * st.span
-      vTmp.set(Math.sin(root.rotation.y), 0, Math.cos(root.rotation.y)).multiplyScalar(bulge)
-      springTarget.fromArray(st.pos.update(dt, arcGoal.copy(goal).add(vTmp).toArray()))
-      springPole.fromArray(st.pole.update(dt, goalPole.toArray()))
-      const weight = THREE.MathUtils.clamp(st.weight.update(dt, [target ? 1 : 0])[0], 0, 1)
-      const twist = st.twist.update(dt, [target?.twist ?? 0])[0]
-      const [flex, deviation] = st.wrist.update(dt, target?.wrist ?? [0, 0])
-      for (const shape of HAND_SHAPES) {
-        const w = THREE.MathUtils.clamp(st.shapes[shape].update(dt, [target?.hand === shape ? 1 : 0])[0], 0, 1)
-        applyHandShape(rig, arm, shape, w)
+      let weight: number
+      let twist: number
+      let flex: number
+      let deviation: number
+      let touchAmount: number | undefined
+      if (st.approach && target) {
+        // approche d'un contact : un seul ressort mène tout le geste, chaque canal va de sa
+        // valeur de départ à celle du geste au même rythme ; rien n'arrive après la main
+        const p = THREE.MathUtils.clamp(st.reach.update(dt, [1])[0], 0, 1)
+        approachPoint(st.approach, arm, root, goal, p, springTarget)
+        approachPole(st.approach, arm, root, goalPole, p, springPole)
+        const a = st.approach
+        weight = THREE.MathUtils.lerp(a.weight, 1, p)
+        twist = THREE.MathUtils.lerp(a.twist, target.twist ?? 0, p)
+        flex = THREE.MathUtils.lerp(a.bend[0], target.wrist?.[0] ?? 0, p)
+        deviation = THREE.MathUtils.lerp(a.bend[1], target.wrist?.[1] ?? 0, p)
+        touchAmount = THREE.MathUtils.smoothstep(p, TOUCH_FROM, 1)
+        // les ressorts propres suivent, vitesse comprise : un changement de geste en route
+        // repart du mouvement en cours, sans à-coup
+        st.pos.track(springTarget.toArray(), dt)
+        st.pole.track(springPole.toArray(), dt)
+        st.weight.track([weight], dt)
+        st.twist.track([twist], dt)
+        st.wrist.track([flex, deviation], dt)
+        for (const shape of HAND_SHAPES) {
+          const spring = st.shapes[shape]
+          if (shape === target.hand) spring.track([THREE.MathUtils.lerp(a.shapes[shape], 1, p)], dt)
+          else spring.update(dt, [0])
+          applyHandShape(rig, arm, shape, THREE.MathUtils.clamp(spring.y[0], 0, 1))
+        }
+      } else {
+        // arc : la consigne passe devant le corps, d'autant plus qu'on est loin des deux bouts
+        const left = springTarget.distanceTo(goal)
+        const progress = st.span > 1e-4 ? THREE.MathUtils.clamp(1 - left / st.span, 0, 1) : 1
+        // carré du sinus : nul et plat aux deux bouts, la main se pose exactement sur sa cible
+        const bulge = Math.sin(Math.PI * progress) ** 2 * ARC * st.span
+        vTmp.set(Math.sin(root.rotation.y), 0, Math.cos(root.rotation.y)).multiplyScalar(bulge)
+        springTarget.fromArray(st.pos.update(dt, arcGoal.copy(goal).add(vTmp).toArray()))
+        springPole.fromArray(st.pole.update(dt, goalPole.toArray()))
+        weight = THREE.MathUtils.clamp(st.weight.update(dt, [target ? 1 : 0])[0], 0, 1)
+        twist = st.twist.update(dt, [target?.twist ?? 0])[0]
+        ;[flex, deviation] = st.wrist.update(dt, target?.wrist ?? [0, 0])
+        for (const shape of HAND_SHAPES) {
+          const w = THREE.MathUtils.clamp(st.shapes[shape].update(dt, [target?.hand === shape ? 1 : 0])[0], 0, 1)
+          applyHandShape(rig, arm, shape, w)
+        }
       }
       if (weight <= 0.001) {
         st.push.reset([0, 0, 0])
@@ -661,7 +766,7 @@ export class GestureAnimator {
       // au changement de geste, l'orientation se relâche au lieu de sauter
       if (target?.touch) {
         st.touchAim = target
-        st.touch.reset([THREE.MathUtils.clamp(1 - springTarget.distanceTo(goal) / (TOUCH_REACH * scale), 0, 1)])
+        st.touch.reset([touchAmount ?? THREE.MathUtils.clamp(1 - springTarget.distanceTo(goal) / (TOUCH_REACH * scale), 0, 1)])
       } else st.touch.update(dt, [0])
       const touchWeight = weight * st.touch.y[0]
       const place = (offset: THREE.Vector3) => {
@@ -685,10 +790,13 @@ export class GestureAnimator {
         chain.forEach((bone, i) => bone.quaternion.copy(clipQ[i]))
         arm.upper.updateMatrixWorld(true)
       }
-      // en route, toujours ; arrivée près d'un contact (visage, hanche) ou du clip, la cible
-      // mesurée sur les vrais maillages prime : les capsules y sont trop grossières
+      // en route, toujours ; près du clip, la pose mesurée sur les vrais maillages prime
       const arriving = springTarget.distanceTo(goal) < CONTACT_ZONE * scale
-      const collide = rig.colliders.length > 0 && !(arriving && (!target || target.contact))
+      // approche d'un contact : jamais. Le trajet autour de l'épaule tient déjà la main hors
+      // du corps, et les capsules sont trop grossières près de lui : la main pendante est
+      // déjà dans celle du bassin, celle de la tête s'étend à 17 cm devant le menton ; elles
+      // la jetaient en avant au départ et la tenaient loin du visage jusqu'à l'arrivée
+      const collide = rig.colliders.length > 0 && !st.approach && !(arriving && !target)
       // jusqu'à trois passes : si le bras entre dans le corps, on décale la cible d'autant
       pushGoal.set(0, 0, 0)
       for (let pass = 0; pass < 3; pass++) {

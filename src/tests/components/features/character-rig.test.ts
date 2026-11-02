@@ -120,6 +120,20 @@ function restPose(root: THREE.Object3D) {
   }
 }
 
+/**
+ * Bras droit pendant le long du corps, comme dans IDLE, la main au fond d'une large
+ * capsule de bassin : sur le vrai modèle, la main au repos y est enfoncée de 16 cm.
+ */
+function restingInCapsule() {
+  const { root, animations } = makeCharacter()
+  const rig = createCharacterRig(root, animations)!
+  rig.arms.right.upper.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2 - 0.15)
+  rig.arms.right.lower.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.25)
+  root.updateMatrixWorld(true)
+  rig.colliders.push({ bone: rig.bones.hips, a: new THREE.Vector3(0, -0.15, -0.05), b: new THREE.Vector3(0, 0.3, -0.05), rx: 0.32, rz: 0.3 })
+  return { root, rig, reset: restPose(root) }
+}
+
 describe("solveArm", () => {
   it("amène le poignet sur une cible à portée", () => {
     const { arm } = makeArm()
@@ -408,27 +422,71 @@ describe("GestureAnimator, trajectoires", () => {
     expect(ahead).toBeGreaterThan(0.02)
   })
 
-  it("laisse une main de contact se poser malgré une capsule, mais l'écarte du corps en route", () => {
-    const { root, animations } = makeCharacter({ colliders: [] })
-    const rig = createCharacterRig(root, animations)!
-    const reset = restPose(root)
-    const target = handTargetWorld(rig, root, GESTURE_POSES.akimbo.right!, undefined, 0, 1, new THREE.Vector3())
-    const hips = rig.bones.hips
-    const local = hips.worldToLocal(target.clone())
-    // capsule plus large que la zone de contact, centrée sur la cible
-    const r = CONTACT_ZONE * 1.5
-    rig.colliders.push({ bone: hips, a: local.clone().add(new THREE.Vector3(0, -0.02, 0)), b: local.clone().add(new THREE.Vector3(0, 0.02, 0)), rx: r, rz: r })
+  it("monte au menton sans détour, le coude se pliant, même si la main part du fond d'une capsule", () => {
+    const { root, rig, reset } = restingInCapsule()
     const gestures = new GestureAnimator()
-    let closest = Infinity
+    const arm = rig.arms.right
+    const shoulder = new THREE.Vector3()
+    const wrist = arm.hand.getWorldPosition(new THREE.Vector3())
+    const start = wrist.clone()
+    const prev = wrist.clone()
+    let path = 0
+    let shortest = Infinity
+    let regrow = 0
+    for (let i = 0; i < 240; i++) {
+      reset()
+      gestures.update(rig, root, "think", 0, 1 / 60)
+      arm.upper.getWorldPosition(shoulder)
+      arm.hand.getWorldPosition(wrist)
+      path += wrist.distanceTo(prev)
+      prev.copy(wrist)
+      const reach = wrist.distanceTo(shoulder)
+      shortest = Math.min(shortest, reach)
+      regrow = Math.max(regrow, reach - shortest)
+    }
+    const target = handTargetWorld(rig, root, GESTURE_POSES.think.right!, undefined, 0, 1, new THREE.Vector3())
+    expect(wrist.distanceTo(target)).toBeLessThan(0.01)
+    // le bras ne se rallonge jamais en route ; la capsule jetait la main en avant (chemin 1,30 fois la ligne droite)
+    expect(regrow).toBeLessThan(0.005)
+    expect(path / start.distanceTo(target)).toBeLessThan(1.25)
+  })
+
+  it("pose les poings sur les hanches sans détour, même si la main part du fond d'une capsule", () => {
+    const { root, rig, reset } = restingInCapsule()
+    const target = handTargetWorld(rig, root, GESTURE_POSES.akimbo.right!, undefined, 0, 1, new THREE.Vector3())
+    const gestures = new GestureAnimator()
+    const start = rig.arms.right.hand.getWorldPosition(new THREE.Vector3())
+    const prev = start.clone()
+    let path = 0
     for (let i = 0; i < 300; i++) {
       reset()
       gestures.update(rig, root, "akimbo", 0, 1 / 60)
-      const d = rig.arms.right.hand.getWorldPosition(new THREE.Vector3()).distanceTo(target)
-      if (i < 20) closest = Math.min(closest, d)
+      const w = rig.arms.right.hand.getWorldPosition(new THREE.Vector3())
+      path += w.distanceTo(prev)
+      prev.copy(w)
     }
-    // en route, la capsule la tient à distance ; arrivée, la cible mesurée l'emporte
-    expect(closest).toBeGreaterThan(CONTACT_ZONE)
-    expect(rig.arms.right.hand.getWorldPosition(new THREE.Vector3()).distanceTo(target)).toBeLessThan(0.01)
+    expect(prev.distanceTo(target)).toBeLessThan(0.01)
+    // capsule active pendant l'approche : 2,2 fois la ligne droite
+    expect(path / start.distanceTo(target)).toBeLessThan(1.5)
+  })
+
+  it("garde l'élan de la main quand le geste change pendant l'approche d'un contact", () => {
+    const { root, rig, reset } = restingInCapsule()
+    const gestures = new GestureAnimator()
+    const hand = rig.arms.right.hand
+    const at = () => hand.getWorldPosition(new THREE.Vector3())
+    const steps: number[] = []
+    let prev = at()
+    for (let i = 0; i < 40; i++) {
+      reset()
+      // la réponse arrive pendant que la main monte au menton
+      gestures.update(rig, root, i < 15 ? "think" : "talk", 0, 1 / 60)
+      const w = at()
+      steps.push(w.distanceTo(prev))
+      prev = w
+    }
+    expect(steps[14]).toBeGreaterThan(0.01)
+    expect(steps[15]).toBeGreaterThan(steps[14] * 0.7)
   })
 
   it("quitte un contact posé dans une capsule sans sauter hors du corps", () => {

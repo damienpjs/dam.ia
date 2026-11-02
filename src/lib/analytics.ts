@@ -16,7 +16,6 @@ export type TAnalyticsEvent =
   | "chat_response_completed"
   | "chat_response_error"
   | "chat_source_clicked"
-  | "chat_message_copied"
   | "chat_message_reused"
   | "chat_reset"
   | "about_link_clicked"

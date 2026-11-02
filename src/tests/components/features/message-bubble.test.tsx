@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { render, screen, fireEvent, act } from "@testing-library/react"
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import { render, screen, fireEvent } from "@testing-library/react"
 import { MessageBubble, type IMessage } from "@/components/features/message-bubble"
 import { WELCOME_MESSAGE_ID } from "@/constants/chat"
 import { ASSISTANT_NAME } from "@/constants/profile"
@@ -169,48 +169,9 @@ describe("MessageBubble", () => {
     })
   })
 
-  describe("action copier", () => {
-    afterEach(() => {
-      vi.useRealTimers()
-    })
-
-    it("propose de copier une réponse terminée", () => {
-      render(<MessageBubble message={assistantMessage} />)
-      expect(screen.getByRole("button", { name: chat.copy })).toHaveTextContent(chat.copyLabel)
-    })
-
-    it("ne propose pas de copier une question du visiteur", () => {
-      render(<MessageBubble message={userMessage} />)
-      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
-    })
-
-    it("ne propose pas de copier pendant le streaming", () => {
-      render(<MessageBubble message={assistantMessage} isStreaming />)
-      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
-    })
-
-    it("ne propose pas de copier un message vide", () => {
-      render(<MessageBubble message={{ ...assistantMessage, content: "" }} />)
-      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
-    })
-
-    it("copie le contenu, confirme pendant 2 s puis revient à l'état initial", () => {
-      vi.useFakeTimers()
-      const writeText = vi.fn().mockResolvedValue(undefined)
-      Object.assign(navigator, { clipboard: { writeText } })
-
-      render(<MessageBubble message={assistantMessage} />)
-      fireEvent.click(screen.getByTestId("copy-button"))
-
-      expect(writeText).toHaveBeenCalledWith("Salut ! Je vais bien, merci.")
-      expect(screen.getByTestId("copy-button")).toHaveAccessibleName(chat.copied)
-      expect(screen.getByTestId("copy-button")).toHaveTextContent(chat.copiedLabel)
-
-      act(() => {
-        vi.advanceTimersByTime(2000)
-      })
-      expect(screen.getByTestId("copy-button")).toHaveAccessibleName(chat.copy)
-    })
+  it("n'affiche aucune action sous une réponse terminée", () => {
+    render(<MessageBubble message={assistantMessage} />)
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
   describe("action renvoyer", () => {
@@ -245,11 +206,6 @@ describe("MessageBubble", () => {
   })
 
   describe("showActions", () => {
-    it("masque l'action copier quand showActions est false", () => {
-      render(<MessageBubble message={assistantMessage} showActions={false} />)
-      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
-    })
-
     it("masque l'action renvoyer quand showActions est false", () => {
       render(<MessageBubble message={userMessage} onReuse={vi.fn()} showActions={false} />)
       expect(screen.queryByTestId("reuse-button")).not.toBeInTheDocument()
@@ -271,11 +227,6 @@ describe("MessageBubble", () => {
       expect(screen.getByTestId("message-bubble-error")).toHaveClass("text-ink")
     })
 
-    it("masque l'action copier sur une réponse en erreur", () => {
-      render(<MessageBubble message={errorMessage} />)
-      expect(screen.queryByTestId("copy-button")).not.toBeInTheDocument()
-    })
-
     it("n'applique pas le style d'erreur à un message assistant normal", () => {
       render(<MessageBubble message={assistantMessage} />)
       expect(screen.queryByTestId("message-bubble-error")).not.toBeInTheDocument()
@@ -291,15 +242,6 @@ describe("MessageBubble", () => {
 describe("MessageBubble : mesure d'audience", () => {
   beforeEach(() => {
     trackEvent.mockClear()
-  })
-
-  it("consigne la copie d'un message avec son rôle", () => {
-    Object.assign(navigator, { clipboard: { writeText: vi.fn() } })
-    render(<MessageBubble message={assistantMessage} />)
-
-    fireEvent.click(screen.getByTestId("copy-button"))
-
-    expect(trackEvent).toHaveBeenCalledWith("chat_message_copied", { role: "assistant" })
   })
 
   it("consigne le renvoi d'un message utilisateur", () => {

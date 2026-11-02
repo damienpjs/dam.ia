@@ -103,10 +103,6 @@ export interface IDictionary {
     /** Remplace l'heure dans l'en-tête d'une réponse en erreur. */
     errorLabel: string
     sourcesDir: string
-    copyLabel: string
-    copiedLabel: string
-    copy: string
-    copied: string
     reuseLabel: string
     reuse: string
   }
@@ -207,10 +203,6 @@ const FR: IDictionary = {
     streamError: "Désolé, une erreur est survenue. Réessaie !",
     errorLabel: "erreur",
     sourcesDir: "sources/",
-    copyLabel: "copier",
-    copiedLabel: "copié ✓",
-    copy: "Copier le message",
-    copied: "Copié",
     reuseLabel: "↻ renvoyer",
     reuse: "Renvoyer ce message",
   },
@@ -357,10 +349,6 @@ const EN: IDictionary = {
     streamError: "Sorry, something went wrong. Give it another try!",
     errorLabel: "error",
     sourcesDir: "sources/",
-    copyLabel: "copy",
-    copiedLabel: "copied ✓",
-    copy: "Copy the message",
-    copied: "Copied",
     reuseLabel: "↻ resend",
     reuse: "Resend this message",
   },

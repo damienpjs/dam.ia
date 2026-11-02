@@ -99,7 +99,6 @@ describe("constants/dictionary", () => {
     for (const locale of LOCALES) {
       const { chat } = DICTIONARIES[locale]
       const visible = (label: string) => label.replace(/[^\p{L}\s]/gu, "").trim().toLowerCase()
-      expect(chat.copy.toLowerCase()).toContain(visible(chat.copyLabel))
       expect(chat.reuse.toLowerCase()).toContain(visible(chat.reuseLabel))
       expect(chat.reset.toLowerCase()).toContain(visible(chat.resetLabel))
       expect(chat.sendAria.toLowerCase()).toContain(visible(chat.send))

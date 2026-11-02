@@ -35,6 +35,7 @@ type TParsedChunk = {
   messageId?: string
   status?: "ok" | "error"
   mood?: string
+  reset?: boolean
 }
 
 /**
@@ -97,6 +98,18 @@ vi.mock("@/lib/llm", () => ({
         yield "joy]] Avec "
         yield "plaisir."
         return
+      }
+      if (message.includes("restart-test")) {
+        // un provider composite abandonne un début de réponse et reprend à zéro
+        const { STREAM_RESTART } = await import("@/lib/llm/types")
+        yield "[[mood:joy]] Le "
+        yield STREAM_RESTART
+        yield "[[mood:proud]] Texte complet."
+        return
+      }
+      if (message.includes("cut-test")) {
+        yield "Début coupé"
+        throw new Error("connexion coupée")
       }
       if (message.includes("partial-tag-test")) {
         yield "[["
@@ -332,6 +345,49 @@ describe("POST /api/chat", () => {
 
     // Seules les sources effectivement retrouvées par Qdrant apparaissent
     expect(lastChunk.sources).toHaveLength(2)
+  })
+
+  it("n'affiche aucune source quand la question porte sur la fiche perso", async () => {
+    const mockResults = [
+      { text: "Chunk", source: "profile.md", score: 0.6, metadata: { sourceUrl: "/cv-damien-pasulj.pdf", sourceLabel: "CV (PDF)" } },
+    ]
+    vi.mocked(retrieveRelevantChunks).mockResolvedValueOnce(mockResults)
+    vi.mocked(formatRAGContext).mockReturnValueOnce("contexte")
+
+    const response = await POST(createMockRequest({ message: "Quelle est ta boisson préférée ?" }))
+    const chunks = await readStreamToChunks(response.body!)
+
+    expect(chunks[chunks.length - 1].sources).toBeUndefined()
+  })
+
+  it("signale la reprise au client et repart d'un texte vierge", async () => {
+    const { saveMessage } = await import("@/lib/db/chat-service")
+    const response = await POST(createMockRequest({ message: "restart-test", sessionId: "session-restart" }))
+    const chunks = await readStreamToChunks(response.body!)
+
+    const resetIndex = chunks.findIndex((c) => c.reset)
+    expect(resetIndex).toBeGreaterThan(-1)
+    expect(chunks.slice(0, resetIndex).map((c) => c.content).join("")).toBe("Le ")
+    expect(chunks.slice(resetIndex).map((c) => c.content).join("")).toBe("Texte complet.")
+    expect(chunks.filter((c) => c.mood).map((c) => c.mood)).toEqual(["joy", "proud"])
+    expect(saveMessage).toHaveBeenCalledWith("session-restart", "assistant", "Texte complet.", undefined)
+  })
+
+  it("jette le texte tronqué avant le message d'erreur quand le provider casse en plein flux", async () => {
+    const response = await POST(createMockRequest({ message: "cut-test", sessionId: "session-cut" }))
+    const chunks = await readStreamToChunks(response.body!)
+
+    const resetIndex = chunks.findIndex((c) => c.reset)
+    expect(chunks.slice(0, resetIndex).map((c) => c.content).join("")).toBe("Début coupé")
+    expect(chunks.slice(resetIndex).map((c) => c.content).join("")).toContain("Une erreur est survenue")
+    expect(chunks[chunks.length - 1].status).toBe("error")
+  })
+
+  it("n'émet pas de reset quand l'erreur survient avant tout texte", async () => {
+    const response = await POST(createMockRequest({ message: "error-test" }))
+    const chunks = await readStreamToChunks(response.body!)
+
+    expect(chunks.some((c) => c.reset)).toBe(false)
   })
 
   it("persiste les sources RAG avec la réponse assistant", async () => {

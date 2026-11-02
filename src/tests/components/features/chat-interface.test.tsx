@@ -221,6 +221,23 @@ describe("ChatInterface", () => {
     consoleErrorSpy.mockRestore()
   })
 
+  it("jette le début tronqué quand le serveur signale une reprise", async () => {
+    mockStreamChat.mockImplementation(async (_message: string, options: IStreamChatOptions) => {
+      for (const char of "Le début coupé") options.onChunk(char)
+      options.onReset?.()
+      for (const char of "Réponse complète.") options.onChunk(char)
+      options.onComplete?.({})
+    })
+
+    const user = setup()
+    render(<ChatInterface />)
+    await user.type(screen.getByLabelText(/message à envoyer/i), "Test")
+    await user.click(screen.getByRole("button", { name: "Envoyer" }))
+
+    await waitFor(() => expect(screen.getByText("Réponse complète.")).toBeInTheDocument(), { timeout: 2000 })
+    expect(screen.queryByText(/début coupé/)).not.toBeInTheDocument()
+  })
+
   it("garde le textarea éditable et désactive le bouton pendant le streaming", async () => {
     // Mock qui ne termine jamais pour tester l'état de streaming
     mockStreamChat.mockImplementation(async () => {

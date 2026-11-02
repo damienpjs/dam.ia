@@ -10,6 +10,16 @@ export interface IConversationMessage {
 }
 
 /**
+ * Marqueur émis par un provider composite quand il abandonne une réponse déjà
+ * entamée pour la reprendre à zéro sur un autre provider : le texte reçu jusque-là
+ * doit être jeté.
+ */
+export const STREAM_RESTART = Symbol("stream-restart")
+
+/** Morceau d'une réponse streamée : du texte, ou le marqueur de reprise. */
+export type TStreamPart = string | typeof STREAM_RESTART
+
+/**
  * Interface commune pour tous les providers LLM.
  * Chaque provider (Gemini, Anthropic, mock...) implémente cette interface.
  */
@@ -23,7 +33,7 @@ export interface ILLMProvider {
    *   récent, hors message courant. Optionnel : un appel sans historique reste
    *   un échange « one-shot » (rétrocompatible).
    */
-  streamResponse(message: string, history?: IConversationMessage[]): AsyncIterable<string>
+  streamResponse(message: string, history?: IConversationMessage[]): AsyncIterable<TStreamPart>
 }
 
 /**

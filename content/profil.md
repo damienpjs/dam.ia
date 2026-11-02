@@ -1,7 +1,7 @@
 ---
 title: "Profil Personnel"
 category: profil
-tags: [contact, localisation, langues, loisirs]
+tags: [contact, localisation, langues, loisirs, sport, philosophie, voyages]
 sourceUrl: "/cv-damien-pasulj.pdf"
 sourceLabel: "CV (PDF)"
 ---
@@ -32,9 +32,10 @@ sourceLabel: "CV (PDF)"
 
 ## Centres d'intérêt
 
-- **Voyages** : Découverte de nouvelles cultures
-- **Sport** : Activité physique régulière
-- **Philosophie** : Réflexion et développement personnel
+- **Voyages** : Découverte de nouvelles cultures (meilleur voyage : le Vietnam ; prochain : l'Italie)
+- **Sport** : Street workout (callisthénie) et course à pied, pour leur minimalisme
+- **Philosophie** : Le stoïcisme comme courant, Dostoïevski comme auteur préféré
+- **Bricolage**
 - **Dessin** : Expression créative (en lien avec le background UI/UX)
 
 ## Disponibilité

@@ -35,6 +35,14 @@ export const EYES: { left: IEyeShape; right: IEyeShape } = {
   right: { center: [0.3242, 0.7087], halfWidth: 0.08, halfUp: 0.052, halfDown: 0.04 },
 }
 
+/**
+ * Variation maximale de la feuille de visage par mètre de peau, au-delà de
+ * laquelle une face est une face de bordure. Sur la peau elle reste sous
+ * 1 / 0,26 ≈ 4 (projection frontale) ; une face de bordure saute de deux
+ * feuilles sur quelques centimètres, soit plus de 100.
+ */
+export const FACE_JUMP_MAX = 12
+
 /** Ligne de la bouche peinte : centre et demi-largeur dans la feuille de visage. */
 export const MOUTH = { center: [0.5, 0.3813] as [number, number], halfWidth: 0.1119 }
 
@@ -91,21 +99,26 @@ vec3 faceEye(vec3 col, vec2 p, float aa, vec2 c, float a, float bu, float bl, fl
   float pupil = faceStep(ir * 0.6 + softEdge * 2.0, ir * 0.6 - softEdge * 2.0, d);
   vec3 irisCol = mix(${glslVec3(IRIS_COLOR_INNER)}, ${glslVec3(IRIS_COLOR_OUTER)}, smoothstep(0.5, 0.9, d / ir));
   irisCol *= 1.0 - 0.45 * faceStep(ir * 0.8, ir, d);
+  // de loin, l'œil ne couvre que quelques pixels : les fondus et l'ombre de
+  // paupière, réglés pour le gros plan, mangeraient le blanc et l'œil aurait
+  // l'air fermé. distant passe de 0 (gros plan) à 1 (œil de 4 à 5 pixels de haut).
+  float distant = faceStep(bu * 0.08, bu * 0.3, aa);
   float lidShadow = faceStep(0.0, bu * 0.95, top - p.y);
   vec3 eye = vec3(0.92, 0.88, 0.84) * mix(0.62, 1.0, faceStep(0.0, 0.35, (p.y - lo) / max(top - lo, 1e-4)) * 0.4 + 0.6);
   eye = mix(eye, irisCol, iris);
   eye = mix(eye, vec3(0.05, 0.035, 0.025), pupil);
-  eye *= mix(0.32, 1.0, lidShadow);
+  eye *= mix(mix(0.32, 0.75, distant), 1.0, lidShadow);
   float h1 = faceStep(0.12 * ir + aa, 0.12 * ir - aa, length(p - (ic + vec2(0.38, 0.32) * ir)));
   eye = mix(eye, vec3(1.0), h1 * 0.45);
-  float edgeSoft = aa * 2.5;
+  float edgeSoft = aa * mix(2.5, 1.0, distant);
   float insideSoft = faceStep(-edgeSoft, edgeSoft, p.y - lo) * faceStep(-aa, aa, top - p.y);
   col = mix(col, eye, insideSoft);
 
   // trait de cils sur la paupière supérieure, ligne douce en bas
   float taper = pow(shape, 0.35);
   float thick = bu * (0.2 + 0.12 * clamp(xs, 0.0, 1.0)) * taper;
-  float lash = faceStep(-aa, aa * 2.0, p.y - (top - thick * 0.35)) * faceStep(-aa * 3.0, aa * 3.0, top + thick - p.y);
+  float lashSoft = mix(3.0, 1.0, distant);
+  float lash = faceStep(-aa, aa * mix(2.0, 1.0, distant), p.y - (top - thick * 0.35)) * faceStep(-aa * lashSoft, aa * lashSoft, top + thick - p.y);
   vec3 lashCol = vec3(0.17, 0.09, 0.07);
   return mix(col, lashCol, lash * 0.92);
 }
@@ -130,8 +143,11 @@ vec3 faceMouth(vec3 col, vec2 p, float aa, vec2 c, float w, float open) {
 /** Corps du dessin, injecté après la lecture de la texture de couleur. */
 export const FACE_FRAGMENT_BODY = /* glsl */ `
 float faceAa = length(fwidth(vFaceUv));
-// une face dont les coordonnées sautent (bordure de la feuille) ne dessine rien
-if (abs(vFaceUv.x - 0.5) < 0.6 && abs(vFaceUv.y - 0.5) < 0.6 && faceAa < 0.02) {
+// une face dont les coordonnées sautent (bordure de la feuille) ne dessine rien.
+// Le saut se mesure par mètre de peau et non par pixel (FACE_JUMP_MAX) : un
+// seuil par pixel couperait aussi les yeux dès que la tête rapetisse à l'écran.
+float faceJump = faceAa / max(length(fwidth(vViewPosition)), 1e-6);
+if (abs(vFaceUv.x - 0.5) < 0.6 && abs(vFaceUv.y - 0.5) < 0.6 && faceJump < ${FACE_JUMP_MAX.toFixed(1)}) {
   vec2 fuv = vFaceUv;
   float aa = max(faceAa * 0.75, 0.0004);
   vec3 col = diffuseColor.rgb;

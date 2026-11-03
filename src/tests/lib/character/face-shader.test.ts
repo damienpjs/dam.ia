@@ -3,6 +3,7 @@ import {
   EYES,
   FACE_FRAGMENT_BODY,
   FACE_FRAGMENT_HEADER,
+  FACE_JUMP_MAX,
   FACE_VERTEX_BODY,
   FACE_VERTEX_HEADER,
   IRIS_COLOR_INNER,
@@ -41,9 +42,22 @@ describe("face-shader", () => {
     expect(FACE_FRAGMENT_BODY.match(/faceEye\(/g)).toHaveLength(2)
     expect(FACE_FRAGMENT_BODY).toContain("faceMouth(")
     expect(FACE_FRAGMENT_BODY).toContain("abs(vFaceUv.x - 0.5) < 0.6")
-    // une face dont les coordonnées sautent ne dessine rien
-    expect(FACE_FRAGMENT_BODY).toContain("faceAa < 0.02")
     expect(FACE_FRAGMENT_BODY).not.toMatch(/NaN|undefined/)
+  })
+
+  it("écarte les faces de bordure par mètre de peau, pas par pixel, pour garder les yeux de loin", () => {
+    expect(FACE_FRAGMENT_BODY).toContain("fwidth(vViewPosition)")
+    expect(FACE_FRAGMENT_BODY).toContain(`faceJump < ${FACE_JUMP_MAX.toFixed(1)}`)
+    expect(FACE_FRAGMENT_BODY).not.toMatch(/faceAa < \d/)
+    // la peau avance d'au plus 1 / 0,26 feuille par mètre, une bordure de plus de 100
+    expect(FACE_JUMP_MAX).toBeGreaterThan(1 / 0.26)
+    expect(FACE_JUMP_MAX).toBeLessThan(100)
+  })
+
+  it("adoucit moins les bords et l'ombre de paupière quand l'œil ne fait que quelques pixels", () => {
+    expect(FACE_FRAGMENT_HEADER).toContain("float distant = faceStep(")
+    expect(FACE_FRAGMENT_HEADER).toContain("aa * mix(2.5, 1.0, distant)")
+    expect(FACE_FRAGMENT_HEADER).toContain("mix(mix(0.32, 0.75, distant), 1.0, lidShadow)")
   })
 
   it("lit le second jeu d'UV en retournant l'axe v du glTF", () => {
